@@ -669,6 +669,58 @@ describe('listing and ageing', () => {
     expect(issued.body.invoices[0]?.number).toBe('2026-0001')
   })
 
+  it('listInvoices returns outstanding net of bank allocations and linked credit notes', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    expect(listed.body.invoices[0]?.outstanding).toBe(listed.body.invoices[0]?.total)
+
+    const creditDraft = await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({
+        kind: 'credit_note',
+        creditsInvoiceId: drafted.body.id,
+        lines: [
+          {
+            description: 'Korting',
+            quantity: '1',
+            unitPrice: '2100',
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }),
+    )
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      creditDraft.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const afterCredit = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    const invoice = afterCredit.body.invoices.find((row) => row.id === issued.body.id)
+    const creditNote = afterCredit.body.invoices.find((row) => row.kind === 'credit_note')
+    expect(creditNote).toBeDefined()
+    expect(invoice?.outstanding).toBe(
+      String(BigInt(invoice!.total) - BigInt(creditNote!.total)),
+    )
+    expect(creditNote?.outstanding).toBe('0')
+  })
+
   it('ages overdue invoices, and ignores drafts', async () => {
     const { token } = await newEntity()
     await withCustomer(token)

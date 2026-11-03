@@ -1,11 +1,10 @@
 /**
- * Contacts list helpers (#107 Phase 6 / #130).
+ * Contacts list helpers (#107 Phase 6 / #130 / #195 item 1).
  *
  * Role tabs and search are client-side: `listContacts` only offers
- * `customersOnly`, not suppliers or a free-text filter ([API]). Open amounts on
- * the list use the overdue report (customers, matched by name) and purchase
- * `outstanding` (suppliers, by number) — full outstanding per contact on the
- * list itself is an [API] gap.
+ * `customersOnly`, not suppliers or a free-text filter ([API]). Customer open
+ * amounts use sales `outstanding` from `listInvoices`; supplier open uses
+ * purchase `outstanding`.
  */
 
 export type ContactsRoleFilter = 'all' | 'customers' | 'suppliers'
@@ -33,6 +32,8 @@ export interface ContactSalesDoc {
   readonly id: string
   readonly number: string | null
   readonly total: string
+  /** Still owed on issued invoices (total − allocations − linked credit notes). */
+  readonly outstanding: string
   readonly contactNumber: string
   readonly status: 'draft' | 'issued' | 'cancelled'
   readonly kind: 'invoice' | 'credit_note'
@@ -59,7 +60,7 @@ export interface ContactAggregate {
   /** Sum of sales invoice totals (customers) or purchase totals (suppliers). */
   readonly volumeMinor: bigint
   readonly documentCount: number
-  /** Overdue outstanding (customers) or purchase outstanding (suppliers). */
+  /** Open sales outstanding (customers) or purchase outstanding (suppliers). */
   readonly openMinor: bigint
   /** Days late of the oldest overdue sales invoice, when any. */
   readonly lateDays: number | null
@@ -78,7 +79,7 @@ export type ContactDocPillKind = 'draft' | 'cancelled'
 export interface ContactDocStatus {
   /** API status pill, or null when the row should show open-amount text. */
   readonly pill: ContactDocPillKind | null
-  /** Outstanding minor units when known from the overdue report; else null. */
+  /** Outstanding minor units when the invoice is still open; else null. */
   readonly openMinor: bigint | null
 }
 
@@ -126,11 +127,17 @@ export function filterContacts(
   })
 }
 
+function salesOpenMinor(doc: Pick<ContactSalesDoc, 'status' | 'kind' | 'outstanding'>): bigint {
+  if (doc.status !== 'issued' || doc.kind !== 'invoice') return 0n
+  const open = BigInt(doc.outstanding)
+  return open > 0n ? open : 0n
+}
+
 /**
  * Volume / document / open figures keyed by contact number.
  *
- * Customer open uses overdue rows matched by **name** (overdue list has no
- * contact number — [API]). Supplier open uses purchase `outstanding`.
+ * Customer open sums issued invoice `outstanding`. Overdue rows contribute
+ * `lateDays` only (matched by invoice id, then by contact name).
  */
 export function aggregateContacts(
   contacts: readonly ContactListRow[],
@@ -171,10 +178,13 @@ export function aggregateContacts(
     })
   }
 
+  const salesById = new Map(sales.map((doc) => [doc.id, doc]))
+
   for (const invoice of sales) {
     bump(invoice.contactNumber, {
       volume: BigInt(invoice.total),
       documents: 1,
+      open: salesOpenMinor(invoice),
     })
   }
 
@@ -188,15 +198,15 @@ export function aggregateContacts(
 
   const numberByName = new Map<string, string>()
   for (const contact of contacts) {
-    // Last write wins on duplicate names — honest limitation until overdue
-    // carries contactNumber.
     numberByName.set(contact.name, contact.number)
   }
 
   for (const row of overdue) {
-    const number = numberByName.get(row.contactName)
+    const linked = salesById.get(row.id)
+    const number =
+      linked?.contactNumber ?? numberByName.get(row.contactName)
     if (number === undefined) continue
-    bump(number, { open: BigInt(row.total), lateDays: row.daysOverdue })
+    bump(number, { lateDays: row.daysOverdue })
   }
 
   return byNumber
@@ -242,18 +252,29 @@ export function missingEInvoicingDetails(contact: {
  * How to label one sales document on the contact card.
  *
  * Pills only for `draft` / `cancelled` (exact `invoice_status` values).
- * `issued` never gets a late/paid pill — when the overdue report still lists
- * the invoice, surface its outstanding as plain open-amount text instead.
+ * `issued` never gets a late/paid pill — when still open, surface outstanding
+ * as plain open-amount text instead.
  */
 export function salesDocStatus(
-  doc: Pick<ContactSalesDoc, 'id' | 'status'>,
-  openById: ReadonlyMap<string, bigint>,
+  doc: Pick<ContactSalesDoc, 'status' | 'kind' | 'outstanding'>,
 ): ContactDocStatus {
   if (doc.status === 'draft') return { pill: 'draft', openMinor: null }
   if (doc.status === 'cancelled') return { pill: 'cancelled', openMinor: null }
-  const open = openById.get(doc.id)
-  if (open !== undefined && open > 0n) return { pill: null, openMinor: open }
+  const open = salesOpenMinor(doc)
+  if (open > 0n) return { pill: null, openMinor: open }
   return { pill: null, openMinor: null }
+}
+
+/** Short due date for muted secondary copy (`16 okt` / `16 Oct`). */
+export function formatContactInvoiceDue(iso: string, localeTag: string): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  if (year === undefined || month === undefined || day === undefined) return iso
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return iso
+  return new Intl.DateTimeFormat(localeTag, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, day)))
 }
 
 /**

@@ -149,6 +149,7 @@ function Contacts() {
       id: invoice.id,
       number: invoice.number,
       total: invoice.total,
+      outstanding: invoice.outstanding,
       contactNumber: invoice.contactNumber,
       status: invoice.status,
       kind: invoice.kind,
@@ -158,10 +159,10 @@ function Contacts() {
   const purchaseDocs = useMemo(() => (purchases.ok ? purchases.data.invoices : []), [purchases])
   const overdueRows = useMemo(() => (overdue.ok ? overdue.data.invoices : []), [overdue])
 
-  /** Outstanding by invoice id from the overdue report (issued + past due). */
-  const openByInvoiceId = useMemo(() => {
-    const map = new Map<string, bigint>()
-    for (const row of overdueRows) map.set(row.id, BigInt(row.total))
+  /** Days overdue by invoice id from the overdue report (open amount comes from listInvoices). */
+  const overdueDaysByInvoiceId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const row of overdueRows) map.set(row.id, row.daysOverdue)
     return map
   }, [overdueRows])
 
@@ -752,7 +753,7 @@ function Contacts() {
             aggregate={aggregates.get(active.number)}
             salesDocs={salesDocs.filter((doc) => doc.contactNumber === active.number)}
             purchaseDocs={purchaseDocs.filter((doc) => doc.contactNumber === active.number)}
-            openByInvoiceId={openByInvoiceId}
+            overdueDaysByInvoiceId={overdueDaysByInvoiceId}
             asOf={asOf}
             onErased={() => {
               void router.invalidate()

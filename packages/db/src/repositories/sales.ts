@@ -11,7 +11,7 @@ import {
   type UblInvoiceSource,
   type VatRounding,
 } from '@klopt/core'
-import { and, asc, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
@@ -788,6 +788,7 @@ export class SalesRepository {
    */
   async dunnable(entityId: string, asOf: string): Promise<readonly DunnableInvoice[]> {
     const allocated = this.allocatedPerInvoice(entityId)
+    const credits = this.creditsPerInvoice(entityId)
 
     const rows = await this.tx
       .select({
@@ -801,10 +802,12 @@ export class SalesRepository {
         contactName: contacts.name,
         contactEmail: contacts.email,
         allocated: allocated.total,
+        credited: credits.total,
       })
       .from(salesInvoices)
       .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
       .leftJoin(allocated, eq(allocated.invoiceId, salesInvoices.id))
+      .leftJoin(credits, eq(credits.invoiceId, salesInvoices.id))
       .where(
         and(
           eq(salesInvoices.entityId, entityId),
@@ -859,7 +862,7 @@ export class SalesRepository {
          * invoice that has been paid is not overdue and a partly paid one is
          * overdue for the remainder — which is the number to put in a reminder.
          */
-        total: row.total - BigInt(row.allocated ?? '0'),
+        total: this.invoiceOutstandingMinor('issued', 'invoice', row.total, row.allocated, row.credited),
         currency: row.currency,
         contactName: row.contactName,
         contactEmail: row.contactEmail,
@@ -882,7 +885,10 @@ export class SalesRepository {
       conditions.push(gte(salesInvoices.updatedAt, request.updatedSince))
     }
 
-    return this.tx
+    const allocated = this.allocatedPerInvoice(request.entityId)
+    const credits = this.creditsPerInvoice(request.entityId)
+
+    const rows = await this.tx
       .select({
         id: salesInvoices.id,
         kind: salesInvoices.kind,
@@ -894,14 +900,33 @@ export class SalesRepository {
         currency: salesInvoices.currency,
         contactNumber: contacts.number,
         contactName: contacts.name,
+        allocated: allocated.total,
+        credited: credits.total,
         // What a client passes back as `updatedSince` next time (ADR 0053).
         updatedAt: salesInvoices.updatedAt,
       })
       .from(salesInvoices)
       .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
+      .leftJoin(allocated, eq(allocated.invoiceId, salesInvoices.id))
+      .leftJoin(credits, eq(credits.invoiceId, salesInvoices.id))
       .where(and(...conditions))
       .orderBy(desc(salesInvoices.issueDate), desc(salesInvoices.number))
       .limit(request.limit)
+
+    return rows.map((row) => ({
+      id: row.id,
+      kind: row.kind,
+      status: row.status,
+      number: row.number,
+      issueDate: row.issueDate,
+      dueDate: row.dueDate,
+      total: row.total,
+      outstanding: this.invoiceOutstandingMinor(row.status, row.kind, row.total, row.allocated, row.credited),
+      currency: row.currency,
+      contactNumber: row.contactNumber,
+      contactName: row.contactName,
+      updatedAt: row.updatedAt,
+    }))
   }
 
   /**
@@ -932,6 +957,38 @@ export class SalesRepository {
       .as('allocated')
   }
 
+  /** Issued credit notes linked to an invoice, summed per credited invoice. */
+  private creditsPerInvoice(entityId: string) {
+    return this.tx
+      .select({
+        invoiceId: salesInvoices.creditsInvoiceId,
+        total: sql<string>`coalesce(sum(${salesInvoices.totalMinorUnits}), 0)::text`.as('credited'),
+      })
+      .from(salesInvoices)
+      .where(
+        and(
+          eq(salesInvoices.entityId, entityId),
+          eq(salesInvoices.status, 'issued'),
+          eq(salesInvoices.kind, 'credit_note'),
+          isNotNull(salesInvoices.creditsInvoiceId),
+        ),
+      )
+      .groupBy(salesInvoices.creditsInvoiceId)
+      .as('credits')
+  }
+
+  private invoiceOutstandingMinor(
+    status: 'draft' | 'issued' | 'cancelled',
+    kind: 'invoice' | 'credit_note',
+    total: bigint,
+    allocated: string | null | undefined,
+    credited: string | null | undefined,
+  ): bigint {
+    if (status !== 'issued' || kind === 'credit_note') return 0n
+    const open = total - BigInt(allocated ?? '0') - BigInt(credited ?? '0')
+    return open > 0n ? open : 0n
+  }
+
   /**
    * Issued, uncredited, not yet paid off, and past due.
    *
@@ -955,6 +1012,7 @@ export class SalesRepository {
    */
   async openInvoices(entityId: string, dueBefore: string | null) {
     const allocated = this.allocatedPerInvoice(entityId)
+    const credits = this.creditsPerInvoice(entityId)
 
     const rows = await this.tx
       .select({
@@ -966,10 +1024,12 @@ export class SalesRepository {
         contactName: contacts.name,
         contactEmail: contacts.email,
         allocated: allocated.total,
+        credited: credits.total,
       })
       .from(salesInvoices)
       .innerJoin(contacts, eq(contacts.id, salesInvoices.contactId))
       .leftJoin(allocated, eq(allocated.invoiceId, salesInvoices.id))
+      .leftJoin(credits, eq(credits.invoiceId, salesInvoices.id))
       .where(
         and(
           eq(salesInvoices.entityId, entityId),
@@ -983,7 +1043,10 @@ export class SalesRepository {
 
     // Outstanding, not invoiced. A paid invoice is not overdue.
     return rows
-      .map((row) => ({ ...row, total: row.total - BigInt(row.allocated ?? '0') }))
+      .map((row) => ({
+        ...row,
+        total: this.invoiceOutstandingMinor('issued', 'invoice', row.total, row.allocated, row.credited),
+      }))
       .filter((row) => row.total > 0n)
   }
 

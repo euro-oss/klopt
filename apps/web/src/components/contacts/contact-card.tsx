@@ -11,6 +11,7 @@ import { useT } from '~/i18n/provider'
 import {
   contactInitials,
   contactRoleLabel,
+  formatContactInvoiceDue,
   missingEInvoicingDetails,
   salesDocStatus,
   supplierOpenSummary,
@@ -187,7 +188,7 @@ export function ContactCard({
   aggregate,
   salesDocs,
   purchaseDocs,
-  openByInvoiceId,
+  overdueDaysByInvoiceId,
   asOf,
   onErased,
 }: {
@@ -195,7 +196,7 @@ export function ContactCard({
   aggregate: ContactAggregateSlice | undefined
   salesDocs: readonly ContactSalesDoc[]
   purchaseDocs: readonly ContactCardPurchaseDoc[]
-  openByInvoiceId: ReadonlyMap<string, bigint>
+  overdueDaysByInvoiceId: ReadonlyMap<string, number>
   asOf: string
   onErased: () => void
 }) {
@@ -292,7 +293,8 @@ export function ContactCard({
       <ContactCardInvoices
         contact={contact}
         salesDocs={salesDocs}
-        openByInvoiceId={openByInvoiceId}
+        overdueDaysByInvoiceId={overdueDaysByInvoiceId}
+        asOf={asOf}
         layout="desktop"
       />
 
@@ -334,7 +336,7 @@ export function PhoneContactCard({
   aggregate,
   salesDocs,
   purchaseDocs,
-  openByInvoiceId,
+  overdueDaysByInvoiceId,
   asOf,
   onErased,
 }: {
@@ -342,7 +344,7 @@ export function PhoneContactCard({
   aggregate: ContactAggregateSlice | undefined
   salesDocs: readonly ContactSalesDoc[]
   purchaseDocs: readonly ContactCardPurchaseDoc[]
-  openByInvoiceId: ReadonlyMap<string, bigint>
+  overdueDaysByInvoiceId: ReadonlyMap<string, number>
   asOf: string
   onErased: () => void
 }) {
@@ -432,7 +434,8 @@ export function PhoneContactCard({
       <ContactCardInvoices
         contact={contact}
         salesDocs={salesDocs}
-        openByInvoiceId={openByInvoiceId}
+        overdueDaysByInvoiceId={overdueDaysByInvoiceId}
+        asOf={asOf}
         layout="phone"
       />
 
@@ -473,12 +476,14 @@ export function PhoneContactCard({
 function ContactCardInvoices({
   contact,
   salesDocs,
-  openByInvoiceId,
+  overdueDaysByInvoiceId,
+  asOf,
   layout,
 }: {
   contact: ContactListRow
   salesDocs: readonly ContactSalesDoc[]
-  openByInvoiceId: ReadonlyMap<string, bigint>
+  overdueDaysByInvoiceId: ReadonlyMap<string, number>
+  asOf: string
   layout: 'desktop' | 'phone'
 }) {
   const { t } = useT()
@@ -491,7 +496,13 @@ function ContactCardInvoices({
           {t('contacts.card.invoicesHeading')}
         </h2>
         {salesDocs.slice(0, 8).map((doc) => (
-          <InvoiceRow key={doc.id} doc={doc} openByInvoiceId={openByInvoiceId} layout="desktop" />
+          <InvoiceRow
+            key={doc.id}
+            doc={doc}
+            overdueDaysByInvoiceId={overdueDaysByInvoiceId}
+            asOf={asOf}
+            layout="desktop"
+          />
         ))}
       </>
     )
@@ -509,7 +520,13 @@ function ContactCardInvoices({
         {t('contacts.card.invoicesHeading')}
       </h2>
       {salesDocs.slice(0, 8).map((doc) => (
-        <InvoiceRow key={doc.id} doc={doc} openByInvoiceId={openByInvoiceId} layout="phone" />
+        <InvoiceRow
+          key={doc.id}
+          doc={doc}
+          overdueDaysByInvoiceId={overdueDaysByInvoiceId}
+          asOf={asOf}
+          layout="phone"
+        />
       ))}
     </section>
   )
@@ -517,15 +534,50 @@ function ContactCardInvoices({
 
 function InvoiceRow({
   doc,
-  openByInvoiceId,
+  overdueDaysByInvoiceId,
+  asOf,
   layout,
 }: {
   doc: ContactSalesDoc
-  openByInvoiceId: ReadonlyMap<string, bigint>
+  overdueDaysByInvoiceId: ReadonlyMap<string, number>
+  asOf: string
   layout: 'desktop' | 'phone'
 }) {
-  const { t } = useT()
-  const status = salesDocStatus(doc, openByInvoiceId)
+  const { t, plural, tag } = useT()
+  const status = salesDocStatus(doc)
+  const overdueDays = overdueDaysByInvoiceId.get(doc.id)
+  const showDueHint =
+    status.openMinor !== null && doc.dueDate >= asOf && overdueDays === undefined
+  const dueHint = showDueHint
+    ? t('contacts.card.invoiceDue', { date: formatContactInvoiceDue(doc.dueDate, tag) })
+    : null
+
+  const statusLine =
+    status.pill !== null ? (
+      <Badge variant={status.pill === 'draft' ? 'secondary' : 'default'}>
+        {t(`contacts.pill.${status.pill}` as MessageKey)}
+      </Badge>
+    ) : status.openMinor !== null ? (
+      <span
+        className={cn(
+          'flex flex-col gap-0.5 tabular-nums',
+          layout === 'phone' ? 'items-start' : 'items-end text-right',
+        )}
+      >
+        <span className="text-ink-2 tabular-nums">
+          {t('contacts.card.docOpen', {
+            amount: formatMinorUnits(status.openMinor),
+          })}
+        </span>
+        {dueHint !== null ? (
+          <span className="text-ink-muted text-xs font-normal">{dueHint}</span>
+        ) : overdueDays !== undefined && overdueDays > 0 ? (
+          <Badge variant="destructive" className="font-normal">
+            {plural('sales.pill.daysLate', overdueDays, { days: String(overdueDays) })}
+          </Badge>
+        ) : null}
+      </span>
+    ) : null
 
   if (layout === 'phone') {
     return (
@@ -541,19 +593,7 @@ function InvoiceRow({
             <Money amount={doc.total} />
           </span>
         </span>
-        <span>
-          {status.pill !== null ? (
-            <Badge variant={status.pill === 'draft' ? 'secondary' : 'default'}>
-              {t(`contacts.pill.${status.pill}` as MessageKey)}
-            </Badge>
-          ) : status.openMinor !== null ? (
-            <span className="text-ink-2 text-sm tabular-nums">
-              {t('contacts.card.docOpen', {
-                amount: formatMinorUnits(status.openMinor),
-              })}
-            </span>
-          ) : null}
-        </span>
+        <span className="flex flex-col gap-1">{statusLine}</span>
       </Link>
     )
   }
@@ -565,17 +605,7 @@ function InvoiceRow({
       className="hover:bg-[var(--surface-hover)] flex items-center justify-between gap-3 border-t border-[var(--line-soft)] px-6 py-2.5 text-sm no-underline"
     >
       <span className="flex-1 tabular-nums">{doc.number ?? t('contacts.card.draft')}</span>
-      {status.pill !== null ? (
-        <Badge variant={status.pill === 'draft' ? 'secondary' : 'default'}>
-          {t(`contacts.pill.${status.pill}` as MessageKey)}
-        </Badge>
-      ) : status.openMinor !== null ? (
-        <span className="text-ink-2 tabular-nums">
-          {t('contacts.card.docOpen', {
-            amount: formatMinorUnits(status.openMinor),
-          })}
-        </span>
-      ) : null}
+      {statusLine}
       <span className="w-[100px] text-right tabular-nums">
         €&nbsp;
         <Money amount={doc.total} />
