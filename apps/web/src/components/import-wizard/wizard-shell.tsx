@@ -16,6 +16,7 @@ import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
 import {
   IMPORT_RAIL_IDS,
+  IMPORT_RAIL_STEP_COUNT,
   railEntryStep,
   railIndex,
   wizardStepKeysForSource,
@@ -68,15 +69,33 @@ function stepOfLabel(
   step: ImportWizardStep,
   source: ImportWizardSource | null,
 ): string {
-  const steps = wizardStepsForSource(source)
-  const keys = wizardStepKeysForSource(source)
-  const found = steps.indexOf(step)
-  const index = found >= 0 ? found : Math.max(0, steps.length - 1)
+  if (source === 'exact') {
+    const steps = wizardStepsForSource('exact')
+    const keys = wizardStepKeysForSource('exact')
+    const found = steps.indexOf(step)
+    const index = found >= 0 ? found : Math.max(0, steps.length - 1)
+    return t('wizard.stepOf', {
+      step: String(index + 1),
+      total: String(steps.length),
+      label: t(keys[index]!),
+    })
+  }
+  const index = railIndex(step)
+  const railId: ImportRailId = IMPORT_RAIL_IDS[index] ?? 'source'
   return t('wizard.stepOf', {
     step: String(index + 1),
-    total: String(steps.length),
-    label: t(keys[index]!),
+    total: String(IMPORT_RAIL_STEP_COUNT),
+    label: t(RAIL_KEY[railId]),
   })
+}
+
+/** Shared "Stap N van M: label" for shell mobile line and step headers (#134 / #180). */
+export function wizardStepOfLabel(
+  t: ReturnType<typeof useT>['t'],
+  step: ImportWizardStep,
+  source: ImportWizardSource | null,
+): string {
+  return stepOfLabel(t, step, source)
 }
 
 export function WizardProgressRail({

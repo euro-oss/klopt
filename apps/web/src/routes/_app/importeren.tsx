@@ -32,6 +32,7 @@ import {
   WizardStatusToast,
   WizardStepHeader,
   wizardCardClass,
+  wizardStepOfLabel,
 } from '~/components/import-wizard/wizard-shell'
 import {
   countNotInForceDocuments,
@@ -57,7 +58,6 @@ import { may, MAY_IMPORT_AUDIT_FILE, MAY_LEDGER_IMPORT } from '~/lib/roles'
 import { stageAuditFileXml } from '~/lib/audit-file-pending'
 import { importVatRulesFromListTaxCodes, type ImportVatRule } from '~/lib/import-findings'
 import {
-  IMPORT_RAIL_STEP_COUNT,
   IMPORT_WIZARD_STEP_KEYS,
   canAdvanceFromAdministratie,
   canAdvanceFromBron,
@@ -70,10 +70,7 @@ import {
   isImportWizardStep,
   isTerminalStep,
   prevStep,
-  railIndex,
   stepIndex,
-  wizardStepKeysForSource,
-  wizardStepsForSource,
   type ImportWizardSource,
   type ImportWizardStep,
 } from '~/lib/import-wizard'
@@ -1140,23 +1137,7 @@ function ImportWizardPage() {
           />
         </div>
         <p className="text-ink-2 mt-1 text-[13px] tabular-nums md:hidden">
-          {t('wizard.stepOf', {
-            step: String(
-              (source === 'exact'
-                ? Math.max(0, wizardStepsForSource('exact').indexOf(step))
-                : railIndex(step)) + 1,
-            ),
-            total: String(
-              source === 'exact' ? wizardStepsForSource('exact').length : IMPORT_RAIL_STEP_COUNT,
-            ),
-            label: t(
-              wizardStepKeysForSource(source)[
-                source === 'exact'
-                  ? Math.max(0, wizardStepsForSource('exact').indexOf(step))
-                  : railIndex(step)
-              ]!,
-            ),
-          })}
+          {wizardStepOfLabel(t, step, source)}
         </p>
       </div>
       <div className="min-w-0 flex-1 max-md:pb-28">
