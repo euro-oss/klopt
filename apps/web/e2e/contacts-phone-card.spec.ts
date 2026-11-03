@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  hydrated,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
  * Phone contact card (#130): `/contacts/$id` matches PhoneContactCard boards at
@@ -81,6 +88,7 @@ test('phone contact card at 390 light and dark; edit via Bewerken', async ({ pag
     await expect(card.getByRole('link', { name: '‹ Relaties' })).toBeVisible()
     await expect(card.getByRole('link', { name: 'Bewerken' })).toBeVisible()
     await expect(card.getByRole('link', { name: 'Nieuwe factuur' })).toBeVisible()
+    await expect(card.getByRole('region', { name: 'Contactgegevens' })).toBeVisible()
     await expect(card).toContainText('Zandbank Advies')
     await expect(card).toContainText('Amsterdam')
     await expect(card).toContainText('DEB-1302')
@@ -105,4 +113,117 @@ test('phone list opens the card route, not the edit form', async ({ page }) => {
   await expect(page).toHaveURL(/\/contacts\/[0-9a-f-]+$/)
   await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
   await expect(page.getByLabel('Naam', { exact: true })).toBeHidden()
+})
+
+async function assertPhoneCardPrivacyHidden(page: Page, contactId: string): Promise<void> {
+  for (const theme of ['light', 'dark'] as const) {
+    await persistThemeCookie(page, theme)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`/contacts/${contactId}`)
+    await page.reload()
+    await page.waitForFunction(() => window.matchMedia('(max-width: 767px)').matches)
+    await setTheme(page, theme)
+    const card = page.getByRole('complementary', { name: 'Relatiekaart' })
+    await expect(card).toBeVisible()
+    await expect(card.getByRole('region', { name: 'Contactgegevens' })).toBeVisible()
+    await expect(card.getByText('Privacyverzoek')).toHaveCount(0)
+    await expect(card.getByRole('button', { name: 'Persoonsgegevens wissen' })).toHaveCount(0)
+  }
+}
+
+async function assertPhoneCardPrivacyVisible(page: Page, contactId: string): Promise<void> {
+  for (const theme of ['light', 'dark'] as const) {
+    await persistThemeCookie(page, theme)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`/contacts/${contactId}`)
+    await page.reload()
+    await page.waitForFunction(() => window.matchMedia('(max-width: 767px)').matches)
+    await setTheme(page, theme)
+    const card = page.getByRole('complementary', { name: 'Relatiekaart' })
+    await expect(card).toBeVisible()
+    await expect(card.getByRole('region', { name: 'Contactgegevens' })).toBeVisible()
+    await expect(card.getByRole('region', { name: 'Privacyverzoek' })).toBeVisible({
+      timeout: 60_000,
+    })
+    await expect(card.getByRole('button', { name: 'Persoonsgegevens wissen' })).toBeVisible()
+  }
+}
+
+async function inviteMember(
+  ownerPage: Page,
+  memberEmail: string,
+  role: 'Accountant' | 'Boekhouder',
+): Promise<void> {
+  await ownerPage.goto('/members')
+  const invite = ownerPage.locator('form', {
+    has: ownerPage.getByRole('button', { name: 'Uitnodigen' }),
+  })
+  await invite.getByLabel('E-mail').fill(memberEmail)
+  await chooseOption(ownerPage, 'Rol', role, invite)
+  await ownerPage.getByRole('button', { name: 'Uitnodigen' }).click()
+  await expect(ownerPage.getByText(new RegExp(`${memberEmail} heeft nu toegang`))).toBeVisible()
+}
+
+test('phone card privacy erase hidden for Accountant at 390 light and dark', async ({
+  browser,
+}) => {
+  test.setTimeout(90_000)
+  const ownerCtx = await browser.newContext()
+  const memberCtx = await browser.newContext()
+
+  try {
+    const ownerPage = await ownerCtx.newPage()
+    await openAdmin(ownerPage)
+    const contactId = await seedCustomer(ownerPage)
+
+    const memberPage = await memberCtx.newPage()
+    const memberEmail = uniqueEmail()
+    await memberPage.goto('/sign-in')
+    await signIn(memberPage, memberEmail)
+    await expect(memberPage.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+    await inviteMember(ownerPage, memberEmail, 'Accountant')
+    await memberPage.goto('/')
+    await expect(
+      memberPage.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+    ).toBeVisible()
+    await assertPhoneCardPrivacyHidden(memberPage, contactId)
+  } finally {
+    await ownerCtx.close()
+    await memberCtx.close()
+  }
+})
+
+test('phone card privacy erase hidden for Boekhouder at 390 light and dark', async ({
+  browser,
+}) => {
+  test.setTimeout(90_000)
+  const ownerCtx = await browser.newContext()
+  const memberCtx = await browser.newContext()
+
+  try {
+    const ownerPage = await ownerCtx.newPage()
+    await openAdmin(ownerPage)
+    const contactId = await seedCustomer(ownerPage)
+
+    const memberPage = await memberCtx.newPage()
+    const memberEmail = uniqueEmail()
+    await memberPage.goto('/sign-in')
+    await signIn(memberPage, memberEmail)
+    await expect(memberPage.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+    await inviteMember(ownerPage, memberEmail, 'Boekhouder')
+    await memberPage.goto('/')
+    await expect(
+      memberPage.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
+    ).toBeVisible()
+    await assertPhoneCardPrivacyHidden(memberPage, contactId)
+  } finally {
+    await ownerCtx.close()
+    await memberCtx.close()
+  }
+})
+
+test('phone card privacy erase visible for owner at 390 (positive control)', async ({ page }) => {
+  await openAdmin(page)
+  const contactId = await seedCustomer(page)
+  await assertPhoneCardPrivacyVisible(page, contactId)
 })

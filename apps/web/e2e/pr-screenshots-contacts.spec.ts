@@ -1,5 +1,6 @@
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { crc32 } from 'node:zlib'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
@@ -17,6 +18,19 @@ import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from 
 const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '130'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
+/** tEXt Source chunk — repo-relative path, no absolute or /tmp paths. */
+const SCREENSHOT_SOURCE = 'e2e/pr-screenshots-contacts.spec.ts'
+
+function withPngSourceChunk(png: Buffer, source: string): Buffer {
+  const data = Buffer.concat([Buffer.from('Source\0', 'latin1'), Buffer.from(source, 'latin1')])
+  const type = Buffer.from('tEXt', 'latin1')
+  const len = Buffer.alloc(4)
+  len.writeUInt32BE(data.length)
+  const crc = Buffer.alloc(4)
+  crc.writeUInt32BE(crc32(Buffer.concat([type, data])))
+  const iend = png.length - 12
+  return Buffer.concat([png.subarray(0, iend), len, type, data, crc, png.subarray(iend)])
+}
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -92,7 +106,8 @@ async function shoot(
 ): Promise<void> {
   await page.setViewportSize(size)
   await page.waitForTimeout(200)
-  await page.screenshot({ path: join(OUT, name), fullPage: false })
+  const png = await page.screenshot({ fullPage: false })
+  writeFileSync(join(OUT, name), withPngSourceChunk(png, SCREENSHOT_SOURCE))
 }
 
 test('01 empty — desktop 1440 light/dark + phone bonus', async ({ page }) => {
@@ -201,6 +216,6 @@ test('04 phone card missing e-invoicing details — mobile 390 light', async ({ 
   const card = page.getByRole('complementary', { name: 'Relatiekaart' })
   await expect(card).toBeVisible()
   await expect(card.getByRole('link', { name: 'Gegevens toevoegen' })).toBeVisible()
-  await expect(card.getByText('Nodig voor e-facturen.')).toBeVisible()
+  await expect(card.getByText('Nodig voor e-facturatie.')).toBeVisible()
   await shoot(page, '04-contacts-add-details-light-mobile-390.png', { width: 390, height: 844 })
 })

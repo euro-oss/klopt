@@ -997,7 +997,7 @@ export const nl = {
   'contacts.card.einvoiceNeed': 'nodig voor e-facturatie',
   'contacts.card.detailsOk': 'Compleet',
   'contacts.card.figures': 'Cijfers',
-  'contacts.card.einvoiceHint': 'Nodig voor e-facturen.',
+  'contacts.card.einvoiceHint': 'Nodig voor e-facturatie.',
   // Only `invoice_status` values (draft / cancelled). No paid / late pills (#107).
   'contacts.pill.draft': 'Concept',
   'contacts.pill.cancelled': 'Geannuleerd',
