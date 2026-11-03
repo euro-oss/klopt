@@ -661,7 +661,7 @@ function ContactCardDetails({
   if (layout === 'phone') {
     return (
       <section
-        aria-label={t('contacts.card.details')}
+        aria-label={t('contacts.card.detailsRegion')}
         className="border-border bg-surface overflow-hidden rounded-[var(--radius-xl)] border"
       >
         <FiguresRow label={t('contacts.card.number')}>

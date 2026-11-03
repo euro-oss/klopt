@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { PhoneContactCard } from '~/components/contacts/contact-card'
 import { PageHeader } from '~/components/app-shell'
 import { Button } from '~/components/ui/button'
@@ -44,6 +44,21 @@ export const Route = createFileRoute('/_app/contacts/$contactId')({
   component: ContactDetail,
 })
 
+/** Matches Tailwind `md` — phone card vs desktop edit are mutually exclusive in the tree. */
+function usePhoneLayout(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const media = window.matchMedia('(max-width: 767px)')
+      media.addEventListener('change', onChange)
+      return () => {
+        media.removeEventListener('change', onChange)
+      }
+    },
+    () => window.matchMedia('(max-width: 767px)').matches,
+    () => false,
+  )
+}
+
 function contactToListRow(row: {
   readonly id: string
   readonly number: string
@@ -75,6 +90,7 @@ function ContactDetail() {
   const { contactId } = Route.useParams()
   const { edit } = Route.useSearch()
   const router = useRouter()
+  const phoneLayout = usePhoneLayout()
 
   const cardData = useMemo(() => {
     if (!contact.ok) return null
@@ -134,7 +150,7 @@ function ContactDetail() {
 
   return (
     <>
-      {showPhoneCard && cardData !== null && (
+      {showPhoneCard && phoneLayout && cardData !== null && (
         <PhoneContactCard
           contact={cardData.listRow}
           aggregate={cardData.aggregate}
@@ -148,20 +164,18 @@ function ContactDetail() {
         />
       )}
 
-      {edit === true && (
-        <div className="md:hidden">
-          <ContactEditForm
-            contact={contact.data}
-            contactId={contactId}
-            layout="phone"
-            onSaved={() => {
-              void router.invalidate()
-            }}
-          />
-        </div>
+      {edit === true && phoneLayout && (
+        <ContactEditForm
+          contact={contact.data}
+          contactId={contactId}
+          layout="phone"
+          onSaved={() => {
+            void router.invalidate()
+          }}
+        />
       )}
 
-      <div className="hidden md:block">
+      {!phoneLayout && (
         <ContactEditForm
           contact={contact.data}
           contactId={contactId}
@@ -170,7 +184,7 @@ function ContactDetail() {
             void router.invalidate()
           }}
         />
-      </div>
+      )}
     </>
   )
 }
