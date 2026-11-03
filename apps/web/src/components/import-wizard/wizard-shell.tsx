@@ -96,38 +96,40 @@ export function WizardProgressRail({
     const found = steps.indexOf(step)
     const current = found >= 0 ? found : Math.max(0, steps.length - 1)
     return (
-      <Stepper
-        aria-label={t('wizard.steps')}
-        current={current}
-        className="max-w-full"
-        steps={steps.map((id, index) => ({ id, label: t(keys[index]!) }))}
-        {...(onJump === undefined
-          ? {}
-          : {
-              onJump: (index: number) => {
-                const target = steps[index]
-                if (target !== undefined) onJump(target)
-              },
-            })}
-      />
+      <nav aria-label={t('wizard.steps')}>
+        <Stepper
+          current={current}
+          className="max-w-full"
+          steps={steps.map((id, index) => ({ id, label: t(keys[index]!) }))}
+          {...(onJump === undefined
+            ? {}
+            : {
+                onJump: (index: number) => {
+                  const target = steps[index]
+                  if (target !== undefined) onJump(target)
+                },
+              })}
+        />
+      </nav>
     )
   }
   const current = railIndex(step)
   return (
-    <Stepper
-      aria-label={t('wizard.steps')}
-      current={current}
-      className="max-w-full"
-      steps={IMPORT_RAIL_IDS.map((id) => ({ id, label: t(RAIL_KEY[id]) }))}
-      {...(onJump === undefined
-        ? {}
-        : {
-            onJump: (index: number) => {
-              const target = railEntryStep(index)
-              if (target !== null) onJump(target)
-            },
-          })}
-    />
+    <nav aria-label={t('wizard.steps')}>
+      <Stepper
+        current={current}
+        className="max-w-full"
+        steps={IMPORT_RAIL_IDS.map((id) => ({ id, label: t(RAIL_KEY[id]) }))}
+        {...(onJump === undefined
+          ? {}
+          : {
+              onJump: (index: number) => {
+                const target = railEntryStep(index)
+                if (target !== null) onJump(target)
+              },
+            })}
+      />
+    </nav>
   )
 }
 
