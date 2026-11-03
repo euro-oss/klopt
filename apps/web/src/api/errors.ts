@@ -174,10 +174,10 @@ function readOwn(value: object, key: 'name' | 'message' | 'stack' | 'cause'): un
  * The location half of a V8 frame, or null when the line is not one.
  *
  * Only the location is kept, never the function name. Allowed shapes are
- * `native`, `<anonymous>`, or `path:line:col` where `path` is a file URL,
- * an http(s) URL without userinfo, a `node:` path, or a filesystem path
- * (contains `/`, `\`, or a file extension). Query strings are stripped from
- * URLs. A bare token ending in `:line:col` is not a path.
+ * `native`, `<anonymous>`, or `path:line:col` where `path` is an absolute
+ * POSIX or Windows path, or a `file://`, `node:`, `webpack-internal:///`, or
+ * `http(s)://` URL without userinfo, with a JS/TS source extension except on
+ * `node:` built-ins. Home profile segments are rewritten before logging.
  */
 function frameLocation(line: string): string | null {
   if (!line.startsWith('    at ')) return null
@@ -192,7 +192,50 @@ function frameLocation(line: string): string | null {
   const path = stripUrlQuery(parsed.path)
   if (path.includes('@') || urlLocationHasUserinfo(path)) return null
   if (!allowedFramePath(path)) return null
-  return `${path}:${parsed.line}:${parsed.col}`
+  const loggedPath = rewriteHomeInPath(path)
+  return `${loggedPath}:${parsed.line}:${parsed.col}`
+}
+
+/** Exported for unit tests of internal-error stack frame parsing. */
+export function internalErrorStackFrameLine(line: string): string | null {
+  return frameLocation(line)
+}
+
+const SOURCE_FILE = /\.(js|mjs|cjs|jsx|ts|mts|cts|tsx)$/i
+
+function hasSourceExtension(path: string): boolean {
+  return SOURCE_FILE.test(path)
+}
+
+function rewriteHomeInPath(path: string): string {
+  if (path.startsWith('/home/')) {
+    return path.replace(/^(\/home\/)[^/]+(\/)/, '$1~$2')
+  }
+  if (path.startsWith('/Users/')) {
+    return path.replace(/^(\/Users\/)[^/]+(\/)/, '$1~$2')
+  }
+  if (/^[A-Za-z]:\\/.test(path)) {
+    return path.replace(/^([A-Za-z]:\\Users\\)[^\\]+(\\)/, '$1~$2')
+  }
+  return path
+}
+
+function allowedFramePath(path: string): boolean {
+  if (/\s/.test(path)) return false
+
+  const lower = path.toLowerCase()
+  if (lower.startsWith('node:')) return true
+  if (lower.startsWith('file://')) return hasSourceExtension(path)
+  if (lower.startsWith('webpack-internal:///')) return hasSourceExtension(path)
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    if (path.includes('@') || urlLocationHasUserinfo(path)) return false
+    return hasSourceExtension(path)
+  }
+  if (path.includes('://')) return false
+
+  if (path.startsWith('/')) return hasSourceExtension(path)
+  if (/^[A-Za-z]:\\/.test(path)) return hasSourceExtension(path)
+  return false
 }
 
 function parseFramePathLineCol(
@@ -234,18 +277,6 @@ function urlLocationHasUserinfo(path: string): boolean {
   const at = after.indexOf('@')
   if (at === -1) return false
   return after.slice(0, at).includes(':')
-}
-
-function allowedFramePath(path: string): boolean {
-  const lower = path.toLowerCase()
-  if (lower.startsWith('file://')) return true
-  if (lower.startsWith('node:')) return true
-  if (lower.startsWith('http://') || lower.startsWith('https://')) {
-    return !path.includes('@')
-  }
-  if (path.includes('/') || path.includes('\\')) return true
-  if (/\.[a-z0-9]+$/i.test(path)) return true
-  return false
 }
 
 /**
