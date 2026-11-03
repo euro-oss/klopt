@@ -2,6 +2,124 @@
 
 Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Batch 1 leaves Hidde's own boards unchanged, apart from the keymap fix, the XAF copy and the Sidebar fixture below.
 
+## Settings: hub, company, books, access and data, dark and phone (#147)
+
+Hidde's five desktop-light Settings boards (`Settings`, `SettingsCompany`, `SettingsBooks`, `SettingsAccess`, `SettingsData`) get a dark 1440 board and phone 390 boards in light and dark, covering every tab. His files are not edited. Screenshots are in `derived-shots/settings-147/`.
+
+| Board | What it is | Screenshots in `derived-shots/settings-147/` |
+| --- | --- | --- |
+| `SettingsDark.dc.html` | Thin wrapper: Hidde's `Settings` hub with `theme="dark"` and `--line-control` on `--ink-muted` | `Settings-dark-1440` |
+| `SettingsCompanyDark.dc.html`, `theme` and `view` props (default dark, `details`) | Hidde's `SettingsCompany` at 1440, own file | `SettingsCompany-{details,bank,peppol,defaults}-dark-1440` |
+| `SettingsBooksDark.dc.html`, `theme` and `view` (default `years`) | Hidde's `SettingsBooks` at 1440, own file | `SettingsBooks-{years,chart,vat}-dark-1440` |
+| `SettingsAccessDark.dc.html`, `theme` and `view` (default `people`) | Hidde's `SettingsAccess` at 1440, own file | `SettingsAccess-{people,tokens,log}-dark-1440` |
+| `SettingsDataDark.dc.html`, `theme` and `view` (default `xaf`) | Hidde's `SettingsData` at 1440, own file | `SettingsData-{xaf,hooks,ret,seal}-dark-1440` |
+| `PhoneSettings.dc.html`, `theme` prop | The hub at 390: six groups as cards, one 56px switch row | `Settings-light-390` |
+| `PhoneSettingsCompany.dc.html`, `theme` and `view` | Company at 390: section chips, stacked fields, sticky Save | `SettingsCompany-{details,bank,peppol,defaults}-light-390` |
+| `PhoneSettingsBooks.dc.html`, `theme` and `view` | Books at 390: book years, categories and VAT codes as stacked rows | `SettingsBooks-{years,chart,vat}-light-390` |
+| `PhoneSettingsAccess.dc.html`, `theme` and `view` | People, tokens and assistants, the log | `SettingsAccess-{people,tokens,log}-light-390` |
+| `PhoneSettingsData.dc.html`, `theme` and `view` | Audit file, webhooks, retention, seals | `SettingsData-{xaf,hooks,ret,seal}-light-390` |
+| `PhoneSettingsDark.dc.html` and `PhoneSettings{Company,Books,Access,Data}Dark.dc.html` | The phone boards with `theme="dark"`; the four with tabs pass `view` on | the `-dark-390` shots |
+
+`view` values are the tab keys on Hidde's boards: `details`, `bank`, `peppol`, `defaults` (Company); `years`, `chart`, `vat` (Books); `people`, `tokens`, `log` (Access); `xaf`, `hooks`, `ret`, `seal` (Data). Tapping a tab or chip still switches on the board.
+
+All fifteen boards are registered in `canvas.json` (note `t147` at y 33700, boards at y 34000, under the #146 rows): the five dark desktop boards at x 0 to 6080, the ten phone boards at x 7600 to 11830. Each entry has `"derived": true` and a `derivedNote`.
+
+### Why four dark boards are their own file
+
+`SettingsDark` is a thin wrapper, like `HomeDark`, because the hub holds up in dark once the control border token is fixed (the `VatDark` override); that also gives the switch track 3:1. The four sub-pages are copies, because a wrapper only ever shows a board's first tab (the tab is in state) and because his light boards have things these rules don't allow, and editing his files is out of scope here:
+
+- All four: the "Settings" breadcrumb is `ink-2` and not underlined. The copies make it an underlined ink link to `SettingsDark`, and add a `view` prop that sets the first tab.
+- `SettingsCompany`: missing fields are outlined in `selection-edge` on `brand-tint`, 1.75:1 in light, which replaces the control border. The copy keeps the `--ink-muted` border and draws the yellow as an inner ring. The "2 missing" badge is cut off inside the 36px subnav item; the copy lets the item grow and keeps the badge on one line. The invoice email placeholder `invoices@…` reads `facturen@example.nl`.
+- `SettingsBooks`: open periods are outlined in `--line` (about 1.2:1), so open and closed can't be told apart; the copy outlines them in `--ink-muted`. Period numbers use Inter tabular figures instead of JetBrains Mono.
+- `SettingsAccess`: the second person is the seed user `owner@demo.invalid · Demo Seed Owner`; the copy uses a second owner, Jan Visser (`jan@bakkerij.example`), so the hub's "2 people, both owner" still holds. The invite placeholder `name@company.nl` (a real domain) reads `name@example.nl`. The OAuth link goes to `OAuthDark`.
+- `SettingsData`: the empty Book year cells show a dash; the copy says "None". The import link goes to `ImportFindingsDark`.
+
+All four also load Google Fonts; the copies load `../design-system/fonts/fonts.css`. Hidde's light boards still have these issues and should get the same fixes in whichever PR owns them.
+
+### Rules for these boards
+
+- Control borders: `.k-root[data-theme]{--line-control:var(--ink-muted)}`, the same rule as #145, #146, #152, #153 and #155. Inputs, selects, switches, chips, secondary buttons and the import drop zone use it.
+- In dark, key hints in a primary button are outlined in `--on-primary` (desktop only; phones show no key hints).
+- Links are ink and underlined. No `ink-faint` for text. No new status colours: "Incomplete" and "2 details missing" stay `brand-ink`, "mapped to RGS" and "no drift" stay `success`, the pills are Hidde's.
+- Phone: `.k-phone` at 390, Hidde's five-tab bar with More active (Settings lives under More), sticky at the bottom. No key hints. Targets are 44px or more: the back link, chips, every input and select, Remove and Hide, and full-width buttons. Each switch is a 56px row that is the switch (`role="switch"`), so the whole row is the target. Company's Save is 48px in a sticky bar above the tab bar.
+- Numbers are Inter with tabular figures (`.k-num`, `nw` where they must not wrap). JetBrains Mono is only for codes: ledger numbers, RGS codes, VAT codes and the seal (`.k-code`).
+- No hosting claims. Hidde drew no `edition="hosted"` states on these boards, and the derived copy adds none.
+- **Legal edits (decided via CoS, 2 Nov 2026), derived boards only:**
+  - Retention (`ret` tab, dark and phone): Hidde's "Storage is locked in compliance mode, so not even Klopt can delete early" reads "Storage: S3 with object lock in compliance mode, so nobody can delete early." **This line must follow the configured store; it is never fixed text.** A fresh install stores files in a folder with no object lock, as the /retention screen shows, so there the line must say that instead of naming S3 and object lock.
+  - Peppol (`peppol` tab, dark and phone): Hidde's "With Peppol, invoices go straight into your customer's books…" reads "Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another."
+- Sample people: Eva (`eva@bakkerij.example`) and Jan Visser (`jan@bakkerij.example`). Companies and accounts are Hidde's demo fixtures.
+- `shoot.mjs` printed no QA warnings for the 45 shots.
+
+### Invented, for Hidde to check
+
+- **Section chips on phone.** Each sub-page's side menu becomes wrapping 44px chips under the title, the selected one `primary`. Company keeps its "2 missing" badge in the chip. Books and Access show their counts (1, 31, 27; 2, 0, 200) in Inter, not as code chips.
+- **Back link.** "‹ Settings" (underlined, 44px) above each sub-page title on phone, to `PhoneSettings`.
+- **Hub on phone.** One card per group: tile, title and status line, then 56px rows with each row's detail under its name and a chevron. The ⌘K footnote is left out (no keyboard shortcuts on phone). Import rows go to `PhoneImportSource`, the rest to the phone sub-pages.
+- **Company on phone.** One column; street and number share a row (2:1), postcode and town too (1:2). Save sits in a sticky bar; "Changes apply to new invoices…" is the last line of the page. The Peppol electronic-address placeholder is shorter: "Empty: uses the KvK number".
+- **Books on phone.** The 12 periods are a 6 by 2 grid with the closed and open styles from the desktop copy. Categories are rows: number and name, "Equity · Credit" under it (D/C spelled out), the RGS code on the right; "Tap a category to change its name or RGS code." VAT codes: name, then code chip and "Sales · 21%", the pill on the right with a 44px Hide for unused codes. Add a category and Open 2026 are full-width buttons.
+- **Access on phone.** Each person: avatar, email, "You · since 17-10-2026" or "Jan Visser · since 17-10-2026", then a labelled Role select with Remove (secondary button, so it reads as a button) beside it. The four role cards are a 2 by 2 grid. The token name field label is "Name", with "What will use it" as help and "e.g. Monthly export" as placeholder. The log's five kind segments become a labelled "Show" select next to Export; each line has what and who on the left, date and time on the right.
+- **Data on phone.** Download 2025.xaf and Choose a file are full-width buttons. The webhook address placeholder is `https://boeken.example.nl/hook`. Retention counts are a 2 by 2 grid; the documents table becomes rows with the pill under the name and the size on the right (the empty Book year column is left out). The 64-character seal shows as two code lines of 32, with the full seal as the accessible name. Check it now, Check with the audit file and Manifest stack.
+
+### Contrast (WCAG 2.x)
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| Control, chip, switch and open-period border (`ink-muted`) on `surface` | 5.95:1 | 6.77:1 |
+| v2 `line-control` on `surface` (replaced) | 1.68:1 | 1.98:1 |
+| Open period number (`ink-muted`) on `surface-sunken` | 5.21:1 | 7.12:1 |
+| Missing-field border (`ink-muted`) on `brand-tint` / the yellow ring (`selection-edge`) | 5.49 / 1.75:1 | 5.60 / 8.81:1 |
+| "Incomplete", "2 details missing" (`brand-ink`) on `surface` | 5.07:1 | 10.65:1 |
+| "mapped to RGS", "no drift" (`success`) on `surface` / on `ground` | 6.16 / 5.64:1 | 9.96 / 10.82:1 |
+| Callout title (`ink`) on `brand-tint` | 16.33:1 | 13.07:1 |
+| Switch row text (`ink-2`) on `surface-sunken` | 9.14:1 | 12.34:1 |
+
+In light, the yellow ring is extra; the `ink-muted` border under it carries the 3:1.
+
+### Shooting
+
+From `design/redesign-2026-10/`:
+
+```sh
+O=derived-shots/settings-147
+node derived-shots/render/shoot.mjs $O --width=1440 'SettingsDark.dc.html?theme=dark=Settings-dark-1440' \
+  $(for v in details bank peppol defaults; do echo "SettingsCompanyDark.dc.html?theme=dark&view=$v=SettingsCompany-$v-dark-1440"; done) \
+  $(for v in years chart vat; do echo "SettingsBooksDark.dc.html?theme=dark&view=$v=SettingsBooks-$v-dark-1440"; done) \
+  $(for v in people tokens log; do echo "SettingsAccessDark.dc.html?theme=dark&view=$v=SettingsAccess-$v-dark-1440"; done) \
+  $(for v in xaf hooks ret seal; do echo "SettingsDataDark.dc.html?theme=dark&view=$v=SettingsData-$v-dark-1440"; done)
+A=('PhoneSettings.dc.html=Settings-light-390' 'PhoneSettingsDark.dc.html?theme=dark=Settings-dark-390')
+for b in "Company:details bank peppol defaults" "Books:years chart vat" "Access:people tokens log" "Data:xaf hooks ret seal"; do n=${b%%:*}
+  for v in ${b#*:}; do A+=("PhoneSettings$n.dc.html?view=$v=Settings$n-$v-light-390" "PhoneSettings${n}Dark.dc.html?theme=dark&view=$v=Settings$n-$v-dark-390"); done; done
+node derived-shots/render/shoot.mjs $O --width=390 "${A[@]}"
+```
+
+The dark phone shots go through the `Phone…Dark` wrappers, so they also check that `view` is passed on.
+
+### Copy, English and Dutch
+
+Strings Hidde already has on his Settings boards are not repeated here.
+
+| English (board) | Nederlands |
+| --- | --- |
+| ‹ Settings | ‹ Instellingen |
+| facturen@example.nl (placeholder) | facturen@example.nl |
+| Empty: uses the KvK number | Leeg: gebruikt het KvK-nummer |
+| Equity · Credit / Assets · Debit | Eigen vermogen · Credit / Activa · Debet |
+| Showing 12 of 31. Tap a category to change its name or RGS code. | 12 van 31. Tik op een categorie om de naam of RGS-code te wijzigen. |
+| Hide ICP (screen reader) | ICP verbergen |
+| You · since 17-10-2026 | Jij · sinds 17-10-2026 |
+| Jan Visser · since 17-10-2026 | Jan Visser · sinds 17-10-2026 |
+| Role | Rol |
+| Remove jan@bakkerij.example (screen reader) | jan@bakkerij.example verwijderen |
+| What will use it | Wat gaat hem gebruiken |
+| e.g. Monthly export | bijv. Maandexport |
+| Show (log filter) | Toon |
+| https://boeken.example.nl/hook (placeholder) | https://boeken.example.nl/hook |
+| Documents (retention list) | Documenten |
+| Seal (label) | Zegel |
+| None (empty book year) | Geen |
+| Storage: S3 with object lock in compliance mode, so nobody can delete early. | Opslag: S3 met object lock in compliance-modus, dus niemand kan eerder verwijderen. |
+| Peppol isn't connected yet. Invoices go out by email as UBL and PDF. Your network address will be your KvK number unless you choose another. | Peppol is nog niet aangesloten. Facturen gaan per e-mail als UBL en PDF. Je netwerkadres wordt je KvK-nummer, tenzij je een ander kiest. |
+
 ## Reports: profit and loss, balance sheet, ageing and trial balance, dark and phone (#146)
 
 Hidde's desktop-light `Reports` board gets a dark 1440 board and phone 390 boards in light and dark, covering all five tabs. His file is not edited. Screenshots are in `derived-shots/reports-146/`.

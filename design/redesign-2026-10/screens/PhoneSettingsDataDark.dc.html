@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Settings, your data (dark)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#147). Phone 390 dark: PhoneSettingsData.dc.html with theme="dark",
+  the same way HomeDark.dc.html wraps Main. Passes `view` (xaf, hooks, ret, seal) on. Self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:#111113}
+</style>
+</helmet>
+<div style="min-height: 844px; background: #111113;">
+  <dc-import name="PhoneSettingsData" theme="dark" view="{{view}}" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["xaf","hooks","ret","seal"],"default":"xaf"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { view: this.props.view ?? 'xaf' }; }
+}
+</script>
+</body>
+</html>
