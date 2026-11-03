@@ -22,7 +22,7 @@ const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '180'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 /** tEXt Source chunk — repo-relative path, no absolute or /tmp paths. */
-const SCREENSHOT_SOURCE = 'e2e/pr-screenshots-134.spec.ts'
+const SCREENSHOT_SOURCE = 'apps/web/e2e/pr-screenshots-134.spec.ts'
 
 const SIZES = [
   { label: 'desktop-1440', width: 1440, height: 1040 },

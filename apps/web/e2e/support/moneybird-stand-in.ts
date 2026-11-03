@@ -262,6 +262,104 @@ export async function startNullRateMoneybirdStandIn(
   }
 }
 
+/** One general-journal document — partial-stop e2e expects bookedCount_one (#180 QA). */
+export async function startOneDocumentMoneybirdStandIn(): Promise<MoneybirdStandIn> {
+  const token = 'mb-e2e-one-document-token'
+  const taxRates: Record<string, unknown>[] = []
+  const journals = [
+    {
+      id: 702,
+      reference: 'JNL-ONE',
+      date: '2026-03-05',
+      origin: 'manual',
+      general_journal_document_entries: [
+        {
+          id: 7021,
+          ledger_account_id: 6,
+          debit: '50.00',
+          credit: '0.00',
+          description: 'Correctie',
+        },
+        {
+          id: 7022,
+          ledger_account_id: 8,
+          debit: '0.00',
+          credit: '50.00',
+          description: 'Kapitaal',
+        },
+      ],
+      attachments: [],
+    },
+  ]
+
+  const server: Server = createServer((req, res) => {
+    const url = req.url ?? '/'
+    const auth = req.headers.authorization ?? ''
+    if (auth !== `Bearer ${token}`) {
+      res.writeHead(401)
+      res.end('unauthorised')
+      return
+    }
+    const json = (body: unknown): void => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify(body))
+    }
+    if (url.includes('/administrations.json')) {
+      json([ADMIN])
+      return
+    }
+    if (url.includes('ledger_accounts.json')) {
+      json(LEDGER)
+      return
+    }
+    if (url.includes('tax_rates.json')) {
+      json(taxRates)
+      return
+    }
+    if (url.includes('contacts.json')) {
+      json([])
+      return
+    }
+    if (url.includes('sales_invoices.json')) {
+      json([])
+      return
+    }
+    if (url.includes('purchase_invoices.json')) {
+      json([])
+      return
+    }
+    if (url.includes('general_journal_documents.json')) {
+      json(journals)
+      return
+    }
+    if (
+      url.includes('receipts.json') ||
+      url.includes('financial_accounts.json') ||
+      url.includes('financial_mutations.json') ||
+      url.includes('general_documents.json')
+    ) {
+      json([])
+      return
+    }
+    json([])
+  })
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve())
+  })
+  const address = server.address() as AddressInfo
+  const baseUrl = `http://127.0.0.1:${String(address.port)}/api/v2`
+
+  return {
+    baseUrl,
+    token,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()))
+      }),
+  }
+}
+
 /**
  * Null-% rates on 2025 documents — after mapping to Klopt codes that start in
  * the fiscal year (2026), preview raises `tax_code_not_in_force` (#99).
