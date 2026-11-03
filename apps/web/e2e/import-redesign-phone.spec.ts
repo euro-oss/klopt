@@ -175,16 +175,26 @@ async function clickNext(page: Page): Promise<void> {
   await next.click()
 }
 
-async function pickMoneybirdOnBron(page: Page): Promise<void> {
+/** Fresh Bron (source pick), clearing saved wizard progress when the resume card is shown. */
+async function ensureFreshBronStep(page: Page): Promise<void> {
   await page.goto('/importeren')
-  const restart = page.getByRole('button', { name: 'Opnieuw beginnen' })
-  if ((await restart.count()) > 0) {
-    await restart.first().click()
-    const dialog = page.getByRole('alertdialog', { name: /Je voortgang wissen/ })
-    await expect(dialog).toBeVisible()
-    await dialog.getByRole('button', { name: 'Opnieuw beginnen' }).click()
-    await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
-  }
+  const bronHeading = page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })
+  if (await bronHeading.isVisible()) return
+
+  const resumeSection = page.locator('section').filter({
+    has: page.getByRole('button', { name: 'Doorgaan' }),
+  })
+  await expect(resumeSection).toBeVisible({ timeout: 30_000 })
+  await resumeSection.getByRole('button', { name: 'Opnieuw beginnen' }).click()
+
+  const dialog = page.getByRole('alertdialog', { name: /Je voortgang wissen/ })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Opnieuw beginnen' }).click()
+  await expect(bronHeading).toBeVisible({ timeout: 30_000 })
+}
+
+async function pickMoneybirdOnBron(page: Page): Promise<void> {
+  await ensureFreshBronStep(page)
   const moneybird = page.getByRole('radio', { name: /Moneybird/ })
   await expect(moneybird).toBeEnabled({ timeout: 15_000 })
   await moneybird.click()
