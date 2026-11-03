@@ -133,10 +133,15 @@ test('card heading wraps a long unbroken name at 1440 light and dark; hidden at 
     await assertHeadingWrapsInCard(page)
 
     await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`/contacts/${id}`)
+    await setTheme(page, theme)
     await expect(page.locator('[data-phone-tab-bar]')).toBeVisible()
-    // Relatiekaart is desktop-only; phone card belongs to #130.
-    await expect(card).toBeHidden()
-    await expect(page.getByText('Niets openstaand')).toBeHidden()
-    await expect(card.locator('kbd', { hasText: 'e' })).toBeHidden()
+    const card = page.getByRole('complementary', { name: 'Relatiekaart' })
+    await expect(card).toBeVisible()
+    await expect(card).toContainText(LONG_NAME)
+    await expect(card).toContainText('Niets openstaand')
+    const heading = card.locator('[data-contact-name]')
+    await expect(heading).toHaveText(LONG_NAME)
+    await expect(heading).not.toHaveCSS('text-overflow', 'ellipsis')
   }
 })

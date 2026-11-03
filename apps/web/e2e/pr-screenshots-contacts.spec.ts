@@ -1,5 +1,6 @@
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { crc32 } from 'node:zlib'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
@@ -17,6 +18,19 @@ import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from 
 const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '130'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
+/** tEXt Source chunk — repo-relative path, no absolute or /tmp paths. */
+const SCREENSHOT_SOURCE = 'e2e/pr-screenshots-contacts.spec.ts'
+
+function withPngSourceChunk(png: Buffer, source: string): Buffer {
+  const data = Buffer.concat([Buffer.from('Source\0', 'latin1'), Buffer.from(source, 'latin1')])
+  const type = Buffer.from('tEXt', 'latin1')
+  const len = Buffer.alloc(4)
+  len.writeUInt32BE(data.length)
+  const crc = Buffer.alloc(4)
+  crc.writeUInt32BE(crc32(Buffer.concat([type, data])))
+  const iend = png.length - 12
+  return Buffer.concat([png.subarray(0, iend), len, type, data, crc, png.subarray(iend)])
+}
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
@@ -38,7 +52,7 @@ async function openAdmin(page: Page): Promise<void> {
   await hydrated(page)
 }
 
-async function seedContact(page: Page): Promise<void> {
+async function seedContact(page: Page): Promise<string> {
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-1300')
@@ -55,6 +69,9 @@ async function seedContact(page: Page): Promise<void> {
   await expect(
     page.getByRole('button', { name: /Zandbank Advies en Accountancy Partners B\.V\./ }),
   ).toBeVisible()
+  const id = new URL(page.url()).searchParams.get('id')
+  expect(id).toBeTruthy()
+  return id!
 }
 
 async function persistThemeCookie(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -89,7 +106,8 @@ async function shoot(
 ): Promise<void> {
   await page.setViewportSize(size)
   await page.waitForTimeout(200)
-  await page.screenshot({ path: join(OUT, name), fullPage: false })
+  const png = await page.screenshot({ fullPage: false })
+  writeFileSync(join(OUT, name), withPngSourceChunk(png, SCREENSHOT_SOURCE))
 }
 
 test('01 empty — desktop 1440 light/dark + phone bonus', async ({ page }) => {
@@ -111,7 +129,7 @@ test('01 empty — desktop 1440 light/dark + phone bonus', async ({ page }) => {
 
 test('02 seeded — desktop 1440 light/dark + phone bonus', async ({ page }) => {
   await openAdmin(page)
-  await seedContact(page)
+  const contactId = await seedContact(page)
   await persistThemeCookie(page, 'light')
   await page.goto('/contacts')
   await setTheme(page, 'light')
@@ -123,7 +141,81 @@ test('02 seeded — desktop 1440 light/dark + phone bonus', async ({ page }) => 
   await shoot(page, '02-contacts-data-dark-desktop-1440.png', { width: 1440, height: 1040 })
 
   await setTheme(page, 'light')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`/contacts/${contactId}`)
+  await setTheme(page, 'light')
+  await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
   await shoot(page, '02-contacts-data-light-mobile-390.png', { width: 390, height: 844 })
   await setTheme(page, 'dark')
   await shoot(page, '02-contacts-data-dark-mobile-390.png', { width: 390, height: 844 })
+})
+
+async function seedEntityForSales(page: Page): Promise<void> {
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+}
+
+async function issueInvoiceForCustomer(page: Page, customer: RegExp): Promise<void> {
+  await page.goto('/invoices/new')
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()
+  await page.getByRole('combobox', { name: 'Klant' }).click()
+  await page.getByRole('option', { name: customer }).click()
+  await page.getByLabel('Omschrijving regel 1').fill('Advies Q4')
+  await page.getByLabel('Aantal regel 1').fill('1')
+  await page.getByLabel('Eenheid regel 1').fill('EA')
+  await page.getByLabel('Prijs regel 1').fill('250,00')
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await expect(page.getByRole('heading', { name: /Factuur Concept/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Versturen en boeken' }).click()
+  await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
+}
+
+async function seedMinimalCustomer(page: Page): Promise<string> {
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-1301')
+  await page.getByLabel('Naam', { exact: true }).fill('Windvaan Workshops (demo)')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('button', { name: /Windvaan Workshops \(demo\)/ })).toBeVisible()
+  const id = new URL(page.url()).searchParams.get('id')
+  expect(id).toBeTruthy()
+  return id!
+}
+
+test('03 phone card with invoices — mobile 390 light', async ({ page }) => {
+  await openAdmin(page)
+  await seedEntityForSales(page)
+  const contactId = await seedContact(page)
+  await issueInvoiceForCustomer(page, /Zandbank Advies en Accountancy Partners B\.V\./)
+
+  await persistThemeCookie(page, 'light')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`/contacts/${contactId}`)
+  await setTheme(page, 'light')
+  await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Facturen' })).toBeVisible()
+  await shoot(page, '03-contacts-invoices-light-mobile-390.png', { width: 390, height: 844 })
+})
+
+test('04 phone card missing e-invoicing details — mobile 390 light', async ({ page }) => {
+  await openAdmin(page)
+  const id = await seedMinimalCustomer(page)
+
+  await persistThemeCookie(page, 'light')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`/contacts/${id}`)
+  await setTheme(page, 'light')
+  const card = page.getByRole('complementary', { name: 'Relatiekaart' })
+  await expect(card).toBeVisible()
+  await expect(card.getByRole('link', { name: 'Gegevens toevoegen' })).toBeVisible()
+  await expect(card.getByText('Nodig voor e-facturatie.')).toBeVisible()
+  await shoot(page, '04-contacts-add-details-light-mobile-390.png', { width: 390, height: 844 })
 })
