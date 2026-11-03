@@ -1,5 +1,6 @@
-import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
-import { Plus, Search, Shield } from 'lucide-react'
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { Plus, Search } from 'lucide-react'
+import { ContactCard } from '~/components/contacts/contact-card'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { Money } from '~/components/finance/money'
@@ -19,35 +20,25 @@ import {
   contactRoleLabel,
   countContactRoles,
   filterContacts,
-  missingEInvoicingDetails,
   parseContactsRoleFilter,
-  salesDocStatus,
   supplierOpenSummary,
   type ContactListRow,
-  type ContactPurchaseDoc,
   type ContactsRoleFilter,
   type ContactSalesDoc,
 } from '~/lib/contacts-list'
-import { formatMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
 import { localTodayIso } from '~/lib/local-clock'
 import { cn } from '~/lib/utils'
 import { listPurchaseInvoices } from '~/server/purchase'
-import {
-  createContact,
-  getContact,
-  listContacts,
-  listInvoices,
-  listOverdueInvoices,
-  pseudonymiseContact,
-} from '~/server/sales'
+import { createContact, listContacts, listInvoices, listOverdueInvoices } from '~/server/sales'
 
 /**
  * Contacts — list + card (#107 Phase 6 / #130).
  *
- * Board: `Contacts` at `fa4093b` (desktop light). Dark and phone use tokens /
- * existing patterns until Batch 2/3 boards. Filters All / Customers /
+ * Board: `Contacts` at `fa4093b` (desktop light). Phone list and card follow
+ * `PhoneContacts` / `PhoneContactCard` (+ dark derived boards). Dark desktop
+ * uses tokens with `--ink-muted` control borders.
  * Suppliers (`1`–`3`), `/` filter, `j`/`k` + Space/X select, `E` edit, `N F`
  * new invoice for customers. Create stays on this page (`N C` chord navigates
  * here; the button opens the form).
@@ -111,7 +102,7 @@ function Contacts() {
   const openNew = search.new === true
   const navigate = useNavigate()
   const router = useRouter()
-  const { t } = useT()
+  const { t, plural } = useT()
   const hydrated = useHydrated()
   const filterRef = useRef<HTMLInputElement | null>(null)
 
@@ -418,10 +409,29 @@ function Contacts() {
 
   return (
     <>
-      <header className="mb-0 flex flex-wrap items-center gap-3 pt-1 md:pt-0">
-        <h1 className="min-w-0 flex-1 text-2xl leading-[30px] font-semibold tracking-[-0.01em]">
-          {t('contacts.title')}
-        </h1>
+      <header className="mb-0 flex flex-col gap-3 pt-1 md:flex-row md:flex-wrap md:items-center md:pt-0">
+        <div className="flex min-w-0 items-center gap-3">
+          <h1 className="min-w-0 flex-1 text-2xl leading-[30px] font-semibold tracking-[-0.01em]">
+            {t('contacts.title')}
+          </h1>
+          <Button
+            type="button"
+            disabled={!hydrated}
+            onClick={() => {
+              if (creating) {
+                setManualCreate(false)
+                if (openNew) {
+                  void navigate({ to: '/contacts', search: contactsSearch({ new: false }) })
+                }
+                return
+              }
+              setManualCreate(true)
+            }}
+            className="min-h-11 shrink-0 md:hidden"
+          >
+            {creating ? t('common.cancel') : t('contacts.newShort')}
+          </Button>
+        </div>
         <label className="border-input bg-background focus-within:outline-ring relative flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-md)] border px-3 md:w-[260px] md:min-h-10">
           <Search className="text-ink-muted size-4 shrink-0" aria-hidden="true" />
           <Input
@@ -459,7 +469,7 @@ function Contacts() {
             }
             setManualCreate(true)
           }}
-          className="min-h-11 md:min-h-10"
+          className="hidden min-h-11 md:inline-flex md:min-h-10"
         >
           <Plus data-icon="inline-start" aria-hidden="true" />
           {creating ? t('common.cancel') : t('contacts.new')}
@@ -600,9 +610,27 @@ function Contacts() {
                 {shown.map((row) => {
                   const stats = aggregates.get(row.number)
                   const openMinor = stats?.openMinor ?? 0n
+                  const lateDays = stats?.lateDays ?? null
                   const isActive = row.id === activeId
                   const sub = row.email !== null && row.email !== '' ? row.email : row.number
                   const role = contactRoleLabel(row, roleLabels)
+                  const rowPurchases = purchaseDocs.filter(
+                    (doc) => doc.contactNumber === row.number,
+                  )
+                  const supplierStats =
+                    row.isSupplier && !row.isCustomer
+                      ? supplierOpenSummary(
+                          rowPurchases.map((bill) => ({
+                            id: bill.id,
+                            contactNumber: bill.contactNumber,
+                            total: bill.total,
+                            outstanding: bill.outstanding,
+                            dueDate: bill.dueDate,
+                            status: bill.status,
+                          })),
+                          asOf,
+                        )
+                      : null
                   const openLabel =
                     openMinor > 0n ? (
                       <>
@@ -610,7 +638,9 @@ function Contacts() {
                         <Money amount={openMinor} />
                       </>
                     ) : (
-                      '–'
+                      <span className="text-ink-muted text-[13px] font-normal md:text-sm">
+                        {t('contacts.list.openNone')}
+                      </span>
                     )
                   return (
                     <button
@@ -645,33 +675,48 @@ function Contacts() {
                       >
                         {contactInitials(row.name)}
                       </span>
-                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span
-                          data-contact-name=""
-                          title={row.name}
-                          className={cn(
-                            'break-words font-medium',
-                            row.isBlocked && 'text-muted-foreground line-through',
-                          )}
-                        >
-                          {row.name}
-                        </span>
-                        <span className="text-ink-muted truncate text-xs" title={sub}>
-                          {sub}
-                        </span>
-                        {/* Phone: role + open under the name so the name never yields width. */}
-                        <span className="text-ink-2 flex justify-between gap-3 text-sm md:hidden">
-                          <span className="min-w-0 truncate" title={role}>
-                            {role}
+                      <span className="flex min-w-0 flex-1 flex-col gap-1 md:gap-0.5">
+                        <span className="flex items-baseline justify-between gap-3 md:block">
+                          <span
+                            data-contact-name=""
+                            title={row.name}
+                            className={cn(
+                              'break-words font-medium md:block',
+                              row.isBlocked && 'text-muted-foreground line-through',
+                            )}
+                          >
+                            {row.name}
                           </span>
                           <span
                             className={cn(
-                              'shrink-0 tabular-nums',
-                              openMinor > 0n ? 'text-destructive font-semibold' : 'text-ink-muted',
+                              'shrink-0 tabular-nums md:hidden',
+                              openMinor > 0n ? 'text-destructive text-[15px] font-semibold' : '',
                             )}
                           >
                             {openLabel}
                           </span>
+                        </span>
+                        <span
+                          className="text-ink-muted hidden truncate text-xs md:block"
+                          title={sub}
+                        >
+                          {sub}
+                        </span>
+                        <span className="text-ink-2 flex items-center justify-between gap-3 text-[13px] md:hidden">
+                          <span className="min-w-0 truncate" title={`${role} · ${sub}`}>
+                            {role} · {sub}
+                          </span>
+                          {row.isCustomer && lateDays !== null && lateDays > 0 ? (
+                            <Badge variant="destructive" className="shrink-0">
+                              {plural('sales.pill.daysLate', lateDays, {
+                                days: String(lateDays),
+                              })}
+                            </Badge>
+                          ) : supplierStats !== null && supplierStats.overdueCount > 0 ? (
+                            <Badge variant="destructive" className="shrink-0">
+                              {t('contacts.list.pastDue')}
+                            </Badge>
+                          ) : null}
                         </span>
                       </span>
                       <span className="text-ink-2 hidden truncate text-sm md:block" title={role}>
@@ -683,7 +728,14 @@ function Contacts() {
                           openMinor > 0n ? 'text-destructive font-semibold' : 'text-ink-muted',
                         )}
                       >
-                        {openLabel}
+                        {openMinor > 0n ? (
+                          <>
+                            €&nbsp;
+                            <Money amount={openMinor} />
+                          </>
+                        ) : (
+                          '–'
+                        )}
                       </span>
                     </button>
                   )
@@ -730,403 +782,5 @@ function Contacts() {
         </span>
       </footer>
     </>
-  )
-}
-
-function ContactCard({
-  contact,
-  aggregate,
-  salesDocs,
-  purchaseDocs,
-  openByInvoiceId,
-  asOf,
-  onErased,
-}: {
-  contact: ContactListRow
-  aggregate:
-    | { volumeMinor: bigint; documentCount: number; openMinor: bigint; lateDays: number | null }
-    | undefined
-  salesDocs: readonly ContactSalesDoc[]
-  purchaseDocs: readonly {
-    id: string
-    total: string
-    outstanding: string
-    dueDate: string
-    status: string
-    supplierInvoiceNumber: string
-    contactNumber: string
-  }[]
-  openByInvoiceId: ReadonlyMap<string, bigint>
-  asOf: string
-  onErased: () => void
-}) {
-  const { t, plural } = useT()
-  const hydrated = useHydrated()
-  const year = asOf.slice(0, 4)
-  type DetailOk = {
-    readonly ok: true
-    readonly contact: {
-      readonly email: string | null
-      readonly iban: string | null
-      readonly vatNumber: string | null
-      readonly isSupplier: boolean
-      readonly address: {
-        readonly street: string | null
-        readonly postalCode: string | null
-        readonly city: string | null
-      } | null
-    }
-    readonly openDocuments: { readonly sales: number; readonly purchase: number }
-    readonly canErase: boolean
-  }
-  type DetailState = DetailOk | { readonly ok: false; readonly detail: string } | null
-  // Remount via key={contact.id} on the parent resets detail; only async setState here.
-  const [detail, setDetail] = useState<DetailState>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    void getContact({ data: { contactId: contact.id } }).then((result) => {
-      if (cancelled) return
-      if (!result.ok) {
-        setDetail({ ok: false, detail: result.problem.detail })
-        return
-      }
-      setDetail({
-        ok: true,
-        contact: result.data.contact,
-        openDocuments: result.data.openDocuments,
-        canErase: result.data.canErase,
-      })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [contact.id])
-
-  const volume = aggregate?.volumeMinor ?? 0n
-  const docs = aggregate?.documentCount ?? 0
-  const openMinor = aggregate?.openMinor ?? 0n
-  const openCount =
-    detail !== null && detail.ok ? detail.openDocuments.sales + detail.openDocuments.purchase : 0
-
-  const roleLabels = {
-    customer: t('contacts.customerLabel'),
-    supplier: t('contacts.supplierLabel'),
-    both: t('contacts.roleBoth'),
-  }
-  const role = contactRoleLabel(contact, roleLabels)
-  const sub =
-    detail !== null && detail.ok && detail.contact.address?.city
-      ? detail.contact.address.city
-      : contact.number
-
-  const needsDetails =
-    detail !== null &&
-    detail.ok &&
-    missingEInvoicingDetails({
-      email: detail.contact.email,
-      iban: detail.contact.iban,
-      isSupplier: detail.contact.isSupplier,
-      address: detail.contact.address,
-    })
-
-  const volLabel = contact.isCustomer
-    ? t('contacts.card.volCustomer', { year })
-    : t('contacts.card.volSupplier', { year })
-
-  const docLabel = contact.isCustomer
-    ? plural('contacts.card.invoices', docs, { count: String(docs) })
-    : plural('contacts.card.bills', docs, { count: String(docs) })
-
-  // Purchase side only — open count/amount; overdue only when dueDate < asOf (#163 Legal).
-  const purchaseSide: readonly ContactPurchaseDoc[] = purchaseDocs.map((bill) => ({
-    id: bill.id,
-    contactNumber: bill.contactNumber,
-    total: bill.total,
-    outstanding: bill.outstanding,
-    dueDate: bill.dueDate,
-    status: bill.status,
-  }))
-  const supplierSummary = supplierOpenSummary(purchaseSide, asOf)
-  const supplierOpenLine =
-    supplierSummary.openCount === 0
-      ? t('contacts.card.supplierOpenNone')
-      : t('contacts.card.supplierOpenSummary', {
-          count: String(supplierSummary.openCount),
-          amount: formatMinorUnits(supplierSummary.openMinor),
-        }) +
-        (supplierSummary.overdueCount > 0
-          ? plural('contacts.card.supplierOverdueSuffix', supplierSummary.overdueCount, {
-              count: String(supplierSummary.overdueCount),
-            })
-          : '')
-
-  return (
-    <aside
-      aria-label={t('contacts.card')}
-      className="border-border bg-surface hidden min-w-0 flex-[999_1_420px] flex-col overflow-hidden rounded-[var(--radius-xl)] border md:flex"
-    >
-      <div className="flex flex-col gap-4 border-b border-[var(--line-soft)] px-6 py-6">
-        <div className="flex min-w-0 items-start gap-4">
-          <span
-            className="bg-primary text-primary-foreground flex size-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold"
-            aria-hidden="true"
-          >
-            {contactInitials(contact.name)}
-          </span>
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span
-              data-contact-name=""
-              title={contact.name}
-              className="break-words text-xl leading-[26px] font-semibold"
-            >
-              {contact.name}
-            </span>
-            <span className="text-ink-muted">
-              {role} · {sub}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {contact.isCustomer && (
-            <Button asChild size="sm">
-              <Link to="/invoices/new">
-                {t('contacts.card.newInvoice')}
-                {hydrated && (
-                  <span className="ml-1 inline-flex gap-0.5 normal-case">
-                    <Keycap className="bg-primary-foreground/15 text-primary-foreground">n</Keycap>
-                    <Keycap className="bg-primary-foreground/15 text-primary-foreground">f</Keycap>
-                  </span>
-                )}
-              </Link>
-            </Button>
-          )}
-          <Button asChild variant="outline" size="sm">
-            <Link to="/contacts/$contactId" params={{ contactId: contact.id }}>
-              {t('contacts.card.edit')}
-              {hydrated && (
-                <span className="ml-1">
-                  <Keycap>e</Keycap>
-                </span>
-              )}
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 border-b border-[var(--line-soft)]">
-        <div className="flex flex-col gap-1 border-r border-[var(--line-soft)] px-6 py-4">
-          <span className="text-ink-muted text-[13px]">{volLabel}</span>
-          <span className="text-xl font-semibold tabular-nums">
-            €&nbsp;
-            <Money amount={volume} />
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 border-r border-[var(--line-soft)] px-6 py-4">
-          <span className="text-ink-muted text-[13px]">{t('contacts.card.documents')}</span>
-          <span className="text-xl font-semibold tabular-nums">{docLabel}</span>
-        </div>
-        <div className="flex flex-col gap-1 px-6 py-4">
-          <span className="text-ink-muted text-[13px]">{t('contacts.card.stillOpen')}</span>
-          <span
-            className={cn(
-              'text-xl font-semibold tabular-nums',
-              openMinor > 0n && 'text-destructive',
-            )}
-          >
-            €&nbsp;
-            <Money amount={openMinor} />
-          </span>
-        </div>
-      </div>
-
-      {contact.isCustomer && salesDocs.length > 0 && (
-        <>
-          <h2 className="text-ink-muted px-6 pt-4 pb-2 text-xs font-semibold tracking-[0.04em] uppercase">
-            {t('contacts.card.invoicesHeading')}
-          </h2>
-          {salesDocs.slice(0, 8).map((doc) => {
-            const status = salesDocStatus(doc, openByInvoiceId)
-            return (
-              <Link
-                key={doc.id}
-                to="/invoices/$invoiceId"
-                params={{ invoiceId: doc.id }}
-                className="hover:bg-[var(--surface-hover)] flex items-center justify-between gap-3 border-t border-[var(--line-soft)] px-6 py-2.5 text-sm no-underline"
-              >
-                <span className="flex-1 tabular-nums">
-                  {doc.number ?? t('contacts.card.draft')}
-                </span>
-                {status.pill !== null ? (
-                  <Badge variant={status.pill === 'draft' ? 'secondary' : 'default'}>
-                    {t(`contacts.pill.${status.pill}` as MessageKey)}
-                  </Badge>
-                ) : status.openMinor !== null ? (
-                  <span className="text-ink-2 tabular-nums">
-                    {t('contacts.card.docOpen', {
-                      amount: formatMinorUnits(status.openMinor),
-                    })}
-                  </span>
-                ) : null}
-                <span className="w-[100px] text-right tabular-nums">
-                  €&nbsp;
-                  <Money amount={doc.total} />
-                </span>
-              </Link>
-            )
-          })}
-        </>
-      )}
-
-      {contact.isSupplier && !contact.isCustomer && (
-        <div className="flex items-center justify-between gap-3 px-6 py-4">
-          <span className="text-ink-2 text-sm">{supplierOpenLine}</span>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/purchases" search={{ open: true }}>
-              {t('contacts.card.openCosts')}
-            </Link>
-          </Button>
-        </div>
-      )}
-
-      {contact.isSupplier && contact.isCustomer && purchaseDocs.length > 0 && (
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--line-soft)] px-6 py-4">
-          <span className="text-ink-2 text-sm">{supplierOpenLine}</span>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/purchases" search={{ open: true }}>
-              {t('contacts.card.openCosts')}
-            </Link>
-          </Button>
-        </div>
-      )}
-
-      <dl className="grid grid-cols-[150px_1fr] gap-y-2.5 border-t border-[var(--line-soft)] px-6 py-4 text-sm">
-        <dt className="text-ink-muted">{t('contacts.card.number')}</dt>
-        <dd className="m-0 tabular-nums">{contact.number}</dd>
-        <dt className="text-ink-muted">{t('contacts.vatNumber')}</dt>
-        <dd className="m-0 tabular-nums">
-          {detail !== null && detail.ok
-            ? (detail.contact.vatNumber ?? '–')
-            : (contact.vatNumber ?? '–')}
-        </dd>
-        <dt className="text-ink-muted">{t('contacts.paymentTerms')}</dt>
-        <dd className="m-0">
-          {plural('contacts.termsDays', contact.paymentTermsDays, {
-            days: String(contact.paymentTermsDays),
-          })}
-        </dd>
-        <dt className="text-ink-muted">{t('contacts.card.details')}</dt>
-        <dd className="m-0">
-          {needsDetails ? (
-            <>
-              <Link
-                to="/contacts/$contactId"
-                params={{ contactId: contact.id }}
-                className="text-link underline underline-offset-2"
-              >
-                {t('contacts.card.addDetails')}
-              </Link>{' '}
-              <span className="text-ink-muted">· {t('contacts.card.einvoiceNeed')}</span>
-            </>
-          ) : (
-            <span className="text-ink-muted">{t('contacts.card.detailsOk')}</span>
-          )}
-        </dd>
-      </dl>
-
-      {detail !== null && detail.ok && detail.canErase && (
-        <PrivacyErase contactId={contact.id} openCount={openCount} onErased={onErased} />
-      )}
-
-      {detail !== null && !detail.ok && (
-        <p role="alert" className="text-destructive px-6 pb-4 text-sm">
-          {detail.detail}
-        </p>
-      )}
-    </aside>
-  )
-}
-
-function PrivacyErase({
-  contactId,
-  openCount,
-  onErased,
-}: {
-  contactId: string
-  openCount: number
-  onErased: () => void
-}) {
-  const { t, plural } = useT()
-  const hydrated = useHydrated()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [done, setDone] = useState(false)
-  const [askReason, setAskReason] = useState(false)
-  const key = useRef(crypto.randomUUID())
-
-  async function erase(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const field = new FormData(event.currentTarget).get('reason')
-    const reason = typeof field === 'string' ? field.trim() : ''
-    if (reason === '') return
-
-    setBusy(true)
-    setError(null)
-    const result = await pseudonymiseContact({
-      data: { contactId, idempotencyKey: key.current, reason },
-    })
-    setBusy(false)
-    if (!result.ok) {
-      setError(result.problem.detail)
-      return
-    }
-    key.current = crypto.randomUUID()
-    setDone(true)
-    onErased()
-  }
-
-  return (
-    <div className="bg-surface-sunken mx-6 mb-6 flex items-start gap-3 rounded-[var(--radius-md)] p-3.5 text-[13px]">
-      <Shield className="text-ink-muted mt-0.5 size-[18px] shrink-0" aria-hidden="true" />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <strong className="text-sm font-semibold">{t('contacts.privacy.title')}</strong>
-        <span className="text-ink-muted">
-          {openCount > 0
-            ? plural('contacts.privacy.blocked', openCount, { count: String(openCount) })
-            : t('contacts.privacy.ok')}
-        </span>
-        {askReason && openCount === 0 && (
-          <form onSubmit={(event) => void erase(event)} className="mt-2 space-y-2">
-            <label className="block">
-              <span className="text-muted-foreground mb-1 block text-xs font-medium">
-                {t('erase.reason')}
-              </span>
-              <Input name="reason" required placeholder={t('erase.reasonPlaceholder')} />
-            </label>
-            <p className="text-destructive text-xs">{t('erase.irreversible')}</p>
-            {error !== null && (
-              <p role="alert" className="text-destructive text-sm">
-                {error}
-              </p>
-            )}
-            {done && <p className="text-sm">{t('erase.done')}</p>}
-            <Button type="submit" size="sm" disabled={busy || !hydrated}>
-              {busy ? t('common.busy') : t('contacts.privacy.erase')}
-            </Button>
-          </form>
-        )}
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={openCount > 0 || !hydrated || done}
-        onClick={() => {
-          setAskReason(true)
-        }}
-      >
-        {t('contacts.privacy.erase')}
-      </Button>
-    </div>
   )
 }

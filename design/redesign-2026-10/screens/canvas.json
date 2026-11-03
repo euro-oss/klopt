@@ -1283,6 +1283,24 @@
    "title": "Phone dark · search sheet, view results or start (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#149), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneHomeSearch.dc.html": {
+   "x": 0,
+   "y": 43600,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · home, Search opens the search sheet (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's PhoneHome (#150 follow-up): his board with the top-bar Search button linked to PhoneCommand (start view). Not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneHomeSearchDark.dc.html": {
+   "x": 470,
+   "y": 43600,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · home, Search opens the search sheet (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's PhoneHome (#150 follow-up): his board with the top-bar Search button linked to PhoneCommand (start view). Not drawn by Hidde. See ../DERIVED.md."
   }
  },
  "order": [
@@ -1423,7 +1441,9 @@
   "PhoneInboxReviewDark.dc.html",
   "CommandDark.dc.html",
   "PhoneCommand.dc.html",
-  "PhoneCommandDark.dc.html"
+  "PhoneCommandDark.dc.html",
+  "PhoneHomeSearch.dc.html",
+  "PhoneHomeSearchDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -1565,6 +1585,13 @@
    "text": "Command bar and shortcuts, dark and phone (derived, #149)",
    "kind": "title1",
    "maxW": 4740
+  },
+  "t150s": {
+   "x": 0,
+   "y": 43300,
+   "text": "Phone search entry: Home with the Search button wired (derived, #150)",
+   "kind": "title1",
+   "maxW": 860
   }
  },
  "designSystems": [

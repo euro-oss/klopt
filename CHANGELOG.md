@@ -136,9 +136,9 @@ payment terms, add-details for e-invoicing, and privacy erase behind
 `retention:manage`. List names wrap in full (phone: name-first two-line row;
 desktop: flexible Naam column). Supplier card line is honest purchase-side
 open count/amount (`N open · € …`); overdue only when `dueDate < today`;
-never claims betaald/paid. Dark and phone use existing tokens/patterns until
-Batch 2 and Batch 3 boards (#140). App-wide from #140 in this PR: input
-borders via `--ink-muted` (no hard-coded `#86857e`); phone middle tab
+never claims betaald/paid. Phone list and card match the Batch 3 boards;
+dark desktop follows `ContactsDark` token polish (control borders via
+`--ink-muted`). App-wide from #140 in this PR: input borders via `--ink-muted` (no hard-coded `#86857e`); phone middle tab
 Receipt. Sign out / Uitloggen copy is a separate PR. Copy stays short and
 plain (NL+EN); no live-connection claims. Screenshots under
 `docs/pr-screenshots/<PR>/`.
