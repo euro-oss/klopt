@@ -30,14 +30,14 @@ test('a new user signs in, sets up an administration and lands in it', async ({ 
     await page.getByRole('link', { name: 'Administratie opzetten' }).click()
 
     await expect(page).toHaveURL(/\/setup$/)
-    await expect(page.getByRole('heading', { name: 'Nieuwe administratie' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Zet je administratie op' })).toBeVisible()
 
     // The chart is reference data, and the screen says what provisioning it
     // will actually produce rather than leaving it to be discovered.
-    await expect(page.getByText(/grootboekrekeningen/)).toBeVisible()
+    await expect(page.getByText(/categorieën/)).toBeVisible()
 
-    await page.getByLabel('Naam van de administratie').fill('Speelgoedwinkel De Tol')
-    await page.getByLabel('KvK-nummer').fill('12345678')
+    await page.getByLabel('Naam', { exact: true }).fill('Speelgoedwinkel De Tol')
+    await page.getByLabel(/KvK-nummer/).fill('12345678')
     await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
 
     await expect(
@@ -85,8 +85,8 @@ test('a bad KvK number is reported on the field, not swallowed', async ({ page }
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
 
   await page.goto('/setup')
-  await page.getByLabel('Naam van de administratie').fill('Foutje BV')
-  await page.getByLabel('KvK-nummer').fill('123')
+  await page.getByLabel('Naam', { exact: true }).fill('Foutje BV')
+  await page.getByLabel(/KvK-nummer/).fill('123')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
 
   // On the field itself, next to the input that is wrong — and in Dutch,

@@ -110,6 +110,12 @@ const PROBLEM_SCHEMA: JsonObject = {
           },
           path: { type: ['string', 'null'] },
           message: { type: 'string' },
+          messageKey: {
+            type: ['string', 'null'],
+            description:
+              'Names which sentence `message` is (ADR 0046). Clients translate from this; ' +
+              '`legal_acceptance_required` maps to the Setup checkbox copy.',
+          },
           detail: { type: 'object', additionalProperties: { type: 'string' } },
         },
         required: ['code', 'path', 'message'],

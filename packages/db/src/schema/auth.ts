@@ -188,3 +188,33 @@ export const authRateLimits = klopt.table('auth_rate_limit', {
   /** Epoch milliseconds: better-auth compares it against `Date.now()`. */
   lastRequest: bigint('last_request', { mode: 'number' }).notNull(),
 })
+
+/**
+ * Hosted legal records (issue #138).
+ *
+ * Two kinds:
+ * - `terms_dpa` — Setup checkbox when KLOPT_TERMS_* / KLOPT_DPA_* are set.
+ * - `privacy_notice` — invitee's first sign-in when KLOPT_PRIVACY_* are set
+ *   (at most one per user; see the partial unique index in 0038).
+ *
+ * Self-hosted leaves those env vars unset and never writes here. Versions are
+ * the strings from env at record time — not URLs — so a later document change
+ * is visible without rewriting history.
+ */
+export const legalAcceptances = klopt.table(
+  'legal_acceptances',
+  {
+    id: uuid('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' })
+      .notNull()
+      .defaultNow(),
+    termsVersion: text('terms_version'),
+    dpaVersion: text('dpa_version'),
+    privacyVersion: text('privacy_version'),
+  },
+  (table) => [index('legal_acceptances_user').on(table.userId)],
+)
