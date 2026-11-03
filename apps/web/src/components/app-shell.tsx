@@ -824,6 +824,7 @@ export function PageHeader({
   title,
   description,
   actions,
+  titleRef,
 }: {
   title: string
   // Explicit `| undefined` rather than `?`: with exactOptionalPropertyTypes,
@@ -831,11 +832,20 @@ export function PageHeader({
   // React props are exactly the case that rule is unhelpful for.
   description?: string | undefined
   actions?: ReactNode | undefined
+  /** Optional — e.g. programmatic focus after a control that opened from here unmounts. */
+  titleRef?: React.Ref<HTMLHeadingElement> | undefined
 }) {
   return (
     <header className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <h1
+          ref={titleRef}
+          tabIndex={-1}
+          data-slot="page-title"
+          className="text-xl font-semibold tracking-tight outline-none"
+        >
+          {title}
+        </h1>
         {description !== undefined && (
           <p className="text-muted-foreground mt-1 text-sm">{description}</p>
         )}

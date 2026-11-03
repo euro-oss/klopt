@@ -65,7 +65,7 @@ async function signInFresh(page: Page): Promise<void> {
 async function emptyAdministration(page: Page, name: string): Promise<void> {
   await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
@@ -80,7 +80,7 @@ async function emptyAdministration(page: Page, name: string): Promise<void> {
 async function populatedAdministration(page: Page, name: string): Promise<void> {
   await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -140,14 +140,18 @@ async function populatedAdministration(page: Page, name: string): Promise<void> 
   // Bank lines (neutral) with a real balance.
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  // CoS example IBAN — must match statement.mt940 (NL91ABNA0417164300).
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await page.setInputFiles(
+    '[data-slot="drop-zone"] input[type="file"]',
+    join(FIXTURES, 'statement.mt940'),
+  )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
   await expect(page.getByText(/transacties geïmporteerd/)).toBeVisible()
 
   // Inbox receipt (neutral).

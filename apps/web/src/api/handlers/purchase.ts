@@ -13,7 +13,7 @@ import {
   type PurchaseFinding,
   type PurchaseInvoiceInput,
 } from '@klopt/core'
-import { withPurchase, withPurchaseRead } from '@klopt/db'
+import { withInbox, withInboxRead, withPurchase, withPurchaseRead } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError } from '../errors.js'
 import { recordAudit } from '../audit.js'
@@ -134,7 +134,7 @@ export async function handleListPurchaseInvoices(
 export async function handleGetPurchaseInvoice(context: RequestContext, invoiceId: string) {
   requirePermission(context, 'ledger:read')
 
-  return withPurchaseRead(context.database, async (repository) => {
+  const invoice = await withPurchaseRead(context.database, async (repository) => {
     const found = await repository.load(context.entityId, invoiceId)
     if (found === null) throw new ApiError('not_found', `No purchase invoice ${invoiceId}.`)
 
@@ -162,45 +162,58 @@ export async function handleGetPurchaseInvoice(context: RequestContext, invoiceI
         : await repository.entryNumberFor(context.entityId, found.row.journalEntryId)
 
     return {
-      status: 200,
-      body: {
-        id: found.row.id,
-        status: found.row.status,
-        statusLabel: purchaseStatusLabel(found.row.status),
-        kind: found.row.kind,
-        supplierInvoiceNumber: found.row.supplierInvoiceNumber,
-        contactNumber: found.row.contactNumber,
-        contactName: found.row.contactName,
-        invoiceDate: found.row.invoiceDate,
-        dueDate: found.row.dueDate,
-        currency: found.row.currency,
-        net: found.row.net.toString(),
-        tax: found.row.tax.toString(),
-        total: found.row.total.toString(),
-        allocated: found.row.allocated.toString(),
-        outstanding: found.row.outstanding.toString(),
-        scheduled: found.row.scheduled.toString(),
-        paymentReference: found.row.paymentReference,
-        journalEntryId: found.row.journalEntryId,
-        journalEntryNumber: entryNumber,
-        bookedBy: found.row.bookedBy,
-        approvedBy: found.row.approvedBy,
-        disputedReason: found.row.disputedReason,
-        payable: isPayable(found.row.status),
-        payableRefusal: payableRefusal(found.row.status),
-        lines: found.invoice.lines.map((line, index) => ({
-          lineNumber: index + 1,
-          description: line.description,
-          accountNumber: line.accountNumber,
-          taxCode: line.taxCode,
-          net: line.netMinorUnits.toString(),
-          tax: line.taxMinorUnits.toString(),
-        })),
-        findings: findings.map(serialiseFinding),
-        bookable: !findings.some((finding) => finding.severity === 'blocking'),
-      },
+      found,
+      findings,
+      entryNumber,
     }
   })
+
+  const documents = await withInboxRead(context.database, (inbox) =>
+    inbox.documentsFor(context.entityId, 'purchase_invoice', invoiceId),
+  )
+
+  const { found, findings, entryNumber } = invoice
+
+  return {
+    status: 200,
+    body: {
+      id: found.row.id,
+      status: found.row.status,
+      statusLabel: purchaseStatusLabel(found.row.status),
+      kind: found.row.kind,
+      supplierInvoiceNumber: found.row.supplierInvoiceNumber,
+      contactNumber: found.row.contactNumber,
+      contactName: found.row.contactName,
+      invoiceDate: found.row.invoiceDate,
+      dueDate: found.row.dueDate,
+      currency: found.row.currency,
+      net: found.row.net.toString(),
+      tax: found.row.tax.toString(),
+      total: found.row.total.toString(),
+      allocated: found.row.allocated.toString(),
+      outstanding: found.row.outstanding.toString(),
+      scheduled: found.row.scheduled.toString(),
+      paymentReference: found.row.paymentReference,
+      journalEntryId: found.row.journalEntryId,
+      journalEntryNumber: entryNumber,
+      bookedBy: found.row.bookedBy,
+      approvedBy: found.row.approvedBy,
+      disputedReason: found.row.disputedReason,
+      payable: isPayable(found.row.status),
+      payableRefusal: payableRefusal(found.row.status),
+      documentIds: documents.map((document) => document.id),
+      lines: found.invoice.lines.map((line, index) => ({
+        lineNumber: index + 1,
+        description: line.description,
+        accountNumber: line.accountNumber,
+        taxCode: line.taxCode,
+        net: line.netMinorUnits.toString(),
+        tax: line.taxMinorUnits.toString(),
+      })),
+      findings: findings.map(serialiseFinding),
+      bookable: !findings.some((finding) => finding.severity === 'blocking'),
+    },
+  }
 }
 
 export async function handleCapturePurchaseInvoice(
@@ -213,7 +226,9 @@ export async function handleCapturePurchaseInvoice(
   requirePermission(context, 'ledger:draft')
   requireIdempotencyKey(context)
 
-  return withPurchase(context.database, async ({ purchase }) => {
+  // withInbox so a BillNew drop can link `documentId` and leave Postvak in the
+  // same transaction as the draft (#175 preferred path).
+  return withInbox(context.database, async ({ purchase, inbox }) => {
     const invoiceContext = await purchase.loadContext(context.entityId, body.contactNumber)
     if (invoiceContext === null) {
       throw new ApiError('not_found', `No contact ${body.contactNumber}.`)
@@ -253,6 +268,15 @@ export async function handleCapturePurchaseInvoice(
       )
     }
 
+    const documentId =
+      typeof body.documentId === 'string' && body.documentId !== '' ? body.documentId : null
+    if (documentId !== null) {
+      const held = await inbox.document(context.entityId, documentId)
+      if (held === null) {
+        throw new ApiError('not_found', `No document ${documentId}.`)
+      }
+    }
+
     const findings = checkPurchaseInvoice({
       invoice,
       rules: invoiceContext.rules,
@@ -272,6 +296,27 @@ export async function handleCapturePurchaseInvoice(
       accountIdByNumber: invoiceContext.accountIdByNumber,
     })
 
+    if (documentId !== null) {
+      // Spec 7.6: the original travels with the invoice; leave Postvak.
+      await inbox.link({
+        entityId: context.entityId,
+        documentId,
+        subjectKind: 'purchase_invoice',
+        subjectId: id,
+        role: 'original',
+      })
+      const open = await inbox.openItemsForDocument(context.entityId, documentId)
+      for (const item of open) {
+        await inbox.markDrafted({
+          entityId: context.entityId,
+          itemId: item.id,
+          purchaseInvoiceId: id,
+          contactId: invoiceContext.contact.id,
+          actorId: context.actor.id,
+        })
+      }
+    }
+
     await recordAudit(context, {
       action: 'purchase.capture',
       resourceType: 'purchase_invoice',
@@ -280,6 +325,7 @@ export async function handleCapturePurchaseInvoice(
         supplierInvoiceNumber: invoice.supplierInvoiceNumber,
         contactNumber: body.contactNumber,
         total: invoice.totalMinorUnits.toString(),
+        documentId,
       },
     })
 
@@ -290,6 +336,7 @@ export async function handleCapturePurchaseInvoice(
         status: 'draft',
         supplierInvoiceNumber: invoice.supplierInvoiceNumber,
         total: invoice.totalMinorUnits.toString(),
+        documentId,
         findings: findings.map(serialiseFinding),
         bookable: !findings.some((finding) => finding.severity === 'blocking'),
       },

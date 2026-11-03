@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · New administration</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#153). Phone layout of Setup, step 1. edition="hosted" (default)
+  shows the terms checkbox (TermsConsent.dc.html) and keeps Create administration disabled until it
+  is ticked; edition="self-hosted" has no checkbox. No administration yet, so no tab bar.
+  No key hints on phone. Self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root.k-phone{overflow:clip}
+.k-phone .k-input{height:48px;font-size:16px}
+.k-phone .k-btn--primary:disabled{background:var(--neutral-bg);border-color:var(--neutral-bg);color:var(--ink-muted);opacity:1;cursor:not-allowed}
+.k-phone .k-option{min-height:64px;text-decoration:none}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <span class="k-mark" style="width: 28px; height: 28px; font-size: 14px;" aria-hidden="true">K</span>
+    <span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><strong style="font-size: 15px;">New administration</strong><span class="k-muted" style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">eva@bakkerij.example</span></span>
+    <a href="PhoneSignIn.dc.html" class="k-btn k-btn--ghost" style="height: 44px; text-decoration: none;">Sign out</a>
+  </div>
+  <div class="k-phone-body" style="gap: 20px;">
+    <ol class="k-steps" aria-label="Setup">
+      <li class="k-step is-current" aria-current="step"><span class="k-step-n">1</span>Company</li>
+      <li class="k-step"><span class="k-step-n">2</span>History</li>
+      <li class="k-step"><span class="k-step-n">3</span>Bank</li>
+    </ol>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.02em;">Set up your administration</h1>
+      <p style="margin: 0; color: var(--ink-2); font-size: 15px; line-height: 22px;">A name is enough to start. You can change the rest later, except the book year's first month.</p>
+    </div>
+
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+      <div class="k-field">
+        <label class="k-label" for="n">Name</label>
+        <input id="n" class="k-input" value="Bakkerij Eva BV">
+        <span class="k-help">It shows in the switcher and on screens.</span>
+      </div>
+      <div class="k-field">
+        <label class="k-label" for="kvk">KvK number <small>optional</small></label>
+        <input id="kvk" class="k-input k-num" inputmode="numeric" placeholder="8 digits">
+        <span class="k-help">Fills in your legal name and address for you.</span>
+      </div>
+      <div class="k-field">
+        <label class="k-label" for="vat">VAT number <small>optional</small></label>
+        <input id="vat" class="k-input k-num" placeholder="NL123456789B01">
+      </div>
+      <div class="k-field">
+        <label class="k-label" for="by">Book year starts in</label>
+        <select id="by" class="k-input"><option>January</option><option>July</option></select>
+        <span class="k-help">A year opening in July 2026 is called 2026.</span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-sunken);">
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+          <strong>Dutch SME chart of accounts</strong>
+          <span style="color: var(--ink-2); font-size: 13px; line-height: 18px;">31 categories, 5 journals and 27 VAT codes, mapped to RGS 3.7. Currency is euro.</span>
+          <a href="#" style="display: inline-flex; align-items: center; min-height: 44px; align-self: flex-start;">Other chart</a>
+        </span>
+      </div>
+      <sc-if value="{{hosted}}" hint-placeholder-val="{{true}}">
+        <div style="border-top: 1px solid var(--line-soft); padding-top: 8px;">
+          <dc-import name="TermsConsent" theme="{{theme}}" size="phone" hint-size="100%,88px"></dc-import>
+        </div>
+      </sc-if>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button type="button" class="k-btn k-btn--primary" disabled="{{hosted}}" aria-describedby="why" style="height: 48px; justify-content: center; font-size: 15px;">Create administration</button>
+      <span id="why" class="k-muted" style="font-size: 14px; line-height: 20px;">{{nextNote}}</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px;">
+      <h2 class="k-card-title">Coming from another package?</h2>
+      <a href="ImportSource.dc.html" class="k-option">
+        <span class="k-option-body"><span class="k-option-title">From Moneybird</span><span class="k-option-meta">Invoices, receipts, bank and journal entries</span></span>
+      </a>
+      <a href="ImportSource.dc.html" class="k-option">
+        <span class="k-option-body"><span class="k-option-title">From Exact Online</span><span class="k-option-meta">Chart, contacts and open items as an opening balance</span></span>
+      </a>
+      <a href="SettingsData.dc.html" class="k-option">
+        <span class="k-option-body"><span class="k-option-title">From any package</span><span class="k-option-meta">An XAF audit file, which most Dutch packages can export</span></span>
+      </a>
+      <p class="k-muted" style="margin: 0; font-size: 14px; line-height: 20px;">Or start empty and import later. Nothing is booked until you confirm.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"edition":{"editor":"enum","options":["hosted","self-hosted"],"default":"hosted"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hosted = (this.props.edition ?? 'hosted') === 'hosted';
+    return {
+      theme: this.props.theme ?? 'light',
+      hosted,
+      nextNote: hosted ? 'Tick the box above to continue. Next: bring your history across, or not.' : 'Next: bring your history across, or not.'
+    };
+  }
+}
+</script>
+</body>
+</html>

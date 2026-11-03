@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · General ledger</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.acc{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-md);text-decoration:none;color:var(--ink);font-size:13px}
+.acc:hover{background:var(--surface-hover)}
+.acc.is-active{background:var(--selection);box-shadow:inset 3px 0 0 var(--selection-edge)}
+.ggrid{display:grid;grid-template-columns:74px 44px minmax(200px,1fr) 100px 100px 110px;gap:12px}
+.grp{padding:12px 12px 4px;font:600 11px/16px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted)}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="journal" theme="{{theme}}" hint-size="248px,1100px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 32px 0;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; flex: 1;">Journal</h1>
+      <label class="k-field" style="flex-direction: row; align-items: center; gap: 8px;"><span class="k-label">Period</span>
+        <select class="k-input" style="width: 170px;"><option>Q4 2025</option><option>Book year 2025</option><option>December 2025</option></select></label>
+      <button type="button" class="k-btn">CSV</button>
+      <nav class="k-tabs" aria-label="Journal sections" style="flex-basis: 100%; margin-top: 4px;">
+        <a href="Journal.dc.html" class="k-tab">Entries</a>
+        <a href="#" class="k-tab is-active" aria-current="page">Ledger per account</a>
+        <a href="Reports.dc.html" class="k-tab">Trial balance</a>
+      </nav>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 16px 32px 24px; align-items: flex-start;">
+      <nav aria-label="Accounts" class="k-card" style="flex: 1 1 260px; max-width: 300px; padding: 8px;">
+        <label class="k-search" style="margin: 4px 4px 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input aria-label="Find an account" placeholder="Number or name"></label>
+        <div class="grp">Balance sheet</div>
+        <a class="acc" href="#"><span class="k-code">0500</span><span style="flex: 1;">Aandelenkapitaal</span><span class="k-num k-muted">−50.000,00</span></a>
+        <a class="acc" href="#"><span class="k-code">1100</span><span style="flex: 1;">Bank</span><span class="k-num k-muted">62.799,88</span></a>
+        <a class="acc is-active" href="#" aria-current="page"><span class="k-code">1300</span><span style="flex: 1; font-weight: 600;">Debiteuren</span><span class="k-num" style="font-weight: 600;">4.710,44</span></a>
+        <a class="acc" href="#"><span class="k-code">1500</span><span style="flex: 1;">Te betalen btw</span><span class="k-num k-muted">−3.732,04</span></a>
+        <a class="acc" href="#"><span class="k-code">1510</span><span style="flex: 1;">Te vorderen btw</span><span class="k-num k-muted">1.575,61</span></a>
+        <a class="acc" href="#"><span class="k-code">1600</span><span style="flex: 1;">Crediteuren</span><span class="k-num k-muted">−1.191,78</span></a>
+        <div class="grp">Profit and loss</div>
+        <a class="acc" href="#"><span class="k-code">4200</span><span style="flex: 1;">Huur bedrijfsruimte</span><span class="k-num k-muted">1.551,16</span></a>
+        <a class="acc" href="#"><span class="k-code">4410</span><span style="flex: 1;">Telefoon en internet</span><span class="k-num k-muted">1.527,19</span></a>
+        <a class="acc" href="#"><span class="k-code">4900</span><span style="flex: 1;">Algemene kosten</span><span class="k-num k-muted">1.848,16</span></a>
+        <a class="acc" href="#"><span class="k-code">8000</span><span style="flex: 1;">Omzet</span><span class="k-num k-muted">−23.164,83</span></a>
+        <a class="acc" href="#" style="color: var(--ink-muted);"><span style="flex: 1;">+ 21 accounts without movement</span></a>
+      </nav>
+
+      <section aria-labelledby="ah" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;">
+          <h2 id="ah" style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 600;"><span class="k-code" style="font-size: 13px; line-height: 22px; vertical-align: 2px;">1300</span> Debiteuren</h2>
+          <span class="k-muted">What customers owe you · RGS <span class="k-code">BVorDebHad</span></span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+          <div class="k-stat"><span class="k-stat-label">At 1 October</span><span class="k-stat-value" style="font-size: 20px; line-height: 26px;">€ {{openF}}</span></div>
+          <div class="k-stat"><span class="k-stat-label">Debit</span><span class="k-stat-value" style="font-size: 20px; line-height: 26px;">€ {{debF}}</span></div>
+          <div class="k-stat"><span class="k-stat-label">Credit</span><span class="k-stat-value" style="font-size: 20px; line-height: 26px;">€ {{credF}}</span></div>
+          <div class="k-stat"><span class="k-stat-label">At 31 December</span><span class="k-stat-value" style="font-size: 20px; line-height: 26px;">€ 4.710,44</span></div>
+        </div>
+        <div class="k-card k-card--flush">
+          <div style="overflow-x: auto;"><div style="min-width: 680px;">
+            <div class="k-row k-row--head ggrid"><span>Date</span><span>Jnl</span><span>Description</span><span style="text-align: right;">Debit</span><span style="text-align: right;">Credit</span><span style="text-align: right;">Balance</span></div>
+            <div class="k-row ggrid k-num" style="cursor: default; color: var(--ink-muted);"><span>01-10</span><span></span><span>Balance brought forward</span><span></span><span></span><span style="text-align: right;">{{openF}}</span></div>
+            <sc-for list="{{lines}}" as="l" hint-placeholder-count="19">
+              <a href="Journal.dc.html" class="k-row ggrid k-num"><span style="color: var(--ink-2);">{{l.date}}</span><span><span class="k-code">{{l.j}}</span></span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{l.desc}}</span><span style="text-align: right;">{{l.d}}</span><span style="text-align: right;">{{l.c}}</span><span style="text-align: right; font-weight: 500;">{{l.balF}}</span></a>
+            </sc-for>
+            <div class="k-row ggrid k-num" style="cursor: default; font-weight: 600; background: var(--surface-hover);"><span>31-12</span><span></span><span>Balance at period end</span><span style="text-align: right;">{{debF}}</span><span style="text-align: right;">{{credF}}</span><span style="text-align: right;">4.710,44</span></div>
+          </div></div>
+        </div>
+        <div class="k-hints"><span><span class="k-kbd">↵</span> open the entry</span><span><span class="k-kbd">[</span> <span class="k-kbd">]</span> previous, next account</span><span><span class="k-kbd">/</span> find an account</span></div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const key = (d) => d.slice(3, 5) + d.slice(0, 2);
+    const ev = [
+      ['12-10','VRK','Invoice 2025-0022 · Noorderlicht Diensten',193.07,0],
+      ['14-10','VRK','Invoice 2025-0012 · Noorderlicht Diensten',895.81,0],
+      ['25-10','VRK','Invoice 2025-0031 · Atlas Voorbeeld Handel',1074.94,0],
+      ['28-10','VRK','Invoice 2025-0004 · Kade & Co',954.58,0],
+      ['01-11','VRK','Invoice 2025-0009 · Havenmeester Horeca',1016.88,0],
+      ['02-11','VRK','Invoice 2025-0007 · Molenaar Media',156.87,0],
+      ['26-11','VRK','Invoice 2025-0024 · Kade & Co',385.05,0],
+      ['27-11','VRK','Invoice 2025-0017 · Molenaar Media',745.01,0],
+      ['28-11','VRK','Invoice 2025-0016 · Zandbank Advies',478.42,0],
+      ['08-10','BNK','Paid: invoice 2025-0035 · Fictieve Fietsen',0,528.86],
+      ['26-10','BNK','Paid: invoice 2025-0022 · Noorderlicht Diensten',0,193.07],
+      ['28-10','BNK','Paid: invoice 2025-0012 · Noorderlicht Diensten',0,895.81],
+      ['08-11','BNK','Paid: invoice 2025-0031 · Atlas Voorbeeld Handel',0,1074.94],
+      ['11-11','BNK','Paid: invoice 2025-0004 · Kade & Co',0,954.58],
+      ['15-11','BNK','Paid: invoice 2025-0009 · Havenmeester Horeca',0,1016.88],
+      ['16-11','BNK','Paid: invoice 2025-0007 · Molenaar Media',0,156.87],
+      ['10-12','BNK','Paid: invoice 2025-0024 · Kade & Co',0,385.05],
+      ['11-12','BNK','Paid: invoice 2025-0017 · Molenaar Media',0,745.01],
+      ['12-12','BNK','Paid: invoice 2025-0016 · Zandbank Advies',0,478.42]
+    ].sort((a, b) => key(a[0]).localeCompare(key(b[0])));
+    const deb = ev.reduce((a, e) => a + e[3], 0);
+    const cred = ev.reduce((a, e) => a + e[4], 0);
+    const open = Math.round((4710.44 - deb + cred) * 100) / 100;
+    let bal = open;
+    const lines = ev.map(([date, j, desc, d, c]) => {
+      bal = Math.round((bal + d - c) * 100) / 100;
+      return { date, j, desc, d: d ? f(d) : '', c: c ? f(c) : '', balF: f(bal) };
+    });
+    return { theme: this.props.theme ?? 'light', lines, openF: f(open), debF: f(Math.round(deb * 100) / 100), credF: f(Math.round(cred * 100) / 100) };
+  }
+}
+</script>
+</body>
+</html>

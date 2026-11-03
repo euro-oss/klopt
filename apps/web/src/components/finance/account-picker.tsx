@@ -326,7 +326,10 @@ export function AccountPicker({
               Both when numbers are on: the number is typed, the name confirms.
               In simple mode the input itself shows the name. */}
           {showName && (
-            <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs md:text-xs">
+            <span
+              className="text-muted-foreground min-w-0 flex-1 truncate text-xs md:text-xs"
+              title={chosen.name}
+            >
               {chosen.name}
             </span>
           )}

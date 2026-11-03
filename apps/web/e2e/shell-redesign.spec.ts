@@ -31,7 +31,7 @@ async function anAdministration(
   await page.goto('/sign-in')
   await signIn(page, email)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -122,7 +122,7 @@ test('PhoneTabBar More opens the existing Sheet at 390', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   const bar = page.locator('[data-phone-tab-bar]')
   await expect(bar).toBeVisible()
-  // Hidde via #140: middle tab is Receipt (NL Bon), not Inbox/Postvak.
+  // Per product decision (#140): middle tab is Receipt (NL Bon), not Inbox/Postvak.
   await expect(bar.getByRole('link', { name: 'Bon' })).toBeVisible()
   await expect(bar.getByRole('link', { name: 'Postvak' })).toHaveCount(0)
   await bar.getByRole('button', { name: 'Meer' }).click()

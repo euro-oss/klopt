@@ -69,7 +69,7 @@ async function anAdministration(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Toetsenbord BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Toetsenbord BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -211,7 +211,9 @@ test('the palette opens on Cmd-K and goes where you pick', async ({ page }) => {
   await page.getByLabel('Zoek een scherm').fill('betal')
   await page.keyboard.press('Enter')
 
-  await expect(page.getByRole('heading', { name: 'Betalingen' })).toBeVisible()
+  // Palette still finds "Betalingen"; the Costs redesign shows that route as Kosten.
+  await expect(page).toHaveURL(/\/payments/)
+  await expect(page.getByRole('heading', { name: 'Kosten' })).toBeVisible()
   await expect(palette).toBeHidden()
 })
 
@@ -466,13 +468,17 @@ test('issuing an invoice, matching the bank and clearing the postvak needs no mo
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
+  // CoS example IBAN — must match statement.mt940 (NL91ABNA0417164300).
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
 
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await page.setInputFiles(
+    '[data-slot="drop-zone"] input[type="file"]',
+    join(FIXTURES, 'statement.mt940'),
+  )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
   await page.getByRole('button', { name: 'Importeren', exact: true }).click()
   await expect(page.getByText('4 transacties geïmporteerd.')).toBeVisible()

@@ -8,6 +8,7 @@ import { useT } from '~/i18n/provider'
 import { currentFiscalYear, type FiscalYearOption } from '~/lib/fiscal-year'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
+import { takePendingAuditFileXml } from '~/lib/audit-file-pending'
 import { may, MAY_EXPORT_AUDIT_FILE, MAY_IMPORT_AUDIT_FILE } from '~/lib/roles'
 import { importAuditFile } from '~/server/ledger'
 import { listFiscalYears } from '~/server/setup'
@@ -102,9 +103,8 @@ function AuditFile() {
 
   useEffect(() => {
     if (!mayImport) return
-    const xml = sessionStorage.getItem('klopt.auditFile.pending')
+    const xml = takePendingAuditFileXml()
     if (xml === null || xml === '') return
-    sessionStorage.removeItem('klopt.auditFile.pending')
     const chosen = new File([xml], 'import.xaf.xml', { type: 'application/xml' })
     void chooseFile(chosen)
     // The pending file is written by the import wizard's ⌘↵ picker.

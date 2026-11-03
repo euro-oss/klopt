@@ -525,13 +525,24 @@
                     },
                     "unmatchedTotal": {
                       "type": "string"
+                    },
+                    "lineCount": {
+                      "type": "number"
+                    },
+                    "booksBalance": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   },
                   "required": [
                     "statementBalance",
                     "statementDate",
                     "unmatchedCount",
-                    "unmatchedTotal"
+                    "unmatchedTotal",
+                    "lineCount",
+                    "booksBalance"
                   ]
                 },
                 "id": {
@@ -969,12 +980,12 @@
               },
               "bucket": {
                 "enum": [
+                  "total",
                   "current",
                   "upTo30",
                   "upTo60",
                   "upTo90",
                   "over90",
-                  "total",
                   null
                 ]
               }
@@ -10090,7 +10101,6 @@
           },
           "action": {
             "enum": [
-              "export",
               "submit",
               "approve",
               "reject",
@@ -10149,6 +10159,12 @@
           },
           "total": {
             "type": "string"
+          },
+          "documentId": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "findings": {
             "type": "array",
@@ -10320,6 +10336,7 @@
           "status",
           "supplierInvoiceNumber",
           "total",
+          "documentId",
           "findings",
           "bookable"
         ]
@@ -10518,6 +10535,12 @@
               "string",
               "null"
             ]
+          },
+          "documentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "lines": {
             "type": "array",
@@ -10743,6 +10766,7 @@
           "disputedReason",
           "payable",
           "payableRefusal",
+          "documentIds",
           "lines",
           "findings",
           "bookable"

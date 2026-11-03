@@ -53,7 +53,8 @@ import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { useAdvancedMode } from '~/lib/advanced-mode-context'
 import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
-import { may, MAY_IMPORT_AUDIT_FILE } from '~/lib/roles'
+import { may, MAY_IMPORT_AUDIT_FILE, MAY_LEDGER_IMPORT } from '~/lib/roles'
+import { stageAuditFileXml } from '~/lib/audit-file-pending'
 import { importVatRulesFromListTaxCodes, type ImportVatRule } from '~/lib/import-findings'
 import {
   IMPORT_RAIL_STEP_COUNT,
@@ -71,6 +72,7 @@ import {
   prevStep,
   railIndex,
   stepIndex,
+  wizardStepKeysForSource,
   wizardStepsForSource,
   type ImportWizardSource,
   type ImportWizardStep,
@@ -187,7 +189,9 @@ function ImportWizardPage() {
   const { advanced, setAdvanced, saving: advancedSaving } = useAdvancedMode()
   const titleId = useId()
   const mayImportAudit = may(MAY_IMPORT_AUDIT_FILE, role)
+  const mayLedgerImport = may(MAY_LEDGER_IMPORT, role)
   const auditFilePicker = useRef<HTMLInputElement>(null)
+  const handleNextRef = useRef<() => void>(() => {})
 
   const saved = wizard.ok ? (wizard.data.state as WizardStateRow | null) : null
   const conn = connection.ok ? connection.data.connection : null
@@ -210,13 +214,16 @@ function ImportWizardPage() {
     if (saved !== null && isImportWizardStep(saved.step)) return saved.step
     return 'bron'
   })
-  const [source, setSource] = useState<ImportWizardSource | null>(
-    () =>
-      (saved?.source as ImportWizardSource | null) ??
-      (bronParam === 'moneybird' || bronParam === 'exact' || bronParam === 'xaf'
-        ? bronParam
-        : null),
-  )
+  const [source, setSource] = useState<ImportWizardSource | null>(() => {
+    const fromSaved = saved?.source as ImportWizardSource | null | undefined
+    if (fromSaved !== null && fromSaved !== undefined) {
+      if (fromSaved === 'xaf' && !may(MAY_IMPORT_AUDIT_FILE, role)) return null
+      return fromSaved
+    }
+    if (bronParam === 'moneybird' || bronParam === 'exact') return bronParam
+    if (bronParam === 'xaf' && may(MAY_IMPORT_AUDIT_FILE, role)) return 'xaf'
+    return null
+  })
   const [showResume, setShowResume] = useState(resuming)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -773,7 +780,7 @@ function ImportWizardPage() {
   })()
 
   async function handleNext() {
-    if (!canNext || busy) return
+    if (!mayLedgerImport || !canNext || busy) return
     if (step === 'bron' && (source === 'moneybird' || source === 'exact')) {
       await goTo('verbinden')
       return
@@ -898,6 +905,16 @@ function ImportWizardPage() {
     await goTo(prev)
   }
 
+  handleNextRef.current = () => {
+    void handleNext()
+  }
+
+  useEffect(() => {
+    if (bronParam !== 'xaf' || mayImportAudit) return
+    if (source === 'xaf') setSource(null)
+    void navigate({ search: { bron: undefined }, replace: true })
+  }, [bronParam, mayImportAudit, navigate, source])
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (disconnectOpen || restartOpen || importConfirmOpen || sheetRateId !== null) {
@@ -930,7 +947,7 @@ function ImportWizardPage() {
           void startImport()
           return
         }
-        void handleNext()
+        void handleNextRef.current()
         return
       }
       if (!isTypingInto(event.target) && step === 'bron' && !showResume) {
@@ -979,12 +996,11 @@ function ImportWizardPage() {
       if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
         if (!flowShouldAdvanceOnEnter(event)) return
         event.preventDefault()
-        void handleNext()
+        void handleNextRef.current()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over latest state
   }, [
     step,
     canNext,
@@ -1004,6 +1020,22 @@ function ImportWizardPage() {
       <p role="alert" className="text-destructive text-sm">
         {connection.problem.detail}
       </p>
+    )
+  }
+
+  if (!mayLedgerImport) {
+    return (
+      <div
+        className="mx-auto flex w-full min-w-0 max-w-[1100px] flex-col gap-4 overflow-x-clip"
+        data-slot="import-wizard"
+      >
+        <h1 id={titleId} className="text-ink text-2xl font-semibold tracking-tight">
+          {t('wizard.page.title')}
+        </h1>
+        <p role="status" className="text-ink-2 max-w-xl text-sm leading-relaxed">
+          {t('wizard.noLedgerImport')}
+        </p>
+      </div>
     )
   }
 
@@ -1110,9 +1142,8 @@ function ImportWizardPage() {
             }}
           />
         </div>
-        <p className="text-ink-2 mt-1 text-[13px] md:hidden">
-          {t('wizard.rail.phone', {
-            title: pageTitle,
+        <p className="text-ink-2 mt-1 text-[13px] tabular-nums md:hidden">
+          {t('wizard.stepOf', {
             step: String(
               (source === 'exact'
                 ? Math.max(0, wizardStepsForSource('exact').indexOf(step))
@@ -1121,10 +1152,17 @@ function ImportWizardPage() {
             total: String(
               source === 'exact' ? wizardStepsForSource('exact').length : IMPORT_RAIL_STEP_COUNT,
             ),
+            label: t(
+              wizardStepKeysForSource(source)[
+                source === 'exact'
+                  ? Math.max(0, wizardStepsForSource('exact').indexOf(step))
+                  : railIndex(step)
+              ]!,
+            ),
           })}
         </p>
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 max-md:pb-28">
         {/*
           Same Geavanceerd preference as the shell (#44). shadcn Checkbox in a
           44px touch row (#105 Designer r4 / PM) so 390 hits the target.
@@ -1345,12 +1383,18 @@ function ImportWizardPage() {
                   onChange={(event) => {
                     const chosen = event.currentTarget.files?.[0]
                     if (chosen === undefined) return
-                    void chosen.text().then((xml) => {
-                      sessionStorage.setItem('klopt.auditFile.pending', xml)
-                      void persistWizard({ source: 'xaf', step: 'bron' }).then(() => {
-                        void router.navigate({ to: '/audit-file' })
+                    void chosen
+                      .text()
+                      .then((xml) => {
+                        stageAuditFileXml(xml)
+                        void persistWizard({ source: 'xaf', step: 'bron' }).then(() => {
+                          void router.navigate({ to: '/audit-file' })
+                        })
                       })
-                    })
+                      .catch(() => {
+                        setError(t('wizard.bron.xaf.readFailed'))
+                        event.currentTarget.value = ''
+                      })
                   }}
                 />
                 <Button
@@ -1502,12 +1546,6 @@ function ImportWizardPage() {
                     {error}
                   </p>
                 )}
-                <details className="border-border border px-4 py-3 text-sm">
-                  <summary className="-mx-4 -my-3 flex min-h-11 cursor-pointer items-center px-4 font-medium">
-                    {t('wizard.verbinden.tokenWhere')}
-                  </summary>
-                  <p className="text-muted-foreground mt-3">{t('wizard.verbinden.tokenSteps')}</p>
-                </details>
                 <details className="border-border border px-4 py-3 text-sm" open={advanced}>
                   <summary className="-mx-4 -my-3 flex min-h-11 cursor-pointer items-center px-4 font-medium">
                     {t('shell.advanced')}
@@ -1888,7 +1926,7 @@ function ImportWizardPage() {
               intro={t('wizard.btw.intro')}
               source={source}
             />
-            <ul role="list" aria-label={t('wizard.step.btw')} className="space-y-3">
+            <ul role="list" aria-label={t('wizard.step.btw')} className="mb-10 space-y-3">
               {usedRates.map((rate) => {
                 const confirmed = taxMappings[rate.moneybirdId]
                 const previous = previousTaxMappings[rate.moneybirdId]
@@ -2565,7 +2603,7 @@ function ImportWizardPage() {
                 title={
                   failureKind === 'failedPartial'
                     ? plural('wizard.importeren.bookedCount', bookedOnStop, {
-                        count: String(bookedOnStop),
+                        count: new Intl.NumberFormat().format(bookedOnStop),
                       })
                     : t('wizard.importeren.failed')
                 }

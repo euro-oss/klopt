@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · New journal entry</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#145). Phone 390 of EntryNew.dc.html: the same memorial entry
+  (card payment without receipt, 30,58 + 6,42 = 37,00) with the Credit of line 3 in its "=" state.
+  One column: the entry fields, then each line as its own card with visible labels (Account, Line
+  description, Debit, Credit), the totals, the document and Hidde's "Posting is final" callout.
+  Post and next and Post sit in a sticky bar above the tab bar, 48px, as on the import phone
+  boards. The back link replaces Cancel. Journal lives under More, so More is the active tab.
+  Takes `theme`; PhoneEntryNewDark.dc.html sets dark.
+  Line labels carry `md-sr`: shown on phone, visually hidden from 768px up, where the desktop
+  table has column headers (the md:sr-only pattern). The description is a two-line field so it is
+  never cut off, and account 1510 shows its ledger name, "Te vorderen btw", as on Ledger.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), 44px targets,
+  no key hints on phone, no ink-faint, amounts in Inter tabular figures (k-num, as on
+  PhoneCosts) and never wrapped; JetBrains Mono only for codes and hashes,
+  self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-input{border-color:var(--line-control)}
+.k-phone .k-input{height:44px;font-size:15px}
+.k-phone .k-kbd,.k-phone .k-chord,.k-phone .k-hints{display:none}
+.nw{white-space:nowrap}
+@media (min-width: 768px){.md-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}}
+.amt{font-size:15px;line-height:20px;font-weight:600;text-align:right}
+.k-phone .amt-in{text-align:right;font-weight:500}
+.amt-in.is-focus{outline:2px solid var(--selection-edge);outline-offset:-2px;background:var(--brand-tint)}
+.lc{padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.lc-head{display:flex;align-items:center;justify-content:space-between;margin:-4px -8px -4px 0}
+.lc-title{margin:0;font-size:15px;line-height:20px;font-weight:600}
+.rm{width:44px;height:44px;padding:0;justify-content:center;font-size:20px;color:var(--ink-muted)}
+.dc{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top">
+    <a href="PhoneJournal.dc.html" class="k-btn k-btn--ghost" style="height: 44px; padding: 0 8px;">‹ Journal</a>
+  </div>
+  <form class="k-phone-body">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600;">New entry</h1>
+      <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Debit and credit must be equal before you can post.</p>
+    </div>
+
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+      <div class="k-field">
+        <label class="k-label" for="jr">Journal</label>
+        <select id="jr" class="k-input"><option>Memorial (MEM)</option><option>Sales (VRK)</option><option>Purchases (INK)</option><option>Bank (BNK)</option><option>Cash (KAS)</option></select>
+      </div>
+      <div class="dc">
+        <div class="k-field"><label class="k-label" for="bd">Booking date</label><input id="bd" class="k-input k-num" inputmode="numeric" value="20-10-2025"></div>
+        <div class="k-field"><label class="k-label" for="dd">Document date</label><input id="dd" class="k-input k-num" inputmode="numeric" value="20-10-2025"></div>
+      </div>
+      <div class="k-field">
+        <label class="k-label" for="ds">Description</label>
+        <textarea id="ds" class="k-input" rows="2" style="height: auto; min-height: 68px; padding: 10px 12px; line-height: 22px; resize: none;">Open post 15: card payment without receipt</textarea>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <h2 style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 600;">Lines</h2>
+      <span class="k-muted" style="font-size: 13px; line-height: 18px;">Type = in an amount to fill in what balances the entry.</span>
+    </div>
+    <section class="k-card lc" aria-labelledby="l1">
+      <div class="lc-head">
+        <h3 id="l1" class="lc-title">Line 1</h3>
+        <button type="button" class="k-btn k-btn--ghost rm" aria-label="Remove line 1">×</button>
+      </div>
+      <div class="k-field">
+        <label class="k-label md-sr" for="a1">Account</label>
+        <select id="a1" class="k-input"><option>4900 · Algemene kosten</option></select>
+      </div>
+      <div class="k-field">
+        <label class="k-label md-sr" for="d1">Line description</label>
+        <input id="d1" class="k-input" value="Card payment, receipt to follow">
+      </div>
+      <div class="dc">
+        <div class="k-field"><label class="k-label md-sr" for="db1">Debit</label><input id="db1" class="k-input k-num amt-in" inputmode="decimal" value="30,58"></div>
+        <div class="k-field"><label class="k-label md-sr" for="cr1">Credit</label><input id="cr1" class="k-input k-num amt-in" inputmode="decimal" value=""></div>
+      </div>
+    </section>
+    <section class="k-card lc" aria-labelledby="l2">
+      <div class="lc-head">
+        <h3 id="l2" class="lc-title">Line 2</h3>
+        <button type="button" class="k-btn k-btn--ghost rm" aria-label="Remove line 2">×</button>
+      </div>
+      <div class="k-field">
+        <label class="k-label md-sr" for="a2">Account</label>
+        <select id="a2" class="k-input"><option>1510 · Te vorderen btw</option></select>
+      </div>
+      <div class="k-field">
+        <label class="k-label md-sr" for="d2">Line description</label>
+        <input id="d2" class="k-input" value="21% VAT, code VH21">
+      </div>
+      <div class="dc">
+        <div class="k-field"><label class="k-label md-sr" for="db2">Debit</label><input id="db2" class="k-input k-num amt-in" inputmode="decimal" value="6,42"></div>
+        <div class="k-field"><label class="k-label md-sr" for="cr2">Credit</label><input id="cr2" class="k-input k-num amt-in" inputmode="decimal" value=""></div>
+      </div>
+    </section>
+    <section class="k-card lc" aria-labelledby="l3">
+      <div class="lc-head">
+        <h3 id="l3" class="lc-title">Line 3</h3>
+        <button type="button" class="k-btn k-btn--ghost rm" aria-label="Remove line 3">×</button>
+      </div>
+      <div class="k-field">
+        <label class="k-label md-sr" for="a3">Account</label>
+        <select id="a3" class="k-input"><option>1100 · Bank</option></select>
+      </div>
+      <div class="k-field">
+        <label class="k-label md-sr" for="d3">Line description</label>
+        <input id="d3" class="k-input" value="Demo bankrekening ··· 0001">
+      </div>
+      <div class="dc">
+        <div class="k-field"><label class="k-label md-sr" for="db3">Debit</label><input id="db3" class="k-input k-num amt-in" inputmode="decimal" value=""></div>
+        <div class="k-field"><label class="k-label md-sr" for="cr3">Credit</label><input id="cr3" class="k-input k-num amt-in is-focus" inputmode="decimal" value="=37,00"></div>
+      </div>
+    </section>
+    <button type="button" class="k-btn k-btn--dashed" style="height: 44px; justify-content: center;">+ Add a line</button>
+
+    <section class="k-card" aria-label="Totals" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+      <div class="kv"><span class="k-muted">Total debit</span><span class="k-num nw amt">€ 37,00</span></div>
+      <div class="kv"><span class="k-muted">Total credit</span><span class="k-num nw amt">€ 37,00</span></div>
+      <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500; padding-top: 4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M20 6 9 17l-5-5"/></svg>Balances: debit and credit are equal</span>
+    </section>
+
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+      <strong style="font-size: 15px;">Attach the document behind this entry</strong>
+      <span style="color: var(--ink-2); line-height: 1.5;">A receipt, a letter, a calculation. Kept for seven years with the entry.</span>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button type="button" class="k-btn" style="height: 44px; justify-content: center;">Take a photo</button>
+        <button type="button" class="k-btn" style="height: 44px; justify-content: center;">Choose a file</button>
+      </div>
+    </section>
+
+    <section class="k-callout">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted); margin-top: 1px;"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <div class="k-callout-body">
+        <span class="k-callout-title">Posting is final</span>
+        <span class="k-callout-text">Once posted, the entry can't be edited or deleted. A mistake is fixed with a reversing entry.</span>
+      </div>
+    </section>
+  </form>
+  <div class="dock">
+    <div class="dock-bar">
+      <button type="button" class="k-btn">Post and next</button>
+      <button type="button" class="k-btn k-btn--primary">Post</button>
+    </div>
+    <nav class="k-tabbar" aria-label="Main">
+      <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+      <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+      <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+      <a class="k-tabbar-item is-active" href="PhoneMore.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+    </nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>

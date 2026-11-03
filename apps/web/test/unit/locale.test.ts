@@ -108,17 +108,17 @@ describe('the catalogues', () => {
 
 describe('rendering a message', () => {
   it('fills placeholders in', () => {
-    expect(translate('nl', 'signIn.codeSent', { email: 'a@b.example.nl' })).toContain(
+    expect(translate('nl', 'setup.signedInAs', { email: 'a@b.example.nl' })).toContain(
       'a@b.example.nl',
     )
-    expect(translate('en', 'signIn.codeSent', { email: 'a@b.example.nl' })).toContain(
+    expect(translate('en', 'setup.signedInAs', { email: 'a@b.example.nl' })).toContain(
       'a@b.example.nl',
     )
   })
 
   it('leaves a missing value visible rather than blanking it', () => {
     // An obvious `{email}` gets reported. A sentence with a gap does not.
-    expect(translate('nl', 'signIn.codeSent', {})).toContain('{email}')
+    expect(translate('nl', 'setup.signedInAs', {})).toContain('{email}')
   })
 
   it('picks the countable form', () => {

@@ -29,8 +29,8 @@ import {
   formatSalesSegmentCount,
   invoiceHistoryEvents,
   invoicePill,
+  reminderSendTargets,
   salesSendLabelKey,
-  sendableDunningActions,
   sentAsFromDeliveries,
   showSalesSend,
   SALES_LIST_FETCH_LIMIT,
@@ -169,8 +169,8 @@ function Invoices() {
   const rows = result.ok ? (result.data.invoices as SalesInvoiceRow[]) : []
   const counts = countSalesSegments(rows, overdueIds)
   const shown = filterSalesInvoices(rows, overdueIds, segment, q)
-  // Same sendable predicate as Reminders / Send all — skip rows without email.
-  const reminderCount = queue.ok ? sendableDunningActions(queue.data.actions).length : 0
+  // Same sendable + overdue predicate as Reminders / Send all (#173).
+  const reminderCount = queue.ok ? reminderSendTargets(queue.data.actions, asOf).length : 0
 
   // Preview only when `id` is in the URL — Escape clears it and hides the pane.
   const activeId =

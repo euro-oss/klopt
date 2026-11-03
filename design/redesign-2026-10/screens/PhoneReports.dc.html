@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Reports</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#146). Phone 390 of Reports.dc.html: the same five reports,
+  figures and copy. The five tabs don't fit one row at 390, so they are wrapping 44px chips
+  (3 + 2) under the period. Every table becomes stacked rows: name on the left, the amount on the
+  right in Inter tabular figures, the detail (age bucket, Debit and Credit, RGS code) under it.
+  The ageing columns become a "By age" card. Reports lives under More, so More is the active tab.
+  Takes `theme` and `view` (pl, bs, deb, cred, tb; default pl); tapping a chip switches.
+  PhoneReportsDark.dc.html sets dark and passes `view` on.
+  The tab bar is sticky, so it stays at the bottom of the viewport as the page scrolls.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), links in ink
+  and underlined, 44px targets, no key hints on phone, no ink-faint, amounts never wrap,
+  bars are decoration (aria-hidden; every bar has its amount next to it), self-hosted fonts.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root .k-tabbar{position:sticky;bottom:0;z-index:1}
+a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-input{border-color:var(--line-control)}
+.k-phone .k-input{height:44px;font-size:15px}
+.k-phone .k-kbd,.k-phone .k-chord,.k-phone .k-hints{display:none}
+.nw{white-space:nowrap}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 14px;border-radius:var(--radius-pill);border:1px solid var(--line-control);background:var(--surface);color:var(--ink);font:500 14px var(--font-sans);cursor:pointer;box-sizing:border-box}
+.chip[aria-selected="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:600}
+.st{padding:14px 16px;gap:4px;border-radius:var(--radius-lg)}
+.st .k-stat-value{font-size:20px;line-height:26px;white-space:nowrap}
+.row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-top:1px solid var(--line-soft);text-decoration:none;color:var(--ink);background:var(--surface);min-height:52px;box-sizing:border-box}
+.row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:15px;line-height:20px}
+.row-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.amt{font-size:15px;line-height:20px;font-weight:600;text-align:right}
+.amt-sm{font-size:13px;line-height:18px;font-weight:500;color:var(--ink-2)}
+.lbl{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.pair{display:flex;align-items:baseline;gap:6px}
+.bar{display:block;height:6px;border-radius:3px;background:var(--line-soft);margin-top:4px}
+.bar > span{display:block;height:6px;border-radius:3px}
+.brow{flex-direction:column;align-items:stretch;gap:6px}
+.brow-top{display:flex;justify-content:space-between;gap:12px;font-size:15px;line-height:20px}
+.tot{display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid var(--line);background:var(--surface-hover);font-weight:600;font-size:15px}
+.ch{padding:14px 16px 12px;display:flex;flex-direction:column;gap:2px}
+.ch h2{margin:0;font-size:15px;line-height:20px;font-weight:600}
+.btn-wide{height:44px;justify-content:center;width:100%}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="padding-bottom: 0;">
+    <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Reports</h1>
+    <button type="button" class="k-btn" style="height: 44px;" aria-label="Download PDF">PDF</button>
+    <button type="button" class="k-btn" style="height: 44px;" aria-label="Download CSV">CSV</button>
+  </div>
+  <div class="k-phone-body" style="padding-top: 16px;">
+    <div class="k-field">
+      <label class="k-label" for="per">Period</label>
+      <select id="per" class="k-input"><option>Book year 2025</option><option>Q4 2025</option><option>December 2025</option><option>Custom</option></select>
+    </div>
+    <div class="chips" role="tablist" aria-label="Report">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+        <button type="button" role="tab" class="chip" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{v.pl}}" hint-placeholder-val="{{true}}">
+      <div class="k-stat st"><span class="k-stat-label">Profit before tax</span><span class="k-stat-value" style="font-size: 24px; line-height: 30px;">€ 14.162,11</span><span class="k-stat-meta">61% margin</span></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="k-stat st"><span class="k-stat-label">Income</span><span class="k-stat-value">€ 23.164,83</span><span class="k-stat-meta">Excluding VAT</span></div>
+        <div class="k-stat st"><span class="k-stat-label">Costs</span><span class="k-stat-value">€ 9.002,72</span><span class="k-stat-meta">39% of income</span></div>
+      </div>
+      <section class="k-card k-card--flush" aria-labelledby="inc-h">
+        <div class="ch"><h2 id="inc-h">Income</h2></div>
+        <div class="row brow"><span class="brow-top"><span>Sales</span><span class="k-num nw amt">€ 23.164,83</span></span><span class="bar" aria-hidden="true"><span style="width: 100%; background: var(--chart-1);"></span></span></div>
+        <div class="tot"><span>Total income</span><span class="k-num nw">€ 23.164,83</span></div>
+      </section>
+      <section class="k-card k-card--flush" aria-labelledby="exp-h">
+        <div class="ch"><h2 id="exp-h">Costs</h2><span class="lbl">Largest first. Tap a line to see its bookings.</span></div>
+        <sc-for list="{{costs}}" as="c" hint-placeholder-count="7">
+          <a href="#" class="row brow"><span class="brow-top"><span>{{c.name}}</span><span class="k-num nw amt">€ {{c.amtF}}</span></span><span class="bar" aria-hidden="true"><span style="{{c.barStyle}}"></span></span></a>
+        </sc-for>
+        <div class="tot"><span>Total costs</span><span class="k-num nw">€ 9.002,72</span></div>
+      </section>
+      <div class="k-card" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px; font-size: 16px; font-weight: 700;"><span>Profit before tax</span><span class="k-num nw">€ 14.162,11</span></div>
+    </sc-if>
+
+    <sc-if value="{{v.bs}}" hint-placeholder-val="{{false}}">
+      <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">As at 31 December 2025. What the company has, and who it belongs to.</p>
+      <section class="k-card k-card--flush" aria-labelledby="as-h">
+        <div class="ch"><h2 id="as-h">What you have</h2></div>
+        <div class="row"><span class="row-main">Bank</span><span class="k-num nw amt">€ 62.799,88</span></div>
+        <div class="row"><span class="row-main">Customers owe you</span><span class="k-num nw amt">€ 4.710,44</span></div>
+        <div class="row"><span class="row-main">VAT to claim back</span><span class="k-num nw amt">€ 1.575,61</span></div>
+        <div class="tot"><span>Total</span><span class="k-num nw">€ 69.085,93</span></div>
+      </section>
+      <section class="k-card k-card--flush" aria-labelledby="li-h">
+        <div class="ch"><h2 id="li-h">Who it belongs to</h2></div>
+        <div class="row"><span class="row-main">VAT to pay</span><span class="k-num nw amt">€ 3.732,04</span></div>
+        <div class="row"><span class="row-main">Suppliers you owe</span><span class="k-num nw amt">€ 1.191,78</span></div>
+        <div class="row"><span class="row-main">Share capital</span><span class="k-num nw amt">€ 50.000,00</span></div>
+        <div class="row"><span class="row-main">Profit 2025</span><span class="k-num nw amt">€ 14.162,11</span></div>
+        <div class="tot"><span>Total</span><span class="k-num nw">€ 69.085,93</span></div>
+      </section>
+      <section class="k-callout k-callout--warn" style="flex-direction: column; gap: 8px; padding: 16px;">
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <div class="k-callout-body">
+            <span class="k-callout-title">The books show <span class="k-num nw">€ 371,25</span> more in the bank than the statement</span>
+            <span class="k-callout-text">That is exactly the 15 bank lines nobody has matched yet. Match them and both agree again.</span>
+          </div>
+        </div>
+        <a href="PhoneMatch.dc.html" class="lnk" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; padding-left: 32px;">Match now</a>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{v.deb}}" hint-placeholder-val="{{false}}">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="k-stat st"><span class="k-stat-label">Overdue in total</span><span class="k-stat-value">€ 4.710,44</span><span class="k-stat-meta">5 invoices, 5 customers</span></div>
+        <div class="k-stat st"><span class="k-stat-label">More than 90 days</span><span class="k-stat-value">€ 3.999,40</span><span class="k-stat-meta k-stat-meta--danger">85% of what is owed</span></div>
+      </div>
+      <section class="k-card k-card--flush" aria-labelledby="deb-h">
+        <div class="ch"><h2 id="deb-h">Customers</h2><span class="lbl">Oldest first</span></div>
+        <sc-for list="{{debtors}}" as="d" hint-placeholder-count="5">
+          <a href="PhoneContactCard.dc.html" class="row"><span class="row-main"><span style="font-weight: 600;">{{d.name}}</span><span style="font-size: 13px; line-height: 18px; color: var(--danger);">{{d.late}}</span></span><span class="row-side"><span class="k-num nw amt">€ {{d.t}}</span><span class="lbl nw">{{d.bucket}}</span></span></a>
+        </sc-for>
+        <div class="tot"><span>Total</span><span class="k-num nw">€ 4.710,44</span></div>
+      </section>
+      <section class="k-card k-card--flush" aria-labelledby="dage-h">
+        <div class="ch"><h2 id="dage-h">By age</h2></div>
+        <sc-for list="{{debAge}}" as="a" hint-placeholder-count="4">
+          <div class="row"><span class="row-main">{{a.label}}</span><span class="k-num nw amt" style="{{a.style}}">{{a.amt}}</span></div>
+        </sc-for>
+      </section>
+      <a href="PhoneSales.dc.html" class="k-btn btn-wide">Send reminders to all 5</a>
+    </sc-if>
+
+    <sc-if value="{{v.cred}}" hint-placeholder-val="{{false}}">
+      <div class="k-stat st"><span class="k-stat-label">You owe in total</span><span class="k-stat-value">€ 1.191,78</span><span class="k-stat-meta k-stat-meta--danger">All of it past due</span></div>
+      <div class="k-stat st"><span class="k-stat-label">Agrees with the suppliers account</span><span class="k-stat-value" style="color: var(--success);">Yes</span><span class="k-stat-meta"><span class="k-num nw">€ 1.191,78</span> on both sides</span></div>
+      <section class="k-card k-card--flush" aria-labelledby="cred-h">
+        <div class="ch"><h2 id="cred-h">Suppliers</h2><span class="lbl">Largest first</span></div>
+        <sc-for list="{{creditors}}" as="d" hint-placeholder-count="5">
+          <a href="PhoneCosts.dc.html" class="row"><span class="row-main"><span style="font-weight: 600;">{{d.name}}</span></span><span class="row-side"><span class="k-num nw amt">€ {{d.t}}</span><span class="lbl nw">{{d.bucket}}</span></span></a>
+        </sc-for>
+        <div class="tot"><span>Total</span><span class="k-num nw">€ 1.191,78</span></div>
+      </section>
+      <section class="k-card k-card--flush" aria-labelledby="cage-h">
+        <div class="ch"><h2 id="cage-h">By age</h2></div>
+        <sc-for list="{{credAge}}" as="a" hint-placeholder-count="4">
+          <div class="row"><span class="row-main">{{a.label}}</span><span class="k-num nw amt" style="{{a.style}}">{{a.amt}}</span></div>
+        </sc-for>
+      </section>
+      <a href="PhonePaymentBatch.dc.html" class="k-btn btn-wide">Prepare a payment batch</a>
+    </sc-if>
+
+    <sc-if value="{{v.tb}}" hint-placeholder-val="{{false}}">
+      <p style="margin: 0; color: var(--ink-2); line-height: 1.5;">Every account that moved in book year 2025, periods 1 to 13. Opening is 0,00 for each, as 2025 is the first year.</p>
+      <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M20 6 9 17l-5-5"/></svg>Debit equals credit</span>
+      <section class="k-card k-card--flush" aria-labelledby="tb-h">
+        <div class="ch"><h2 id="tb-h">Accounts</h2><span class="lbl">Closing balance on the right, debit and credit under it.</span></div>
+        <sc-for list="{{tbRows}}" as="r" hint-placeholder-count="14">
+          <a href="PhoneLedger.dc.html" class="row">
+            <span class="row-main"><span style="display: flex; gap: 8px; align-items: flex-start;"><span class="k-code" style="flex: none; margin-top: 1px;">{{r.no}}</span><span>{{r.name}}</span></span><span><span class="k-code">{{r.rgs}}</span></span></span>
+            <span class="row-side"><span class="k-num nw amt">{{r.close}}</span><span class="pair"><span class="lbl">Debit</span><span class="k-num nw amt-sm">{{r.dF}}</span></span><span class="pair"><span class="lbl">Credit</span><span class="k-num nw amt-sm">{{r.cF}}</span></span></span>
+          </a>
+        </sc-for>
+        <div class="tot" style="flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span>Total debit</span><span class="k-num nw">118.421,93</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span>Total credit</span><span class="k-num nw">118.421,93</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px;"><span>Closing</span><span class="k-num nw">0,00</span></div>
+        </div>
+      </section>
+      <p class="k-muted" style="margin: 0; font-size: 13px; line-height: 1.5;">Ledger numbers and RGS codes always show here: this report is for people who read them. Tap a line to open that account's ledger.</p>
+    </sc-if>
+  </div>
+    <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="PhoneMore.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"view":{"editor":"enum","options":["pl","bs","deb","cred","tb"],"default":"pl"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: props.view ?? 'pl' };
+  }
+  renderVals() {
+    const f = (n) => n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const raw = [['General costs',1848.16],['Rent',1551.16],['Phone and internet',1527.19],['Accounting',1244.89],['Advertising',1013.96],['Fuel',971.21],['Office costs',846.15]];
+    const costs = raw.map(([name, amt]) => ({ name, amtF: f(amt), barStyle: 'background:var(--chart-2);width:' + Math.round(amt / 1848.16 * 100) + '%' }));
+    const buckets = ['1–30 days', '31–60 days', '61–90 days', '90+ days'];
+    const z = '0,00';
+    const pick = (row) => buckets.filter((b, i) => row[i] !== z).join(', ');
+    const debtors = [
+      ['Molenaar Media','324 days late',z,z,z,'985,93','985,93'],
+      ['Havenmeester Horeca','281 days late',z,z,z,'902,79','902,79'],
+      ['Dijkzicht Design','175 days late',z,z,z,'1.152,34','1.152,34'],
+      ['Zandbank Advies','128 days late',z,z,z,'958,34','958,34'],
+      ['Windvaan Workshops','76 days late',z,z,'711,04',z,'711,04']
+    ].map(([name, late, a, b, c, d, t]) => ({ name, late, t, bucket: pick([a, b, c, d]) }));
+    const creditors = [
+      ['Software Licentie Demo',z,z,z,'467,00','467,00'],
+      ['Internet Voorbeeld',z,'252,83',z,z,'252,83'],
+      ['Verzekering Fictief',z,z,z,'242,40','242,40'],
+      ['Schoonmaak Voorbeeld',z,z,z,'155,39','155,39'],
+      ['Reclame Sample',z,z,z,'74,16','74,16']
+    ].map(([name, a, b, c, d, t]) => ({ name, t, bucket: pick([a, b, c, d]) }));
+    const age = (vals) => buckets.map((label, i) => ({ label, amt: '€ ' + vals[i], style: vals[i] === z ? 'color: var(--ink-muted); font-weight: 500;' : '' }));
+    const debAge = age([z, z, '711,04', '3.999,40']);
+    const credAge = age([z, '252,83', z, '938,95']);
+    const tbRows = [
+      ['0500','Aandelenkapitaal','BEivGokGea','','50.000,00','−50.000,00'],
+      ['1100','Bank','BLimBanRba','72.186,43','9.386,55','62.799,88'],
+      ['1300','Debiteuren','BVorDebHad','26.896,87','22.186,43','4.710,44'],
+      ['1500','Te betalen omzetbelasting','BSchBepBtw','','3.732,04','−3.732,04'],
+      ['1510','Terug te vorderen omzetbelasting','BVorVbkTvo','1.575,61','','1.575,61'],
+      ['1600','Crediteuren','BSchCreHac','8.760,30','9.952,08','−1.191,78'],
+      ['4200','Huur bedrijfsruimte','WBedHuiBeh','1.551,16','','1.551,16'],
+      ['4300','Brandstofkosten','WBedAutBra','971,21','','971,21'],
+      ['4400','Kantoorkosten','WBedKanCea','846,15','','846,15'],
+      ['4410','Telefoon- en internetkosten','WBedKanTef','1.527,19','','1.527,19'],
+      ['4420','Boekhouding en administratie','WBedKanBoe','1.244,89','','1.244,89'],
+      ['4500','Reclame- en advertentiekosten','WBedVkkRea','1.013,96','','1.013,96'],
+      ['4900','Algemene kosten','WBedAlkOal','1.848,16','','1.848,16'],
+      ['8000','Omzet','WOmzGrpGr1','','23.164,83','−23.164,83']
+    ].map(([no, name, rgs, d, c, close]) => ({ no, name, rgs, close, dF: d || z, cF: c || z }));
+    const view = this.state.view;
+    const tabs = [['pl','Profit and loss'],['bs','Balance sheet'],['deb','Customers owe you'],['cred','You owe'],['tb','Trial balance']]
+      .map(([k, label]) => ({ label, on: k === view ? 'true' : 'false', pick: () => this.setState({ view: k }) }));
+    return { theme: this.props.theme ?? 'light', costs, debtors, creditors, debAge, credAge, tbRows, tabs, v: { pl: view === 'pl', bs: view === 'bs', deb: view === 'deb', cred: view === 'cred', tb: view === 'tb' } };
+  }
+}
+</script>
+</body>
+</html>

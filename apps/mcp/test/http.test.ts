@@ -9,7 +9,7 @@ import { handleMcpRequest } from '../src/http.js'
  * these tests are about the half they can.
  */
 
-const ENTITY = { id: 'e1', name: 'Neverhide', functionalCurrency: 'EUR' }
+const ENTITY = { id: 'e1', name: 'Voorbeeld BV', functionalCurrency: 'EUR' }
 
 const api = vi.fn((input: string | URL | Request) => {
   const href = input instanceof Request ? input.url : input.toString()
@@ -102,7 +102,7 @@ describe('one JSON-RPC message per request', () => {
       provenance: { entity: { name: string }; amounts: { unit: string } }
     }
 
-    expect(payload.provenance.entity.name).toBe('Neverhide')
+    expect(payload.provenance.entity.name).toBe('Voorbeeld BV')
     expect(payload.provenance.amounts.unit).toBe('decimal')
   })
 })

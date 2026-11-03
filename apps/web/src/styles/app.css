@@ -230,6 +230,7 @@
   /*
     Stick the primary actions to the bottom of the visual viewport on a phone
     so the OSK does not bury "Boeken" under the keys. Desktop stays in flow.
+    (Matches main — do not add nowrap / flex:1 here; that breaks /invoices/new.)
   */
   .form-actions {
     position: sticky;
@@ -244,12 +245,36 @@
     padding: 0.75rem 0;
   }
 
+  /*
+    BillNew only (#175): sit above the phone tab bar and keep both CTAs on one
+    row without clipping amounts. Scoped so /invoices/new keeps main layout.
+  */
+  .form-actions-billnew {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .form-actions-billnew > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   @media (min-width: 768px) {
     .form-actions {
       position: static;
       border-top: 0;
       background-color: transparent;
       padding: 0;
+    }
+
+    .form-actions-billnew {
+      bottom: auto;
+      flex-wrap: wrap;
+    }
+
+    .form-actions-billnew > * {
+      flex: 0 1 auto;
     }
   }
 }

@@ -20,7 +20,7 @@ async function openSales(page: Page): Promise<void> {
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Verkoop Demo BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Verkoop Demo BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -289,4 +289,42 @@ test('issued credit note CN2025-0041 shows Creditnota versturen on preview and d
   await expect(
     listPreview.getByRole('button', { name: 'Factuur versturen', exact: true }),
   ).toHaveCount(0)
+})
+
+test('InvoiceNew form-actions at 390 stay fully visible (BillNew sticky is scoped)', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await openSales(page)
+  await page.goto('/settings')
+  await page.getByLabel('Straat').fill('Demoweg')
+  await page.getByLabel('Huisnummer').fill('10')
+  await page.getByLabel('Postcode').fill('1000 BB')
+  await page.getByLabel('Plaats').fill('Amsterdam')
+  await page.getByRole('textbox', { name: 'KvK-nummer' }).fill('12345678')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByText('Opgeslagen.')).toBeVisible()
+
+  await page.goto('/invoices/new')
+  await hydrated(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  const save = page.getByRole('button', { name: 'Concept opslaan' })
+  await expect(save).toBeVisible()
+  const box = await save.boundingBox()
+  expect(box, 'Concept opslaan bounding box').not.toBeNull()
+  expect(box!.x, 'not clipped left').toBeGreaterThanOrEqual(0)
+  expect(box!.y, 'not clipped top').toBeGreaterThanOrEqual(0)
+  expect(box!.x + box!.width, 'not clipped right').toBeLessThanOrEqual(390 + 1)
+  expect(box!.y + box!.height, 'not clipped bottom').toBeLessThanOrEqual(844 + 1)
+  // Global nowrap/flex:1 must not apply — button stays a normal wrap layout size.
+  expect(box!.height, 'not wrapped into a tall clipped stack').toBeLessThan(50)
+  await expect
+    .poll(async () =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+      ),
+    )
+    .toBe(true)
 })

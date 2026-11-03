@@ -12,6 +12,8 @@ import { Keycap } from '~/components/ui/keycap'
 import { Stepper } from '~/components/ui/stepper'
 import { useT } from '~/i18n/provider'
 import type { MessageKey } from '~/i18n/nl'
+import { useHydrated } from '~/lib/hydration'
+import { isApple } from '~/lib/keyboard'
 import {
   IMPORT_RAIL_IDS,
   railEntryStep,
@@ -59,6 +61,22 @@ export function WizardStat({
       ) : null}
     </div>
   )
+}
+
+function stepOfLabel(
+  t: ReturnType<typeof useT>['t'],
+  step: ImportWizardStep,
+  source: ImportWizardSource | null,
+): string {
+  const steps = wizardStepsForSource(source)
+  const keys = wizardStepKeysForSource(source)
+  const found = steps.indexOf(step)
+  const index = found >= 0 ? found : Math.max(0, steps.length - 1)
+  return t('wizard.stepOf', {
+    step: String(index + 1),
+    total: String(steps.length),
+    label: t(keys[index]!),
+  })
 }
 
 export function WizardProgressRail({
@@ -126,11 +144,15 @@ export function WizardStepHeader({
   readonly step: ImportWizardStep
   readonly source?: ImportWizardSource | null
 }) {
+  const { t } = useT()
   return (
     <header className="mb-6 min-w-0" data-wizard-step={step} data-wizard-source={source ?? ''}>
+      <p className="text-ink-2 hidden text-sm break-words tabular-nums md:block">
+        {stepOfLabel(t, step, source)}
+      </p>
       <h2
         id={`${titleId}-step`}
-        className="text-ink text-lg font-semibold tracking-tight md:text-xl"
+        className="text-ink mt-1 text-lg font-semibold tracking-tight md:text-xl"
       >
         {title}
       </h2>
@@ -153,8 +175,8 @@ export function WizardFooter({
   note,
 }: {
   readonly onBack?: () => void
-  readonly onNext?: () => void
   readonly onNextBlocked?: () => void
+  readonly onNext?: () => void
   /** Required when `onNext` is set; omit with `onNext` for a Back-only footer. */
   readonly nextLabel?: string
   readonly nextDisabled?: boolean
@@ -165,6 +187,8 @@ export function WizardFooter({
   readonly note?: string | null
 }) {
   const { t } = useT()
+  const hydrated = useHydrated()
+  const modKey = hydrated && isApple() ? '⌘' : 'Ctrl'
   const blocked = nextDisabled === true
   const showNext = onNext !== undefined && nextLabel !== undefined && nextLabel !== ''
   return (
@@ -173,7 +197,7 @@ export function WizardFooter({
         <Button
           type="button"
           variant="outline"
-          className="min-h-11 w-full md:w-auto"
+          className="min-h-11 w-full shrink-0 md:w-auto"
           onClick={onBack}
         >
           {t('wizard.back')}
@@ -212,7 +236,7 @@ export function WizardFooter({
             {nextLabel}
             {showNextKeycap && !blocked && (
               <span className="ml-1 hidden items-center gap-0.5 md:inline-flex">
-                <Keycap>⌘</Keycap>
+                <Keycap>{modKey}</Keycap>
                 <Keycap>↵</Keycap>
               </span>
             )}
@@ -228,13 +252,15 @@ export function WizardHints({
 }: {
   readonly items: readonly { readonly keys: readonly string[]; readonly label: string }[]
 }) {
+  const hydrated = useHydrated()
+  const modKey = hydrated && isApple() ? '⌘' : 'Ctrl'
   if (items.length === 0) return null
   return (
     <p className="text-ink-muted mt-4 hidden flex-wrap gap-x-4 gap-y-2 text-xs md:flex">
       {items.map((item) => (
         <span key={item.label} className="inline-flex items-center gap-1">
           {item.keys.map((key) => (
-            <Keycap key={key}>{key}</Keycap>
+            <Keycap key={key}>{key === '⌘' ? modKey : key}</Keycap>
           ))}
           <span>{item.label}</span>
         </span>

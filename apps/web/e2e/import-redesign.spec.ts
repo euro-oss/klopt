@@ -16,7 +16,7 @@ async function anAdministration(page: Page): Promise<void> {
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Import Redesign BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Import Redesign BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -98,10 +98,10 @@ test('a bookkeeper does not see the XAF source', async ({ browser }) => {
     await expect(ownerPage.getByText(new RegExp(`${keeperEmail} heeft nu toegang`))).toBeVisible()
 
     await keeperPage.goto('/importeren')
-    await expect(keeperPage.getByRole('radio', { name: /Moneybird/ })).toBeEnabled({
+    await expect(keeperPage.getByText(/rol eigenaar of accountant nodig/)).toBeVisible({
       timeout: 15_000,
     })
-    await expect(keeperPage.getByRole('radio', { name: /Een ander pakket/ })).toHaveCount(0)
+    await expect(keeperPage.getByRole('radio', { name: /Moneybird/ })).toHaveCount(0)
   } finally {
     await owner.close()
     await keeper.close()
