@@ -78,7 +78,7 @@ test('phone contact card at 390 light and dark; edit via Bewerken', async ({ pag
 
     const card = page.getByRole('complementary', { name: 'Relatiekaart' })
     await expect(card).toBeVisible()
-    await expect(card.getByRole('link', { name: '‹ Contacten' })).toBeVisible()
+    await expect(card.getByRole('link', { name: '‹ Relaties' })).toBeVisible()
     await expect(card.getByRole('link', { name: 'Bewerken' })).toBeVisible()
     await expect(card.getByRole('link', { name: 'Nieuwe factuur' })).toBeVisible()
     await expect(card).toContainText('Zandbank Advies')
@@ -97,7 +97,7 @@ test('phone list opens the card route, not the edit form', async ({ page }) => {
   await openAdmin(page)
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/contacts')
-  await page.getByRole('button', { name: '+ Contact' }).click()
+  await page.getByRole('button', { name: '+ Relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill('DEB-1303')
   await page.getByLabel('Naam', { exact: true }).fill('Windvaan Workshops (demo)')
   await page.getByRole('button', { name: 'Opslaan' }).click()
