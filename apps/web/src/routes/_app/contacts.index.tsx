@@ -17,6 +17,7 @@ import {
   aggregateContacts,
   CONTACTS_DOCS_FETCH_LIMIT,
   contactInitials,
+  contactOpenAmountIsOverdue,
   contactRoleLabel,
   countContactRoles,
   filterContacts,
@@ -612,6 +613,7 @@ function Contacts() {
                   const stats = aggregates.get(row.number)
                   const openMinor = stats?.openMinor ?? 0n
                   const lateDays = stats?.lateDays ?? null
+                  const openOverdue = row.isCustomer && contactOpenAmountIsOverdue(lateDays)
                   const isActive = row.id === activeId
                   const sub = row.email !== null && row.email !== '' ? row.email : row.number
                   const role = contactRoleLabel(row, roleLabels)
@@ -689,9 +691,11 @@ function Contacts() {
                             {row.name}
                           </span>
                           <span
+                            data-contacts-list-open-amount=""
+                            data-contacts-open-overdue={openOverdue ? 'true' : 'false'}
                             className={cn(
                               'shrink-0 tabular-nums md:hidden',
-                              openMinor > 0n ? 'text-destructive text-[15px] font-semibold' : '',
+                              openOverdue ? 'text-destructive text-[15px] font-semibold' : '',
                             )}
                           >
                             {openLabel}
@@ -724,9 +728,11 @@ function Contacts() {
                         {role}
                       </span>
                       <span
+                        data-contacts-list-open-amount=""
+                        data-contacts-open-overdue={openOverdue ? 'true' : 'false'}
                         className={cn(
                           'hidden self-center text-right tabular-nums md:block',
-                          openMinor > 0n ? 'text-destructive font-semibold' : 'text-ink-muted',
+                          openOverdue ? 'text-destructive font-semibold' : 'text-ink-muted',
                         )}
                       >
                         {openMinor > 0n ? (

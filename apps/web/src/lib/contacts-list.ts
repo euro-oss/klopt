@@ -264,16 +264,12 @@ export function salesDocStatus(
   return { pill: null, openMinor: null }
 }
 
-/** Short due date for muted secondary copy (`16 okt` / `16 Oct`). */
-export function formatContactInvoiceDue(iso: string, localeTag: string): string {
-  const [year, month, day] = iso.split('-').map(Number)
-  if (year === undefined || month === undefined || day === undefined) return iso
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return iso
-  return new Intl.DateTimeFormat(localeTag, {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(year, month - 1, day)))
+/**
+ * Whether the contact-level open figure should use overdue (red) styling.
+ * Open amount stays normal ink until at least one sales invoice is late (`lateDays > 0`).
+ */
+export function contactOpenAmountIsOverdue(lateDays: number | null): boolean {
+  return lateDays !== null && lateDays > 0
 }
 
 /**

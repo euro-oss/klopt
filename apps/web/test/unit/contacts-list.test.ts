@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   aggregateContacts,
   contactInitials,
+  contactOpenAmountIsOverdue,
   contactRoleLabel,
   countContactRoles,
   filterContacts,
-  formatContactInvoiceDue,
   missingEInvoicingDetails,
   parseContactsRoleFilter,
   salesDocStatus,
@@ -223,7 +223,19 @@ describe('aggregateContacts (#195 item 1 — customer open)', () => {
   })
 })
 
-describe('salesDocStatus / formatContactInvoiceDue', () => {
+describe('contactOpenAmountIsOverdue (#195 styling)', () => {
+  it('is false when open but not yet overdue (lateDays null or 0)', () => {
+    expect(contactOpenAmountIsOverdue(null)).toBe(false)
+    expect(contactOpenAmountIsOverdue(0)).toBe(false)
+  })
+
+  it('is true only when lateDays > 0', () => {
+    expect(contactOpenAmountIsOverdue(1)).toBe(true)
+    expect(contactOpenAmountIsOverdue(12)).toBe(true)
+  })
+})
+
+describe('salesDocStatus', () => {
   it('pills only draft/cancelled; issued uses open text from outstanding', () => {
     expect(salesDocStatus({ status: 'draft', kind: 'invoice', outstanding: '0' })).toEqual({
       pill: 'draft',
@@ -241,11 +253,6 @@ describe('salesDocStatus / formatContactInvoiceDue', () => {
       pill: null,
       openMinor: null,
     })
-  })
-
-  it('formats due hint dates for NL and EN', () => {
-    expect(formatContactInvoiceDue('2026-03-15', 'nl-NL')).toMatch(/15/)
-    expect(formatContactInvoiceDue('2026-03-15', 'en-GB')).toMatch(/15/)
   })
 
   it('case 3 (contact card row): invoice shows net open; linked credit note row shows no open', () => {

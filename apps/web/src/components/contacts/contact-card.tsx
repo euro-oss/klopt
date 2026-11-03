@@ -11,7 +11,7 @@ import { useT } from '~/i18n/provider'
 import {
   contactInitials,
   contactRoleLabel,
-  formatContactInvoiceDue,
+  contactOpenAmountIsOverdue,
   missingEInvoicingDetails,
   salesDocStatus,
   supplierOpenSummary,
@@ -19,6 +19,7 @@ import {
   type ContactPurchaseDoc,
   type ContactSalesDoc,
 } from '~/lib/contacts-list'
+import { formatBankDay } from '~/lib/bank-match'
 import { formatMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
@@ -105,6 +106,7 @@ function useContactCardCopy({
   const volume = aggregate?.volumeMinor ?? 0n
   const docs = aggregate?.documentCount ?? 0
   const openMinor = aggregate?.openMinor ?? 0n
+  const openOverdue = contactOpenAmountIsOverdue(aggregate?.lateDays ?? null)
   const openCount =
     detail !== null && detail.ok ? detail.openDocuments.sales + detail.openDocuments.purchase : 0
 
@@ -163,6 +165,7 @@ function useContactCardCopy({
     volume,
     docs,
     openMinor,
+    openOverdue,
     openCount,
     role,
     sub,
@@ -279,9 +282,11 @@ export function ContactCard({
         <div className="flex flex-col gap-1 px-6 py-4">
           <span className="text-ink-muted text-[13px]">{t('contacts.card.stillOpen')}</span>
           <span
+            data-contact-open-amount=""
+            data-contact-open-overdue={copy.openOverdue ? 'true' : 'false'}
             className={cn(
               'text-xl font-semibold tabular-nums',
-              copy.openMinor > 0n && 'text-destructive',
+              copy.openOverdue && 'text-destructive',
             )}
           >
             €&nbsp;
@@ -423,7 +428,9 @@ export function PhoneContactCard({
         </FiguresRow>
         <FiguresRow label={t('contacts.card.stillOpen')}>
           <span
-            className={cn('text-[17px] font-semibold', copy.openMinor > 0n && 'text-destructive')}
+            data-contact-open-amount=""
+            data-contact-open-overdue={copy.openOverdue ? 'true' : 'false'}
+            className={cn('text-[17px] font-semibold', copy.openOverdue && 'text-destructive')}
           >
             €&nbsp;
             <Money amount={copy.openMinor} />
@@ -548,7 +555,7 @@ function InvoiceRow({
   const overdueDays = overdueDaysByInvoiceId.get(doc.id)
   const showDueHint = status.openMinor !== null && doc.dueDate >= asOf && overdueDays === undefined
   const dueHint = showDueHint
-    ? t('contacts.card.invoiceDue', { date: formatContactInvoiceDue(doc.dueDate, tag) })
+    ? t('contacts.card.invoiceDue', { date: formatBankDay(doc.dueDate, tag) })
     : null
 
   const statusLine =
