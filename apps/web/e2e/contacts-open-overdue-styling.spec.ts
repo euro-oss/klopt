@@ -183,7 +183,9 @@ test('not-yet-due open amount is ink on list and card; overdue is red; Niets ope
 
   const emptyRowMobile = page.getByRole('button', { name: /Stilte Niets Open/ })
   const emptyMobileOpen = emptyRowMobile.locator('[data-contacts-list-open-amount]:visible')
-  await expect(emptyMobileOpen.locator('span.text-ink-muted', { hasText: 'Niets open' })).toBeVisible()
+  await expect(
+    emptyMobileOpen.locator('span.text-ink-muted', { hasText: 'Niets open' }),
+  ).toBeVisible()
 })
 
 test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purchase due dates)', async ({
