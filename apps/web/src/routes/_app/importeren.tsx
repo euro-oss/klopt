@@ -905,15 +905,11 @@ function ImportWizardPage() {
     await goTo(prev)
   }
 
-  handleNextRef.current = () => {
-    void handleNext()
-  }
-
   useEffect(() => {
-    if (bronParam !== 'xaf' || mayImportAudit) return
-    if (source === 'xaf') setSource(null)
-    void navigate({ search: { bron: undefined }, replace: true })
-  }, [bronParam, mayImportAudit, navigate, source])
+    handleNextRef.current = () => {
+      void handleNext()
+    }
+  })
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -1001,6 +997,7 @@ function ImportWizardPage() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleNextRef tracks latest handleNext
   }, [
     step,
     canNext,

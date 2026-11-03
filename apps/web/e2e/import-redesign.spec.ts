@@ -42,7 +42,7 @@ test('the source step shows six steps and does not overflow at 390', async ({ pa
     await expect(banner.getByText('Importeren', { exact: true })).toBeVisible()
     await expect(banner.getByText('Moneybird', { exact: true })).toHaveCount(0)
     await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
-    await expect(page.getByText(/stap 1 van 6/)).toBeVisible()
+    await expect(page.getByText(/Stap 1 van 6/i)).toBeVisible()
     const moneybird = page.getByRole('radio', { name: /Moneybird/ })
     await expect(moneybird).toBeEnabled({ timeout: 15_000 })
     await expect(page.getByRole('radio', { name: /Een ander pakket/ })).toBeVisible()

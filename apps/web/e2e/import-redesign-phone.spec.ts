@@ -100,7 +100,7 @@ test('390 connect and VAT steps do not overflow in light and dark', async ({ pag
       await page.getByRole('button', { name: 'Administraties ophalen' }).click()
       await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
       await page.getByText('Voorbeeld BV').click()
-      await expect(page.getByRole('checkbox', { name: /2024/ })).toBeVisible({ timeout: 60_000 })
+      await expect(page.getByRole('checkbox', { name: /2026/ })).toBeVisible({ timeout: 60_000 })
       await clickNext(page)
       await clickNext(page)
       await mapAllOpenRates(page)
