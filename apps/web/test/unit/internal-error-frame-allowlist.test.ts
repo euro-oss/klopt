@@ -11,6 +11,10 @@ describe('internal-error stack frame allowlist', () => {
     '    at readQuery (postgres://u:pw@h:5432/x:1:2)',
     '    at relative (x/y.js:1:2)',
     '    at jansen.js:1:2',
+    '    at node:j.jansen:1:2',
+    '    at node:Jansen:1:2',
+    '    at node:foo.bar:1:2',
+    '    at node:jan@x:1:2',
   ])('drops %s', (line) => {
     expect(internalErrorStackFrameLine(line)).toBeNull()
   })

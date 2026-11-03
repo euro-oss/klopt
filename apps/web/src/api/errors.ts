@@ -176,8 +176,9 @@ function readOwn(value: object, key: 'name' | 'message' | 'stack' | 'cause'): un
  * Only the location is kept, never the function name. Allowed shapes are
  * `native`, `<anonymous>`, or `path:line:col` where `path` is an absolute
  * POSIX or Windows path, or a `file://`, `node:`, `webpack-internal:///`, or
- * `http(s)://` URL without userinfo, with a JS/TS source extension except on
- * `node:` built-ins. Home profile segments are rewritten before logging.
+ * `http(s)://` URL without userinfo, with a JS/TS source extension, or a
+ * `node:` built-in module path (`^node:[a-z_/]+$`). Home profile segments are
+ * rewritten before logging.
  */
 function frameLocation(line: string): string | null {
   if (!line.startsWith('    at ')) return null
@@ -202,6 +203,7 @@ export function internalErrorStackFrameLine(line: string): string | null {
 }
 
 const SOURCE_FILE = /\.(js|mjs|cjs|jsx|ts|mts|cts|tsx)$/i
+const NODE_BUILTIN_PATH = /^node:[a-z_/]+$/
 
 function hasSourceExtension(path: string): boolean {
   return SOURCE_FILE.test(path)
@@ -224,7 +226,7 @@ function allowedFramePath(path: string): boolean {
   if (/\s/.test(path)) return false
 
   const lower = path.toLowerCase()
-  if (lower.startsWith('node:')) return true
+  if (lower.startsWith('node:')) return NODE_BUILTIN_PATH.test(path)
   if (lower.startsWith('file://')) return hasSourceExtension(path)
   if (lower.startsWith('webpack-internal:///')) return hasSourceExtension(path)
   if (lower.startsWith('http://') || lower.startsWith('https://')) {

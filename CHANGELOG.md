@@ -163,16 +163,16 @@ says "Log out", and the screens outside it no longer say "Afmelden".
 
 - Internal-error logs emit the request id and stack lines whose location
   is `native`, `<anonymous>`, or `path:line:col` where `path` is an absolute
-  path starting with `/`, a Windows drive path (`C:\\`), or a `file://`,
-  `node:`, `webpack-internal:///`, or `http(s)://` URL without userinfo, and
-  (except for `node:` built-ins) ends in `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`,
-  `.mts`, `.cts`, or `.tsx`; URL query strings are stripped; `/home/<name>/`,
-  `/Users/<name>/`, and `C:\\Users\\<name>\\` are rewritten with `~`. The
-  logged `error.name` is kept only when it matches `*Error` or `*Exception`;
-  otherwise the log writes `Error`. A linear IBAN-shaped backstop (case and
-  separators ignored) replaces matched substrings with `[iban]` on the error
-  name, message, and the strings written to the log.
-
+  path starting with `/`, a Windows drive path (`C:\`), or a `file://`,
+  `webpack-internal:///`, or `http(s)://` URL without userinfo, or a `node:`
+  built-in module name (lowercase letters, `_`, and `/` only); paths other than
+  `node:` must end in `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.mts`, `.cts`, or
+  `.tsx`; URL query strings are stripped; `/home/<name>/`, `/Users/<name>/`, and
+  `C:\Users\<name>\` are rewritten with `~`. The logged `error.name` is kept
+  only when it matches `*Error` or `*Exception`; otherwise the log writes
+  `Error`. A linear IBAN-shaped backstop (case and separators ignored) replaces
+  matched substrings with `[iban]` on the error name and the strings written to
+  the log.
 - Contacts follow-up: NL supplier empty line is "Niets openstaand"; at
   desktop the Relatiekaart heading wraps long names and card actions sit
   on their own row; the card stays desktop-only.
