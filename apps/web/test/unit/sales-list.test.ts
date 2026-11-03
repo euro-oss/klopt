@@ -8,6 +8,9 @@ import {
   formatSalesSegmentCount,
   invoiceHistoryEvents,
   invoicePill,
+  isReminderOverdue,
+  reminderConfirmPreview,
+  reminderSendTargets,
   salesSegmentOf,
   salesSendLabelKey,
   sendableDunningActions,
@@ -243,19 +246,20 @@ describe('Reminders and Send all use only the server dunning queue', () => {
     expect(source).toContain("from '~/server/sales'")
     expect(source).toContain('dunningQueue')
     expect(source).toContain('queue.data.actions')
-    expect(source).toContain('sendableDunningActions')
+    expect(source).toContain('reminderSendTargets')
+    expect(source).toContain('reminderConfirmPreview')
     expect(source).toContain('action.sendable')
     expect(source).not.toContain('listInvoices')
     expect(source).not.toContain('listOverdueInvoices')
   })
 
-  it('PhoneSales send-reminders link counts only sendable rows', () => {
+  it('PhoneSales send-reminders link counts only sendable overdue rows', () => {
     const source = readFileSync(
       join(import.meta.dirname, '../../src/routes/_app/invoices.index.tsx'),
       'utf8',
     )
-    expect(source).toContain('sendableDunningActions')
-    expect(source).toContain('sendableDunningActions(queue.data.actions)')
+    expect(source).toContain('reminderSendTargets')
+    expect(source).toContain('reminderSendTargets(queue.data.actions, asOf)')
   })
 
   it('sendableDunningActions drops rows without email', () => {
@@ -266,6 +270,118 @@ describe('Reminders and Send all use only the server dunning queue', () => {
         { invoiceId: 'c', sendable: true },
       ]).map((row) => row.invoiceId),
     ).toEqual(['a', 'c'])
+  })
+})
+
+describe('reminder bulk-send confirm (#173)', () => {
+  const asOf = '2026-11-02'
+  const row = (
+    overrides: Partial<{
+      invoiceId: string
+      contactName: string
+      number: string
+      total: string
+      dueDate: string
+      daysOverdue: number
+      sendable: boolean
+    }> = {},
+  ) => ({
+    invoiceId: 'i1',
+    contactName: 'Eva Jansen',
+    number: '2026-0001',
+    total: '121000',
+    dueDate: '2026-10-01',
+    daysOverdue: 32,
+    sendable: true,
+    ...overrides,
+  })
+
+  it('excludes due-today and future invoices from the send set', () => {
+    // Exclusive boundary: dueDate < asOf only. Due today must not be listed,
+    // counted, or sent — matching Legal on #173 and overdue reports.
+    expect(isReminderOverdue('2026-11-01', asOf)).toBe(true)
+    expect(isReminderOverdue('2026-11-02', asOf)).toBe(false)
+    expect(isReminderOverdue('2026-11-03', asOf)).toBe(false)
+
+    const targets = reminderSendTargets(
+      [
+        row({ invoiceId: 'past', dueDate: '2026-10-20', daysOverdue: 13 }),
+        row({ invoiceId: 'today', dueDate: asOf, daysOverdue: 0 }),
+        row({ invoiceId: 'future', dueDate: '2026-11-10', daysOverdue: -8 }),
+        row({ invoiceId: 'no-mail', dueDate: '2026-09-01', sendable: false }),
+      ],
+      asOf,
+    )
+    expect(targets.map((item) => item.invoiceId)).toEqual(['past'])
+  })
+
+  it('builds the confirm dialog from exactly the same array the send uses', () => {
+    const targets = reminderSendTargets(
+      [
+        row({
+          invoiceId: 'a',
+          contactName: 'Eva Jansen',
+          number: '2026-0010',
+          total: '50000',
+          dueDate: '2026-09-01',
+          daysOverdue: 62,
+        }),
+        row({
+          invoiceId: 'b',
+          contactName: 'Ruben de Vries',
+          number: '2026-0011',
+          total: '74050',
+          dueDate: '2026-09-15',
+          daysOverdue: 48,
+        }),
+        row({
+          invoiceId: 'c',
+          contactName: 'Noordwind BV',
+          number: '2026-0012',
+          total: '10000',
+          dueDate: '2026-10-01',
+          daysOverdue: 32,
+        }),
+        row({
+          invoiceId: 'd',
+          contactName: 'Atelier',
+          number: '2026-0013',
+          total: '20000',
+          dueDate: '2026-10-05',
+          daysOverdue: 28,
+        }),
+        row({
+          invoiceId: 'e',
+          contactName: 'Molenaar',
+          number: '2026-0014',
+          total: '30000',
+          dueDate: '2026-10-08',
+          daysOverdue: 25,
+        }),
+        row({
+          invoiceId: 'f',
+          contactName: 'Westland',
+          number: '2026-0015',
+          total: '40000',
+          dueDate: '2026-10-10',
+          daysOverdue: 23,
+        }),
+        row({ invoiceId: 'today', dueDate: asOf, daysOverdue: 0 }),
+      ],
+      asOf,
+    )
+
+    expect(targets.map((item) => item.invoiceId)).toEqual(['a', 'b', 'c', 'd', 'e', 'f'])
+
+    // Dialog body is sliced from the same send-set array (same object refs).
+    const preview = reminderConfirmPreview(targets)
+    expect(preview.rows).toHaveLength(5)
+    expect(preview.rows[0]).toBe(targets[0])
+    expect(preview.rows[4]).toBe(targets[4])
+    expect(preview.rows.map((item) => item.invoiceId)).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(preview.moreCount).toBe(1)
+    expect(preview.totalMinor).toBe(224_050n)
+    expect(targets.reduce((sum, item) => sum + BigInt(item.total), 0n)).toBe(preview.totalMinor)
   })
 })
 

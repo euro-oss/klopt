@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt · New invoice</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}a:hover{color:var(--ink)}
+.cell{height:var(--control-h);padding:0 10px;border:0;border-right:1px solid var(--line-soft);background:transparent;font:400 14px var(--font-sans);color:var(--ink);box-sizing:border-box;width:100%;min-width:0}
+.cell:focus,.cell.is-focus{outline:2px solid var(--selection-edge);outline-offset:-2px;background:var(--brand-tint)}
+.lrow{display:grid;grid-template-columns:minmax(160px,1fr) 64px 96px 92px 104px 36px;border-top:1px solid var(--line-soft);align-items:center}
+.lhead{background:var(--surface-hover);font:600 12px/16px var(--font-sans);color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;height:34px}
+.pgrid{display:grid;grid-template-columns:1fr 40px 64px 40px 72px;gap:8px}
+</style>
+</helmet>
+<div class="k-root" data-theme="{{theme}}" style="display: flex; flex-wrap: wrap; min-height: 1040px;">
+  <dc-import name="Sidebar" active="sales" theme="{{theme}}" hint-size="248px,1040px"></dc-import>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 32px; border-bottom: 1px solid var(--line); background: var(--surface);">
+      <a href="Invoices.dc.html" style="color: var(--ink-2); text-decoration: none;">Sales</a>
+      <span style="color: var(--ink-faint);" aria-hidden="true">/</span>
+      <h1 style="margin: 0; font-size: 16px; line-height: 22px; font-weight: 600;">New invoice</h1>
+      <span class="k-pill k-pill--draft">Draft</span>
+      <span class="k-muted" style="flex: 1; font-size: 13px;">Saved a moment ago</span>
+      <a href="Invoices.dc.html" class="k-btn">Close <span class="k-kbd">Esc</span></a>
+      <button type="button" class="k-btn k-btn--primary">Review and send <span class="k-chord"><span class="k-kbd k-kbd--on-primary">⌘</span><span class="k-kbd k-kbd--on-primary">↵</span></span></button>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 32px; padding: 28px 32px 40px; align-items: flex-start;">
+      <form style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+        <section class="k-card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div class="k-field">
+            <label class="k-label" for="cust">Customer</label>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-md); border: 2px solid var(--selection-edge); background: var(--brand-tint);">
+              <span style="width: 36px; height: 36px; border-radius: var(--radius-pill); background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none;">ZA</span>
+              <span style="flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+                <input id="cust" value="Zandbank Advies (demo)" style="border: 0; outline: 0; background: transparent; font: 600 15px var(--font-sans); color: var(--ink); padding: 0;">
+                <span style="font-size: 13px; color: var(--ink-2);">Amsterdam · NL000001005B99 · pays in 30 days</span>
+              </span>
+              <span class="k-muted" style="font-size: 12px;">type to search <span class="k-kbd">↓</span></span>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+            <div class="k-field">
+              <label class="k-label" for="d1">Invoice date</label>
+              <input id="d1" class="k-input k-num" value="30-10-2026">
+            </div>
+            <div class="k-field">
+              <label class="k-label" for="d2">Due</label>
+              <input id="d2" class="k-input k-num" value="29-11-2026">
+            </div>
+            <div class="k-field">
+              <label class="k-label" for="ref">Their reference <small>optional</small></label>
+              <input id="ref" class="k-input" placeholder="PO number">
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="lines-h" class="k-card k-card--flush">
+          <div class="k-card-head" style="padding: 16px 24px;">
+            <h2 id="lines-h" class="k-card-title" style="font-size: 15px;">What you are invoicing</h2>
+            <span class="k-muted" style="font-size: 12px;">Booked to 8000 Omzet <a href="#" style="margin-left: 6px;">change</a></span>
+          </div>
+          <div style="overflow-x: auto;">
+            <div style="min-width: 560px;">
+              <div class="lrow lhead">
+                <span style="padding: 0 10px 0 24px;">Description</span><span style="padding: 0 10px;">Qty</span><span style="padding: 0 10px;">Price</span><span style="padding: 0 10px;">VAT</span><span style="padding: 0 10px; text-align: right;">Amount</span><span></span>
+              </div>
+              <div class="lrow">
+                <input class="cell" aria-label="Description, line 1" value="Consultancy, October" style="padding-left: 24px;">
+                <input class="cell k-num" aria-label="Quantity, line 1" value="8">
+                <input class="cell k-num" aria-label="Price, line 1" value="95,00">
+                <select class="cell" aria-label="VAT, line 1"><option>21%</option><option>9%</option><option>0% EU service</option><option>Reverse charge</option><option>Exempt</option></select>
+                <span class="k-num" style="padding: 0 10px; text-align: right;">760,00</span>
+                <button type="button" class="k-btn k-btn--ghost k-btn--icon" aria-label="Remove line 1" style="color: var(--ink-muted);">×</button>
+              </div>
+              <div class="lrow">
+                <input class="cell is-focus" aria-label="Description, line 2" value="Travel costs" style="padding-left: 24px;">
+                <input class="cell k-num" aria-label="Quantity, line 2" value="1">
+                <input class="cell k-num" aria-label="Price, line 2" value="42,50">
+                <select class="cell" aria-label="VAT, line 2"><option>21%</option><option>9%</option><option>0% EU service</option><option>Reverse charge</option><option>Exempt</option></select>
+                <span class="k-num" style="padding: 0 10px; text-align: right;">42,50</span>
+                <button type="button" class="k-btn k-btn--ghost k-btn--icon" aria-label="Remove line 2" style="color: var(--ink-muted);">×</button>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 16px 24px 20px; border-top: 1px solid var(--line-soft);">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <button type="button" class="k-btn k-btn--sm k-btn--dashed">+ Add a line <span class="k-kbd">↵</span> on the last cell</button>
+              <span class="k-muted" style="font-size: 12px;"><span class="k-kbd">Tab</span> next cell · <span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">⌫</span></span> remove line · <span class="k-chord"><span class="k-kbd">⌘</span><span class="k-kbd">D</span></span> duplicate</span>
+            </div>
+            <dl style="margin: 0; display: grid; grid-template-columns: auto 120px; row-gap: 8px; column-gap: 24px;">
+              <dt style="color: var(--ink-2);">Excluding VAT</dt><dd class="k-num" style="margin: 0; text-align: right;">€ 802,50</dd>
+              <dt style="color: var(--ink-2);">21% VAT</dt><dd class="k-num" style="margin: 0; text-align: right;">€ 168,53</dd>
+              <dt style="font-weight: 600; font-size: 16px; padding-top: 8px; border-top: 1px solid var(--line-soft);">Total</dt><dd class="k-num" style="margin: 0; text-align: right; font-weight: 700; font-size: 16px; padding-top: 8px; border-top: 1px solid var(--line-soft);">€ 971,03</dd>
+            </dl>
+          </div>
+        </section>
+
+        <section class="k-callout k-callout--warn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          <div class="k-callout-body">
+            <span class="k-callout-title">One thing before this can go out as an e-invoice</span>
+            <span class="k-callout-text">Your company address and Chamber of Commerce number are empty. Customers can still get the PDF, but Peppol needs them.</span>
+          </div>
+          <a href="Settings.dc.html" style="font-weight: 600; white-space: nowrap;">Fill in now</a>
+        </section>
+      </form>
+
+      <aside aria-label="Live preview" style="flex: 1 1 440px; max-width: 560px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+        <div class="k-muted" style="display: flex; justify-content: space-between; font-size: 13px;"><span>Preview, as your customer sees it</span><span>PDF · UBL</span></div>
+        <article class="k-paper" style="display: flex; flex-direction: column; gap: 26px; font-size: 12px; line-height: 1.4;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <span style="font-size: 16px; font-weight: 700;">Demo BV</span>
+              <span style="color: #a1a1aa;">[your address]</span>
+              <span style="color: #a1a1aa;">[KvK number]</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; text-align: right;">
+              <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.01em;">Invoice</span>
+              <span style="color: #63636b;">Number given when sent</span>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <span style="font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #63636b;">Bill to</span>
+              <span style="font-weight: 600;">Zandbank Advies (demo)</span>
+              <span>Amsterdam</span>
+              <span>NL000001005B99</span>
+            </div>
+            <dl class="k-num" style="margin: 0; display: grid; grid-template-columns: auto auto; column-gap: 14px; row-gap: 3px;">
+              <dt style="color: #63636b;">Date</dt><dd style="margin: 0;">30-10-2026</dd>
+              <dt style="color: #63636b;">Due</dt><dd style="margin: 0;">29-11-2026</dd>
+            </dl>
+          </div>
+          <div style="display: flex; flex-direction: column;">
+            <div class="pgrid" style="padding: 6px 0; border-bottom: 1.5px solid #18181b; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #63636b;"><span>Description</span><span>Qty</span><span>Price</span><span>VAT</span><span style="text-align: right;">Amount</span></div>
+            <div class="pgrid k-num" style="padding: 8px 0; border-bottom: 1px solid #efeee9;"><span>Consultancy, October</span><span>8</span><span>95,00</span><span>21%</span><span style="text-align: right;">760,00</span></div>
+            <div class="pgrid k-num" style="padding: 8px 0; border-bottom: 1px solid #efeee9;"><span>Travel costs</span><span>1</span><span>42,50</span><span>21%</span><span style="text-align: right;">42,50</span></div>
+            <dl class="k-num" style="margin: 12px 0 0 auto; display: grid; grid-template-columns: auto 80px; column-gap: 20px; row-gap: 4px;">
+              <dt style="color: #63636b;">Subtotal</dt><dd style="margin: 0; text-align: right;">€ 802,50</dd>
+              <dt style="color: #63636b;">VAT 21%</dt><dd style="margin: 0; text-align: right;">€ 168,53</dd>
+              <dt style="font-weight: 700; font-size: 14px;">Total</dt><dd style="margin: 0; text-align: right; font-weight: 700; font-size: 14px;">€ 971,03</dd>
+            </dl>
+          </div>
+          <div style="flex: 1;"></div>
+          <p style="margin: 0; padding-top: 14px; border-top: 1px solid #efeee9; color: #52525b; line-height: 1.6;">Please pay € 971,03 by 29-11-2026 to NL69 TEST 0000 0000 01 in the name of Demo BV, quoting the invoice number.</p>
+        </article>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light', }; }
+}
+</script>
+</body>
+</html>

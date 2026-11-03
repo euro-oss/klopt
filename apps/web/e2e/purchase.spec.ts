@@ -26,7 +26,7 @@ async function anAdministration(page: Page, name: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -103,20 +103,21 @@ test('a bookkeeper enters a supplier invoice, books it and gets it approved', as
   await page.getByRole('link', { name: 'Factuur toevoegen' }).click()
 
   await anInteractiveForm(page)
-  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeDisabled()
+  // Hide unavailable actions (CoS) — save/book only appear when the form adds up.
+  await expect(page.getByRole('button', { name: 'Concept opslaan' })).toHaveCount(0)
 
-  await page.getByLabel('Factuurnummer leverancier').fill('F-2026-0042')
+  await page.getByLabel('Hun nummer').fill('F-2026-0042')
   await page.getByLabel('Factuurdatum').fill('2026-02-10')
   await page.getByLabel('Vervaldatum').fill('2026-03-12')
 
   // The figures from the document, typed rather than computed.
-  await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('1000,00')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('1000,00')
   await page.getByLabel('Btw', { exact: true }).fill('210,00')
   await page.getByLabel('Totaal', { exact: true }).fill('1210,00')
 
   await page.getByLabel('Omschrijving regel 1').fill('Kantoorartikelen')
   await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-  await chooseOption(page, 'Btw-code regel 1', /^VH21 /)
+  await chooseOption(page, 'Btw-code regel 1', /^VH21/)
   await page.getByLabel('Excl. btw regel 1').fill('1000,00')
 
   // The lines do not add up to the stated VAT yet, and the form says so before
@@ -165,10 +166,10 @@ test('a capture that is not the document cannot be booked', async ({ page }) => 
 
   await page.goto('/purchases/new')
   await anInteractiveForm(page)
-  await page.getByLabel('Factuurnummer leverancier').fill('F-2026-0099')
+  await page.getByLabel('Hun nummer').fill('F-2026-0099')
   await page.getByLabel('Factuurdatum').fill('2026-02-10')
   await page.getByLabel('Vervaldatum').fill('2026-03-12')
-  await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('1000,00')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('1000,00')
   await page.getByLabel('Btw', { exact: true }).fill('210,00')
   await page.getByLabel('Totaal', { exact: true }).fill('1210,00')
 
@@ -195,10 +196,10 @@ test('the same invoice number from the same supplier is refused', async ({ page 
   async function enter(number: string) {
     await page.goto('/purchases/new')
     await anInteractiveForm(page)
-    await page.getByLabel('Factuurnummer leverancier').fill(number)
+    await page.getByLabel('Hun nummer').fill(number)
     await page.getByLabel('Factuurdatum').fill('2026-02-10')
     await page.getByLabel('Vervaldatum').fill('2026-03-12')
-    await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('100,00')
+    await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
     await page.getByLabel('Btw', { exact: true }).fill('21,00')
     await page.getByLabel('Totaal', { exact: true }).fill('121,00')
     await page.getByLabel('Omschrijving regel 1').fill('Iets')
@@ -251,7 +252,7 @@ test('a UBL invoice arrives in the postvak and becomes a booked liability', asyn
   // human confirms both; the amounts are not editable at all.
   await expect(page.getByLabel('Leverancier')).toHaveText(/^CRE-0001 /)
   await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-  await expect(page.getByLabel('Btw-code regel 1')).toHaveText(/^VH21 /)
+  await expect(page.getByLabel('Btw-code regel 1')).toHaveText(/^VH21/)
 
   await page.getByRole('button', { name: 'Concept maken' }).click()
 
@@ -322,19 +323,20 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
+  // BankAccounts displays the CoS IBAN spaced (#171).
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
 
   await page.goto('/purchases/new')
   await anInteractiveForm(page)
-  await page.getByLabel('Factuurnummer leverancier').fill('F-2026-0042')
+  await page.getByLabel('Hun nummer').fill('F-2026-0042')
   await page.getByLabel('Factuurdatum').fill('2026-02-10')
   await page.getByLabel('Vervaldatum').fill('2026-03-12')
-  await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('1000,00')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('1000,00')
   await page.getByLabel('Btw', { exact: true }).fill('210,00')
   await page.getByLabel('Totaal', { exact: true }).fill('1210,00')
   await page.getByLabel('Omschrijving regel 1').fill('Kantoorartikelen')
   await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-  await chooseOption(page, 'Btw-code regel 1', /^VH21 /)
+  await chooseOption(page, 'Btw-code regel 1', /^VH21/)
   await page.getByLabel('Excl. btw regel 1').fill('1000,00')
   await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
@@ -348,7 +350,7 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByRole('button', { name: 'Nieuwe batch' }).click()
   await page.getByLabel('Kenmerk').fill('BETAAL-0002')
   await page.getByRole('button', { name: 'Aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: /Betaalbatch BETAAL-0002/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Batch BETAAL-0002|Batch van / })).toBeVisible()
 
   // The preview: one beneficiary, the invoice it settles, the amount.
   const preview = page.getByRole('table', { name: 'Wat deze betaalrun zou betalen' })
@@ -359,8 +361,13 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByRole('button', { name: 'Deze betalingen overnemen' }).click()
 
   // And what the preview said is what the batch holds.
-  await expect(page.getByText('NL91ABNA0417164300')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeEnabled()
+  // Phone + desktop line lists both render; scope to the desktop table.
+  await expect(
+    page
+      .locator('[data-testid="batch-lines-desktop"]')
+      .getByText(/NL91\s*ABNA\s*0417\s*1643\s*00|NL91ABNA0417164300/),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ter fiattering aanbieden' })).toBeVisible()
 
   // Scheduling is not paying: the invoice is still owed and still reconciles.
   await page.goto('/reports/creditor-ageing')
@@ -372,7 +379,7 @@ test('an approved invoice becomes a payment instruction', async ({ page }) => {
   await page.getByRole('button', { name: 'Nieuwe batch' }).click()
   await page.getByLabel('Kenmerk').fill('BETAAL-0003')
   await page.getByRole('button', { name: 'Aanmaken' }).click()
-  await expect(page.getByRole('heading', { name: /Betaalbatch BETAAL-0003/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Batch BETAAL-0003|Batch van / })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Deze betalingen overnemen' })).toHaveCount(0)
 })
 

@@ -11,7 +11,7 @@ import {
   type UblInvoiceSource,
   type VatRounding,
 } from '@klopt/core'
-import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
 import {
   accounts,
@@ -779,11 +779,12 @@ export class SalesRepository {
    * Every issued invoice that is past its due date, with the reminders already
    * sent for it.
    *
-   * Which reminder is *next* is not decided here — `planDunning` in
-   * `@klopt/core` does that, from this and today's date. "Outstanding" still
-   * means issued and not cancelled until payments land in M2, which overstates
-   * the queue for anyone who has been paid and is the honest reading of what
-   * this system currently knows.
+   * The due-date boundary is exclusive (`dueDate < asOf`): due today is not
+   * late, matching overdue reports and `planDunning` (#173). Which reminder is
+   * *next* is not decided here — `planDunning` in `@klopt/core` does that, from
+   * this and today's date. "Outstanding" still means issued and not cancelled
+   * until payments land in M2, which overstates the queue for anyone who has
+   * been paid and is the honest reading of what this system currently knows.
    */
   async dunnable(entityId: string, asOf: string): Promise<readonly DunnableInvoice[]> {
     const allocated = this.allocatedPerInvoice(entityId)
@@ -809,7 +810,7 @@ export class SalesRepository {
           eq(salesInvoices.entityId, entityId),
           eq(salesInvoices.status, 'issued'),
           eq(salesInvoices.kind, 'invoice'),
-          lte(salesInvoices.dueDate, asOf),
+          lt(salesInvoices.dueDate, asOf),
         ),
       )
       .orderBy(asc(salesInvoices.dueDate))

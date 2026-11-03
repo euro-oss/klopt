@@ -78,7 +78,7 @@ export const transitionPaymentBatch = createServerFn({ method: 'POST' })
     (input: {
       batchId: string
       idempotencyKey: string
-      action: 'submit' | 'approve' | 'reject' | 'reopen' | 'export'
+      action: 'submit' | 'approve' | 'reject' | 'reopen'
       reason?: string | null
     }) => input,
   )

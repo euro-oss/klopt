@@ -6,8 +6,10 @@ import {
   createAuth,
   createDatabase,
   issueToken,
+  LegalAcceptancesRepository,
   membershipsFor,
   runMigrations,
+  withSetup,
   type Auth,
   type Database,
 } from '@klopt/db'
@@ -24,6 +26,7 @@ import {
 } from '../src/api/handlers/setup.js'
 import { handleGetTrialBalance, handlePostJournalEntry } from '../src/api/handlers/ledger.js'
 import { handleListTaxCodes } from '../src/api/handlers/sales.js'
+import type { LegalLinksConfig } from '../src/api/legal-links.js'
 import { createEntityBody, postJournalEntryBody } from '../src/api/schemas.js'
 
 /**
@@ -187,6 +190,30 @@ describe('a signed-in user with no administration', () => {
     expect(await membershipsFor(database, userId)).toHaveLength(1)
   })
 
+  it('rolls back the administration when the terms/DPA acceptance insert fails', async () => {
+    const { userId, cookie } = await signUp()
+    const entityId = uuidv7()
+    const context = await resolveSetupContext({ database, request: request({ cookie }) })
+
+    // Force the acceptance insert to fail (FK: user_id must exist). Same
+    // transaction as provision — the administration must not remain.
+    await expect(
+      handleCreateEntity(context, entityId, body(), {
+        afterProvision: async (tx) => {
+          await new LegalAcceptancesRepository(tx).recordTermsDpa({
+            id: uuidv7(),
+            userId: 'user_missing_for_acceptance_rollback',
+            termsVersion: '2026-11-02',
+            dpaVersion: '2026-11-02-dpa',
+          })
+        },
+      }),
+    ).rejects.toThrow()
+
+    expect(await membershipsFor(database, userId)).toEqual([])
+    expect(await withSetup(database, (setup) => setup.findEntity(entityId))).toBeNull()
+  })
+
   it('refuses an id that is not a UUID', async () => {
     const { cookie } = await signUp()
     const context = await resolveSetupContext({ database, request: request({ cookie }) })
@@ -201,6 +228,130 @@ describe('a signed-in user with no administration', () => {
     await expect(
       handleCreateEntity(context, uuidv7(), body({ chartCode: 'imaginary' })),
     ).rejects.toThrow(/imaginary/)
+  })
+})
+
+/**
+ * Hosted legal acceptance on create (QA SECURITY BLOCKER on #169).
+ *
+ * REST (`PUT /api/v1/entities/{id}`) calls `handleCreateEntity` with no
+ * options, so env-driven `readLegalLinks()` is what it enforces. The Setup
+ * server function passes request-aware `legal` — covered below as the same
+ * handler with an explicit config.
+ */
+describe('hosted create requires terms/DPA acceptance', () => {
+  const HOSTED_KEYS = [
+    'KLOPT_TERMS_URL',
+    'KLOPT_DPA_URL',
+    'KLOPT_TERMS_VERSION',
+    'KLOPT_DPA_VERSION',
+  ] as const
+
+  const hostedEnv = {
+    KLOPT_TERMS_URL: 'https://example.test/terms',
+    KLOPT_DPA_URL: 'https://example.test/dpa',
+    KLOPT_TERMS_VERSION: '2026-11-02-terms-test',
+    KLOPT_DPA_VERSION: '2026-11-02-dpa-test',
+  } as const
+
+  const hostedLegal: LegalLinksConfig = {
+    privacyUrl: null,
+    termsUrl: hostedEnv.KLOPT_TERMS_URL,
+    dpaUrl: hostedEnv.KLOPT_DPA_URL,
+    termsVersion: hostedEnv.KLOPT_TERMS_VERSION,
+    dpaVersion: hostedEnv.KLOPT_DPA_VERSION,
+    privacyVersion: null,
+  }
+
+  async function withHostedEnv<T>(run: () => Promise<T>): Promise<T> {
+    const previous = Object.fromEntries(HOSTED_KEYS.map((key) => [key, process.env[key]]))
+    Object.assign(process.env, hostedEnv)
+    try {
+      return await run()
+    } finally {
+      for (const key of HOSTED_KEYS) {
+        const value = previous[key]
+        if (value === undefined) delete process.env[key]
+        else process.env[key] = value
+      }
+    }
+  }
+
+  it('REST without acceptance: 422, no administration, no legal_acceptances row', async () => {
+    await withHostedEnv(async () => {
+      const { userId, cookie } = await signUp()
+      const entityId = uuidv7()
+      const context = await resolveSetupContext({ database, request: request({ cookie }) })
+
+      // Same call shape as routes/api/v1/entities.$entityId.ts — no options.
+      await expect(handleCreateEntity(context, entityId, body())).rejects.toMatchObject({
+        code: 'validation_failed',
+        violations: [
+          {
+            code: 'legal_acceptance_required',
+            messageKey: 'legal_acceptance_required',
+            path: 'acceptedLegal',
+          },
+        ],
+      })
+
+      expect(await membershipsFor(database, userId)).toEqual([])
+      expect(await withSetup(database, (setup) => setup.findEntity(entityId))).toBeNull()
+      expect(await new LegalAcceptancesRepository(database).listForUser(userId)).toEqual([])
+    })
+  })
+
+  it('REST with acceptance: 201 and exactly one terms_dpa row with server versions', async () => {
+    await withHostedEnv(async () => {
+      const { userId, cookie } = await signUp()
+      const entityId = uuidv7()
+      const context = await resolveSetupContext({ database, request: request({ cookie }) })
+
+      const created = await handleCreateEntity(context, entityId, body({ acceptedLegal: true }))
+      expect(created.status).toBe(201)
+
+      const rows = await new LegalAcceptancesRepository(database).listForUser(userId)
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({
+        kind: 'terms_dpa',
+        termsVersion: hostedEnv.KLOPT_TERMS_VERSION,
+        dpaVersion: hostedEnv.KLOPT_DPA_VERSION,
+        privacyVersion: null,
+      })
+
+      // Idempotent retry must not append a second acceptance row.
+      const again = await handleCreateEntity(context, entityId, body({ acceptedLegal: true }))
+      expect(again.status).toBe(200)
+      expect(await new LegalAcceptancesRepository(database).listForUser(userId)).toHaveLength(1)
+    })
+  })
+
+  it('server-function path: request-aware legal still creates with one acceptance row', async () => {
+    // Mimics server/setup.ts passing readLegalLinksForRequest(...) while the
+    // process env stays self-hosted (unset).
+    const { userId, cookie } = await signUp()
+    const entityId = uuidv7()
+    const context = await resolveSetupContext({ database, request: request({ cookie }) })
+
+    const created = await handleCreateEntity(context, entityId, body({ acceptedLegal: true }), {
+      legal: hostedLegal,
+    })
+    expect(created.status).toBe(201)
+
+    const rows = await new LegalAcceptancesRepository(database).listForUser(userId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.termsVersion).toBe(hostedLegal.termsVersion)
+    expect(rows[0]?.dpaVersion).toBe(hostedLegal.dpaVersion)
+  })
+
+  it('self-hosted stays unaffected: no acceptance required or recorded', async () => {
+    const { userId, cookie } = await signUp()
+    const entityId = uuidv7()
+    const context = await resolveSetupContext({ database, request: request({ cookie }) })
+
+    const created = await handleCreateEntity(context, entityId, body())
+    expect(created.status).toBe(201)
+    expect(await new LegalAcceptancesRepository(database).listForUser(userId)).toEqual([])
   })
 })
 

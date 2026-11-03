@@ -29,8 +29,8 @@ async function ready(page: Page, name: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
   // Prefer a hard navigation: the empty-state link can race hydration.
   await page.goto('/setup')
-  await expect(page.getByLabel('Naam van de administratie')).toBeVisible()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await expect(page.getByLabel('Naam', { exact: true })).toBeVisible()
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),

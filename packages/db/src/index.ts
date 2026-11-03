@@ -55,6 +55,14 @@ export { RgsRepository } from './repositories/rgs.js'
 export { type InboxItemRow, InboxRepository } from './repositories/inbox.js'
 export { type AuditQuery, type AuditRow, AuditRepository } from './repositories/audit.js'
 export {
+  LegalAcceptancesRepository,
+  type LegalAcceptanceKind,
+  type LegalAcceptanceRecord,
+  type RecordLegalAcceptanceInput,
+  type RecordPrivacyNoticeInput,
+  type RecordTermsDpaInput,
+} from './repositories/legal-acceptances.js'
+export {
   type DatedDocument,
   type RetentionDocumentRow,
   RetentionRepository,

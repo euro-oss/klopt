@@ -99,7 +99,7 @@ async function emptyAdministration(
 ): Promise<void> {
   const email = await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill(name)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
   // Start in the current month so no closed VAT period is waiting (Design #112).
   await chooseOption(page, 'Begint in', MONTHS_NL[new Date().getMonth()]!)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
@@ -121,7 +121,7 @@ async function emptyAdministration(
 async function populatedAdministration(page: Page): Promise<void> {
   const email = await signInFresh(page)
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Noordkust Advies B.V.')
+  await page.getByLabel('Naam', { exact: true }).fill('Noordkust Advies B.V.')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -216,15 +216,15 @@ async function populatedAdministration(page: Page): Promise<void> {
 
   await page.goto('/purchases/new')
   await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
-  await page.getByLabel('Factuurnummer leverancier').fill('KV-2026-118')
+  await page.getByLabel('Hun nummer').fill('KV-2026-118')
   await page.getByLabel('Factuurdatum').fill(isoDaysAgo(20))
   await page.getByLabel('Vervaldatum').fill(isoDaysAgo(-10))
-  await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('200,00')
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('200,00')
   await page.getByLabel('Btw', { exact: true }).fill('42,00')
   await page.getByLabel('Totaal', { exact: true }).fill('242,00')
   await page.getByLabel('Omschrijving regel 1').fill('Kantoorbenodigdheden')
   await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-  await chooseOption(page, 'Btw-code regel 1', /^VH21 /)
+  await expect(page.getByLabel('Btw-code regel 1')).toHaveText(/^VH21/)
   await page.getByLabel('Excl. btw regel 1').fill('200,00')
   await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
@@ -234,14 +234,18 @@ async function populatedAdministration(page: Page): Promise<void> {
 
   await page.goto('/bank')
   await page.getByRole('button', { name: 'Rekening toevoegen' }).click()
-  await page.getByLabel('IBAN').fill('NL02ABNA0123456789')
+  // CoS example IBAN — must match statement.mt940 (NL91ABNA0417164300).
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByLabel('Naam', { exact: true }).fill('Rekening-courant')
   await page.getByRole('button', { name: 'Opslaan' }).click()
-  await expect(page.getByText('NL02ABNA0123456789')).toBeVisible()
-  await expect(page.locator('input[type="file"]')).toBeEnabled()
-  await page.setInputFiles('input[type="file"]', join(FIXTURES, 'statement.mt940'))
+  await expect(page.getByText('NL91 ABNA 0417 1643 00')).toBeVisible()
+  await expect(page.locator('[data-slot="drop-zone"] input[type="file"]')).toBeEnabled()
+  await page.setInputFiles(
+    '[data-slot="drop-zone"] input[type="file"]',
+    join(FIXTURES, 'statement.mt940'),
+  )
   await expect(page.getByRole('heading', { name: 'Wat dit bestand zou doen' })).toBeVisible()
-  await page.getByRole('button', { name: 'Inlezen', exact: true }).click()
+  await page.getByRole('button', { name: 'Importeren', exact: true }).click()
   await expect(page.getByText(/transacties geïmporteerd/)).toBeVisible()
 
   await page.goto('/inbox')

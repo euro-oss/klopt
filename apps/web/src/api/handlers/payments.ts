@@ -24,10 +24,9 @@ import type { AddInstructionBody, CreateBatchBody, TransitionBatchBody } from '.
  * half is that the approver must not be the submitter, which is a rule about
  * *this* payment and lives in `@klopt/core`.
  *
- * Exporting and downloading are also separate. The download is a read and can
- * happen twice; marking a batch exported is a state change and happens once.
- * A GET that mutates would make "did we already send this to the bank?"
- * unanswerable.
+ * Downloading pain.001 *is* the export step: the first download of an approved
+ * batch sets `exported` (gedownload). Re-downloads of an already-exported batch
+ * stay reads — a bank that lost the file can still get the same bytes.
  */
 
 function requirePermission(context: RequestContext, permission: string): void {
@@ -448,12 +447,12 @@ export async function handleTransitionBatch(
 }
 
 /**
- * The file itself.
+ * The file itself — and, on first download of an approved batch, the export.
  *
- * A read: downloading it twice is fine and sometimes necessary, and marking the
- * batch exported is a separate transition. Only an approved or already-exported
- * batch will produce one, because a `pain.001` for an unapproved batch is a
- * file somebody can upload to a bank.
+ * Only an approved or already-exported batch will produce one: a `pain.001` for
+ * an unapproved batch is a file somebody can upload to a bank. The first GET on
+ * an approved batch transitions to `exported` (same `nextState('export', …)` as
+ * before, via the repository — not a separate UI step). Later GETs stay reads.
  */
 export async function handleGetBatchPain001(context: RequestContext, batchId: string) {
   requirePermission(context, PERMISSIONS.export)
@@ -484,18 +483,41 @@ export async function handleGetBatchPain001(context: RequestContext, batchId: st
       )
     }
 
+    // First download of an approved batch *is* the export (PM #175).
+    if (found.batch.state === 'approved') {
+      const state = await repository.transition({
+        entityId: context.entityId,
+        batchId,
+        action: 'export',
+        userId: context.actor.id,
+        actorKind: context.actor.kind,
+        reason: null,
+      })
+      await repository.enqueueEvent({
+        entityId: context.entityId,
+        type: 'payments.batch.exported',
+        version: versionOf('payments.batch.exported'),
+        payload: { resourceType: resourceOf('payments.batch.exported'), resourceId: batchId },
+      })
+      await recordAudit(context, {
+        action: 'payments.export',
+        resourceType: 'payment_batch',
+        resourceId: batchId,
+        before: { state: 'approved' },
+        after: { state },
+      })
+    }
+
     const xml = generatePain001(found.batch)
     const hash = createHash('sha256').update(xml, 'utf8').digest('hex')
 
     // "Every adapter records every request and response for the evidence
-    // chain" (spec 8, rule 3). This is the request.
+    // chain" (spec 8, rule 3). This is the request — the hash of the exact
+    // bytes handed over, so the evidence chain and the file match later.
     await repository.recordExport(context.entityId, batchId, hash)
 
-    // The moment money leaves as far as this system is concerned. The hash is
-    // the point: it says which bytes went, and it is the same hash the batch
-    // carries, so the two can be compared years later.
     await recordAudit(context, {
-      action: 'payments.export',
+      action: 'payments.download',
       resourceType: 'payment_batch',
       resourceId: batchId,
       after: { hash, instructionCount: found.batch.instructions.length },

@@ -135,6 +135,54 @@ export function sendableDunningActions<T extends { readonly sendable: boolean }>
 }
 
 /**
+ * Exclusive overdue boundary used everywhere reminders are counted or sent
+ * (#173 / Legal): due today is not late.
+ *
+ * ISO calendar dates compare lexicographically, which matches the SQL
+ * `dueDate < asOf` the dunning queue and overdue report already use.
+ */
+export function isReminderOverdue(dueDate: string, asOf: string): boolean {
+  return dueDate < asOf
+}
+
+/**
+ * The exact set a bulk send (and its confirm dialog) will use.
+ *
+ * One source of truth: sendable rows whose due date is strictly before `asOf`.
+ * Not-yet-due and due-today invoices never appear here.
+ */
+export function reminderSendTargets<
+  T extends { readonly sendable: boolean; readonly dueDate: string },
+>(actions: readonly T[], asOf: string): readonly T[] {
+  return sendableDunningActions(actions).filter((row) => isReminderOverdue(row.dueDate, asOf))
+}
+
+export interface ReminderConfirmPreview<T> {
+  readonly rows: readonly T[]
+  readonly moreCount: number
+  readonly totalMinor: bigint
+}
+
+/**
+ * Body of the bulk-send confirm dialog, derived from the same array the send
+ * posts. Shows at most `limit` rows, then a "+n more" remainder and the total.
+ */
+export function reminderConfirmPreview<
+  T extends {
+    readonly contactName: string
+    readonly number: string
+    readonly total: string
+    readonly daysOverdue: number
+  },
+>(targets: readonly T[], limit = 5): ReminderConfirmPreview<T> {
+  return {
+    rows: targets.slice(0, limit),
+    moreCount: Math.max(0, targets.length - limit),
+    totalMinor: targets.reduce((sum, row) => sum + BigInt(row.total), 0n),
+  }
+}
+
+/**
  * Issued invoices and credit notes can be emailed. Drafts / cancelled cannot.
  * The send path (`handleSendInvoice` → `packageFor` → email transport) handles
  * both kinds end to end, so the preview keeps the button for credit notes.

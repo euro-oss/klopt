@@ -61,7 +61,7 @@ async function openFirm(page: Page): Promise<void> {
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Kosten Voorbeeld BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Kosten Voorbeeld BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -89,16 +89,17 @@ async function seedBills(page: Page): Promise<void> {
   ] as const) {
     await page.goto('/purchases/new')
     await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
-    await page.getByLabel('Factuurnummer leverancier').fill(number)
+    // BillNew #175 labels (was Factuurnummer leverancier / Bedrag excl. btw on #159).
+    await page.getByLabel('Hun nummer').fill(number)
     // Stay inside the open boekjaar (2026) so the default VH21 code is not cleared.
     await page.getByLabel('Factuurdatum').fill('2026-02-10')
     await page.getByLabel('Vervaldatum').fill('2026-03-12')
-    await page.getByLabel('Bedrag excl. btw', { exact: true }).fill('100,00')
+    await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
     await page.getByLabel('Btw', { exact: true }).fill('21,00')
     await page.getByLabel('Totaal', { exact: true }).fill('121,00')
     await page.getByLabel('Omschrijving regel 1').fill('Software licentie demo')
     await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-    await chooseOption(page, 'Btw-code regel 1', /^VH21 /)
+    await chooseOption(page, 'Btw-code regel 1', /^VH21/)
     await page.getByLabel('Excl. btw regel 1').fill('100,00')
     await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
     await expect(page.getByRole('button', { name: 'Concept opslaan' })).toBeEnabled()

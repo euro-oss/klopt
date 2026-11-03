@@ -921,7 +921,8 @@ export const paymentOperations: Readonly<Record<string, OperationDefinition>> = 
     // and approving are different permissions and must be, or the two-person
     // flow is one person with two clicks.
     permission: 'payments:prepare',
-    summary: 'Submit, approve, reject, reopen or export a batch. Two people, or nobody.',
+    summary:
+      'Submit, approve, reject or reopen a batch. Two people, or nobody. `export` is not a transition — downloading pain.001 marks an approved batch exported.',
     agentExposure: 'none',
     idempotent: true,
   }),
@@ -930,7 +931,8 @@ export const paymentOperations: Readonly<Record<string, OperationDefinition>> = 
     id: 'payments.getBatchPain001',
     kind: 'read',
     permission: 'ledger:export',
-    summary: 'The approved batch as SEPA pain.001. A read: exporting is a separate transition.',
+    summary:
+      'The batch as SEPA pain.001. The first GET on an approved batch transitions it to exported; re-downloads of an already-exported batch return the same file.',
     agentExposure: 'read',
     idempotent: true,
   }),

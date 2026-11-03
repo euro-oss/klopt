@@ -18,6 +18,33 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign: SignIn and Setup desktop light (#138)
+
+Sign-in and first-administration Setup match the #106 desktop-light boards
+(yellow brand panel, card chrome, Setup stepper). Hosted legal: configurable
+`KLOPT_PRIVACY_URL` / `KLOPT_TERMS_URL` / `KLOPT_DPA_URL` plus version env
+vars; when set, Setup shows one unticked terms+DPA checkbox and records
+acceptance; when unset (self-hosted), links and checkbox stay hidden.
+Invitees (who skip Setup) see the privacy notice once on first sign-in when
+`KLOPT_PRIVACY_URL` + `KLOPT_PRIVACY_VERSION` are set; that show is recorded
+in the same `legal_acceptances` table (`privacy_notice` kind: user, timestamp,
+version). Dark and phone follow Batch 2 / Batch 3 boards (#140).
+
+### API changes
+
+- **Breaking (v1 API):** Downloading pain.001 from an approved batch now marks it exported; the `export` transition was removed from the v1 batch transitions API.
+
+### Reminders: confirm before a bulk send (#173)
+
+Herinneringen (`/dunning`) opens a shadcn AlertDialog whenever more than one
+reminder would go out — including the nothing-selected "send all due" case. The
+dialog lists up to five debtors (customer, invoice number, amount, days overdue),
+"+ {n} meer", and the total from the same `reminderSendTargets` array the send
+posts. Annuleren keeps focus; only ⌘/Ctrl+Enter (or the primary) sends; plain
+Enter never does. A single reminder still goes straight through. The dunning
+queue query now uses the exclusive overdue boundary (`dueDate < asOf`), so due
+today is never listed, counted, or sent.
+
 ### Redesign Phase 4: Costs (#107 / #128)
 
 Costs (`/purchases`) matches the Costs.dc.html desktop-light board from the v2
@@ -39,6 +66,16 @@ they read as disabled; Costs table status/amount columns stay fully visible
 at 1440 with the preview open; fixture IBANs are the standard example
 `NL91ABNA0417164300` only (never a real account number).
 
+### Redesign: BankAccounts desktop light (#129 / #140)
+
+`/bank` is where you add bank accounts by hand and import CAMT.053 / MT940
+statements: account card with statement position and books balance, per-account
+DropZone, an “Import a bank statement” card, Bank tabs (**Rekeningen** /
+**Batches**), and a Transacties / Te boeken list. Matched lines say
+“Afgeletterd” / “Matched”. Example IBAN is `NL91 ABNA 0417 1643 00`. Input
+borders use `--ink-muted`. Dark and phone Design review wait on #143. Bank Match
+is #164.
+
 ### Redesign Phase 8: VAT / ICP (#132, #107)
 
 VAT (`/vat`, `/vat/$period`) and ICP (`/vat/icp/$period`) match the v2 Vat and
@@ -54,6 +91,18 @@ Batch 3 boards (#142). Hidde (1 Nov / #162 review): input borders use
 return stays above the fold; no disabled electronic filing CTA (VAT + ICP);
 short muted taxonomy note; header subline wraps under the title. App-wide
 Sign out / Uitloggen copy is a separate PR.
+
+### Redesign Phase 4: BillNew and PaymentBatch (#107 / #128)
+
+BillNew (`/purchases/new`) and PaymentBatch (`/payments/$id`) match the
+desktop-light boards at `fa4093b`. BillNew is a copy-from-document form with
+DropZone on the existing inbox capture path (honest UBL/Peppol copy only),
+category split, ⌘S draft and ⌘↵ book. PaymentBatch shows prepare → approve →
+download → waiting stepper, missing-IBAN callout, four-eyes on existing
+transitions, and pain.001 download — never claiming Klopt pays or sends the
+file. Costs tabs wrap `/payments`. Input borders use `--ink-muted`. Dark and
+phone inherit tokens (Batch 2 / 3 follow-ups). Costs list/preview remains in
+#159.
 
 ### Redesign Phase 6: Contacts (#130)
 
@@ -112,13 +161,19 @@ says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
 
-- Internal-error logs keep the location of a stack frame (`path:line:col`,
-  including `node:` paths, plus `native` and `<anonymous>`), not the function
-  name. A location that contains `@` or `scheme://user:pass` userinfo is left
-  out. IBAN-shaped tokens, with or without spaces, are redacted in every
-  string that is logged. The name is logged only when it ends in `Error` or
-  `Exception`; any other name is written as `Error`. A non-string stack logs
-  no frames. A throwing getter on the error does not stop the 500 response.
+- Internal-error logs emit the request id and stack lines whose location
+  passes a strict allowlist (`native`, `<anonymous>`, or `path:line:col`
+  with an allowed path — `file://`, `http(s)://` without userinfo, `node:`,
+  or a filesystem path; function names are dropped and URL query strings are
+  stripped). The logged `error.name` is kept only when it matches
+  `*Error` or `*Exception`; otherwise the log writes `Error`. A linear
+  IBAN-shaped backstop (case and separators ignored) replaces matched
+  substrings with `[iban]` on the error name, message, and the strings
+  written to the log.
+
+- Contacts follow-up: NL supplier empty line is "Niets openstaand"; at
+  desktop the Relatiekaart heading wraps long names and card actions sit
+  on their own row; the card stays desktop-only.
 
 - Production invoice PDFs no longer 500. pdfkit 0.20.2 loads its standard fonts
   at runtime (`#standard-fonts/*`); bundling it into `.output/server/_ssr` made

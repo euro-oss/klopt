@@ -6,6 +6,7 @@ import {
   handleListCharts,
   handleListFiscalYears,
 } from '~/api/handlers/setup'
+import { readLegalLinksForRequest } from '~/api/legal-links'
 import { createEntityBody, createFiscalYearBody } from '~/api/schemas'
 import { contextFromRequest, run, runWith, setupContextFromRequest } from './internal'
 
@@ -47,11 +48,16 @@ export const createAdministration = createServerFn({ method: 'POST' })
   .handler(async ({ data }) =>
     runWith(createEntityBody, data.body, async (body) => {
       const context = await setupContextFromRequest()
-      const result = await handleCreateEntity(context, data.entityId, body)
+      const { getRequest } = await import('@tanstack/react-start/server')
+      // Same handler as PUT /api/v1/entities/{id}: acceptance is enforced and
+      // recorded there. Pass request-aware legal so the Playwright cookie
+      // toggle still looks like hosted when the webServer leaves the env unset.
+      const result = await handleCreateEntity(context, data.entityId, body, {
+        legal: readLegalLinksForRequest(getRequest()),
+      })
 
       // Land the session on the books it just created rather than on whichever
       // administration sorts first.
-      const { getRequest } = await import('@tanstack/react-start/server')
       const { resolveMemberships } = await import('~/api/auth')
       const { setActiveEntity } = await import('@klopt/db')
       const session = await resolveMemberships(context.database, getRequest())

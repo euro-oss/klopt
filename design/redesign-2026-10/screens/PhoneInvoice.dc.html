@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Invoice</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--ground)}
+a{color:var(--ink)}
+.ev{display:flex;gap:12px}
+.dot{width:10px;height:10px;border-radius:5px;margin-top:5px;flex:none}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}" style="height: 844px;">
+  <div class="k-phone-top">
+    <a href="PhoneSales.dc.html" class="k-btn k-btn--ghost" style="height: 44px; padding: 0 8px;">‹ Sales</a>
+    <span style="flex: 1;"></span>
+    <button type="button" class="k-btn k-btn--icon" aria-label="More actions" style="width: 44px; height: 44px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+  </div>
+  <div class="k-phone-body" style="overflow: hidden;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span style="display: flex; gap: 8px; align-items: center;"><span class="k-muted k-num" style="font-size: 13px;">Invoice 2025-0040</span><span class="k-pill k-pill--late">76 days overdue</span></span>
+      <span style="font-size: 20px; line-height: 26px; font-weight: 600;">Windvaan Workshops</span>
+      <span class="k-num" style="font-size: 36px; line-height: 42px; font-weight: 600; letter-spacing: -0.02em;">€ 711,04</span>
+    </div>
+    <a href="Reminders.dc.html" class="k-btn k-btn--primary" style="height: 48px; justify-content: center; font-size: 15px;">Send final notice</a>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <button type="button" class="k-btn" style="height: 44px; justify-content: center;">PDF</button>
+      <button type="button" class="k-btn" style="height: 44px; justify-content: center;">Credit note</button>
+    </div>
+    <section class="k-card" style="padding: 16px;">
+      <dl class="k-dl" style="font-size: 14px;">
+        <dt>Invoice date</dt><dd class="k-num">16-09-2025</dd>
+        <dt>Due</dt><dd class="k-num">16-10-2025</dd>
+        <dt>Sent as</dt><dd>Email, PDF and UBL</dd>
+      </dl>
+    </section>
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <h2 style="margin: 0; font: 600 12px/16px var(--font-sans); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">History</h2>
+      <div class="ev"><span class="dot" style="background: var(--chart-2);"></span><span style="display: flex; flex-direction: column;"><span>Sent to customer</span><span class="k-muted k-num" style="font-size: 13px;">16-09-2025</span></span></div>
+      <div class="ev"><span class="dot" style="background: var(--danger);"></span><span style="display: flex; flex-direction: column;"><span>Payment due, not received</span><span class="k-muted k-num" style="font-size: 13px;">16-10-2025</span></span></div>
+      <div class="ev"><span class="dot" style="background: var(--surface); box-shadow: inset 0 0 0 2px var(--danger);"></span><span style="display: flex; flex-direction: column;"><span>Next: final notice</span><span class="k-muted" style="font-size: 13px;">Ready to send</span></span></div>
+    </section>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item is-active" href="PhoneSales.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>
