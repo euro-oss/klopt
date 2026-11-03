@@ -145,7 +145,7 @@ describe('aggregateContacts (#195 item 1 — customer open)', () => {
     expect(map.get('C001')?.openMinor).toBe(81000n)
   })
 
-  it('case 3: credit note against invoice → net outstanding, not double-counted', () => {
+  it('case 3 (contacts list): credit note against invoice → net open, not double-counted', () => {
     const map = aggregateContacts(
       rows,
       [
@@ -246,6 +246,23 @@ describe('salesDocStatus / formatContactInvoiceDue', () => {
   it('formats due hint dates for NL and EN', () => {
     expect(formatContactInvoiceDue('2026-03-15', 'nl-NL')).toMatch(/15/)
     expect(formatContactInvoiceDue('2026-03-15', 'en-GB')).toMatch(/15/)
+  })
+
+  it('case 3 (contact card row): invoice shows net open; linked credit note row shows no open', () => {
+    expect(
+      salesDocStatus({
+        status: 'issued',
+        kind: 'invoice',
+        outstanding: '100000',
+      }),
+    ).toEqual({ pill: null, openMinor: 100000n })
+    expect(
+      salesDocStatus({
+        status: 'issued',
+        kind: 'credit_note',
+        outstanding: '0',
+      }),
+    ).toEqual({ pill: null, openMinor: null })
   })
 })
 
