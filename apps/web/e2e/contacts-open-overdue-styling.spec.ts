@@ -22,6 +22,10 @@ function invoiceIssueDateDaysAgo(days: number): string {
   return addCalendarDays(todayInAmsterdam(), -days)
 }
 
+function invoiceDueDateDaysFromNow(days: number): string {
+  return addCalendarDays(todayInAmsterdam(), days)
+}
+
 async function expectOpenInk(openLocator: Locator): Promise<void> {
   await expect(openLocator).toHaveClass(/text-ink/)
   await expect(openLocator).not.toHaveClass(/text-destructive/)
@@ -196,8 +200,8 @@ test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purcha
   await seedSupplier(page, 'LEV-1954', 'Leverancier Kleur Proef')
   await bookSupplierBill(page, {
     number: 'F-1954-future',
-    invoiceDate: '2026-10-01',
-    dueDate: '2099-12-31',
+    invoiceDate: invoiceIssueDateDaysAgo(10),
+    dueDate: invoiceDueDateDaysFromNow(90),
   })
 
   await page.setViewportSize({ width: 1440, height: 1040 })
@@ -216,8 +220,8 @@ test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purcha
 
   await bookSupplierBill(page, {
     number: 'F-1954-late',
-    invoiceDate: '2026-01-10',
-    dueDate: addCalendarDays(todayInAmsterdam(), -30),
+    invoiceDate: invoiceIssueDateDaysAgo(60),
+    dueDate: invoiceDueDateDaysFromNow(-30),
   })
 
   await page.goto('/contacts')
