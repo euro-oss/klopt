@@ -49,9 +49,9 @@ async function openAdmin(page: Page): Promise<void> {
 }
 
 async function persistThemeCookie(page: Page, theme: 'light' | 'dark'): Promise<void> {
-  await page.context().addCookies([
-    { name: 'klopt_theme', value: theme, domain: 'localhost', path: '/' },
-  ])
+  await page
+    .context()
+    .addCookies([{ name: 'klopt_theme', value: theme, domain: 'localhost', path: '/' }])
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -147,7 +147,12 @@ test('01 not-yet-due open invoice — desktop 1440 + phone 390 light/dark', asyn
     await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible({
       timeout: 15_000,
     })
-    await expect(page.getByRole('complementary', { name: 'Relatiekaart' }).getByText(/Vervalt/i)).toBeVisible()
-    await shoot(page, `01-contacts-open-not-due-${theme}-mobile-390.png`, { width: 390, height: 844 })
+    await expect(
+      page.getByRole('complementary', { name: 'Relatiekaart' }).getByText(/Vervalt/i),
+    ).toBeVisible()
+    await shoot(page, `01-contacts-open-not-due-${theme}-mobile-390.png`, {
+      width: 390,
+      height: 844,
+    })
   }
 })

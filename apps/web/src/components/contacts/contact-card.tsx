@@ -546,8 +546,7 @@ function InvoiceRow({
   const { t, plural, tag } = useT()
   const status = salesDocStatus(doc)
   const overdueDays = overdueDaysByInvoiceId.get(doc.id)
-  const showDueHint =
-    status.openMinor !== null && doc.dueDate >= asOf && overdueDays === undefined
+  const showDueHint = status.openMinor !== null && doc.dueDate >= asOf && overdueDays === undefined
   const dueHint = showDueHint
     ? t('contacts.card.invoiceDue', { date: formatContactInvoiceDue(doc.dueDate, tag) })
     : null

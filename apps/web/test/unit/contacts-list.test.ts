@@ -233,15 +233,11 @@ describe('salesDocStatus / formatContactInvoiceDue', () => {
       pill: 'cancelled',
       openMinor: null,
     })
-    expect(
-      salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '10000' }),
-    ).toEqual({
+    expect(salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '10000' })).toEqual({
       pill: null,
       openMinor: 10000n,
     })
-    expect(
-      salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '0' }),
-    ).toEqual({
+    expect(salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '0' })).toEqual({
       pill: null,
       openMinor: null,
     })

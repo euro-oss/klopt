@@ -1,12 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import {
-  DATABASE_URL,
-  enableAdvancedMode,
-  hydrated,
-  signIn,
-  uniqueEmail,
-} from './support'
+import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
 
 /**
  * Customer open on contacts list + card (#195 item 1).

@@ -203,8 +203,7 @@ export function aggregateContacts(
 
   for (const row of overdue) {
     const linked = salesById.get(row.id)
-    const number =
-      linked?.contactNumber ?? numberByName.get(row.contactName)
+    const number = linked?.contactNumber ?? numberByName.get(row.contactName)
     if (number === undefined) continue
     bump(number, { lateDays: row.daysOverdue })
   }

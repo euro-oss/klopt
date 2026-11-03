@@ -862,7 +862,13 @@ export class SalesRepository {
          * invoice that has been paid is not overdue and a partly paid one is
          * overdue for the remainder — which is the number to put in a reminder.
          */
-        total: this.invoiceOutstandingMinor('issued', 'invoice', row.total, row.allocated, row.credited),
+        total: this.invoiceOutstandingMinor(
+          'issued',
+          'invoice',
+          row.total,
+          row.allocated,
+          row.credited,
+        ),
         currency: row.currency,
         contactName: row.contactName,
         contactEmail: row.contactEmail,
@@ -921,7 +927,13 @@ export class SalesRepository {
       issueDate: row.issueDate,
       dueDate: row.dueDate,
       total: row.total,
-      outstanding: this.invoiceOutstandingMinor(row.status, row.kind, row.total, row.allocated, row.credited),
+      outstanding: this.invoiceOutstandingMinor(
+        row.status,
+        row.kind,
+        row.total,
+        row.allocated,
+        row.credited,
+      ),
       currency: row.currency,
       contactNumber: row.contactNumber,
       contactName: row.contactName,
@@ -1045,7 +1057,13 @@ export class SalesRepository {
     return rows
       .map((row) => ({
         ...row,
-        total: this.invoiceOutstandingMinor('issued', 'invoice', row.total, row.allocated, row.credited),
+        total: this.invoiceOutstandingMinor(
+          'issued',
+          'invoice',
+          row.total,
+          row.allocated,
+          row.credited,
+        ),
       }))
       .filter((row) => row.total > 0n)
   }

@@ -715,9 +715,7 @@ describe('listing and ageing', () => {
     const invoice = afterCredit.body.invoices.find((row) => row.id === issued.body.id)
     const creditNote = afterCredit.body.invoices.find((row) => row.kind === 'credit_note')
     expect(creditNote).toBeDefined()
-    expect(invoice?.outstanding).toBe(
-      String(BigInt(invoice!.total) - BigInt(creditNote!.total)),
-    )
+    expect(invoice?.outstanding).toBe(String(BigInt(invoice!.total) - BigInt(creditNote!.total)))
     expect(creditNote?.outstanding).toBe('0')
   })
 
