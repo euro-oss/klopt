@@ -1,9 +1,10 @@
-import { mkdirSync, mkdtempSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { withPngSourceChunk } from './support/png-source-chunk'
 import {
   startNullRateMoneybirdStandIn,
   startPreValidFromMoneybirdStandIn,
@@ -20,6 +21,8 @@ import {
 const PR = process.env['PR_SCREENSHOT_NUMBER'] ?? '180'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', PR)
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
+/** tEXt Source chunk — repo-relative path, no absolute or /tmp paths. */
+const SCREENSHOT_SOURCE = 'e2e/pr-screenshots-134.spec.ts'
 
 const SIZES = [
   { label: 'desktop-1440', width: 1440, height: 1040 },
@@ -61,10 +64,11 @@ async function shoot(page: Page, name: string): Promise<void> {
       await page.setViewportSize({ width: size.width, height: size.height })
       await page.evaluate(() => window.scrollTo(0, 0))
       await page.waitForTimeout(80)
-      await page.screenshot({
-        path: join(OUT, `${name}-${theme}-${size.label}.png`),
-        fullPage: false,
-      })
+      const png = await page.screenshot({ fullPage: false })
+      writeFileSync(
+        join(OUT, `${name}-${theme}-${size.label}.png`),
+        withPngSourceChunk(png, SCREENSHOT_SOURCE),
+      )
     }
   }
 }

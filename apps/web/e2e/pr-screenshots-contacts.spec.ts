@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { crc32 } from 'node:zlib'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+import { withPngSourceChunk } from './support/png-source-chunk'
 
 /**
  * PR screenshots for Contacts redesign (#130).
@@ -20,17 +20,6 @@ const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots'
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 /** tEXt Source chunk — repo-relative path, no absolute or /tmp paths. */
 const SCREENSHOT_SOURCE = 'e2e/pr-screenshots-contacts.spec.ts'
-
-function withPngSourceChunk(png: Buffer, source: string): Buffer {
-  const data = Buffer.concat([Buffer.from('Source\0', 'latin1'), Buffer.from(source, 'latin1')])
-  const type = Buffer.from('tEXt', 'latin1')
-  const len = Buffer.alloc(4)
-  len.writeUInt32BE(data.length)
-  const crc = Buffer.alloc(4)
-  crc.writeUInt32BE(crc32(Buffer.concat([type, data])))
-  const iend = png.length - 12
-  return Buffer.concat([png.subarray(0, iend), len, type, data, crc, png.subarray(iend)])
-}
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
