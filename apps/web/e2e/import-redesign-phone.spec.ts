@@ -4,7 +4,10 @@ import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
-import { startPreValidFromMoneybirdStandIn, type MoneybirdStandIn } from './support/moneybird-stand-in'
+import {
+  startPreValidFromMoneybirdStandIn,
+  type MoneybirdStandIn,
+} from './support/moneybird-stand-in'
 
 /**
  * Import wizard phone layout (#134 QA): 390 light/dark past Source.
