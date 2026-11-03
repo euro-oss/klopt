@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   aggregateContacts,
   contactInitials,
+  contactInvoiceRowHint,
+  contactListOpenIsOverdue,
+  contactOpenAmountIsOverdue,
   contactRoleLabel,
   countContactRoles,
   filterContacts,
@@ -10,6 +13,7 @@ import {
   salesDocStatus,
   supplierOpenSummary,
   type ContactListRow,
+  type ContactSalesDoc,
 } from '../../src/lib/contacts-list.js'
 
 const rows: readonly ContactListRow[] = [
@@ -51,6 +55,20 @@ const rows: readonly ContactListRow[] = [
   },
 ]
 
+function salesInvoice(
+  patch: Partial<ContactSalesDoc> & Pick<ContactSalesDoc, 'id' | 'contactNumber'>,
+): ContactSalesDoc {
+  return {
+    number: '2026-0001',
+    total: '121000',
+    outstanding: '121000',
+    status: 'issued',
+    kind: 'invoice',
+    dueDate: '2026-12-01',
+    ...patch,
+  }
+}
+
 describe('contactInitials', () => {
   it('takes the first letter of the first two words', () => {
     expect(contactInitials('Atlas Voorbeeld Handel')).toBe('AV')
@@ -81,59 +99,329 @@ describe('countContactRoles / filterContacts', () => {
   })
 })
 
-describe('aggregateContacts', () => {
-  it('sums volume and documents; open from overdue (by name) and purchases', () => {
+describe('aggregateContacts (#195 item 1 — customer open)', () => {
+  const purchases = [
+    {
+      id: 'bill-1',
+      contactNumber: 'S001',
+      total: '4000',
+      outstanding: '1500',
+      dueDate: '2025-01-01',
+      status: 'approved',
+    },
+  ] as const
+
+  it('case 1: issued, not yet due, unpaid → open = full total (list + card aggregate)', () => {
     const map = aggregateContacts(
       rows,
       [
-        {
-          id: 'inv-1',
-          number: '2025-0001',
-          total: '10000',
+        salesInvoice({
+          id: 'inv-future',
           contactNumber: 'C001',
-          status: 'issued',
-          kind: 'invoice',
-          dueDate: '2025-01-01',
-        },
-        {
-          id: 'inv-2',
-          number: '2025-0002',
-          total: '2500',
-          contactNumber: 'C001',
-          status: 'issued',
-          kind: 'invoice',
-          dueDate: '2025-02-01',
-        },
+          total: '25000',
+          outstanding: '25000',
+          dueDate: '2026-12-15',
+        }),
       ],
-      [
-        {
-          id: 'bill-1',
-          contactNumber: 'S001',
-          total: '4000',
-          outstanding: '1500',
-          dueDate: '2025-01-01',
-          status: 'approved',
-        },
-      ],
-      [{ id: 'inv-1', contactName: 'Atlas Voorbeeld Handel', total: '10000', daysOverdue: 12 }],
+      [...purchases],
+      [],
     )
+    expect(map.get('C001')?.openMinor).toBe(25000n)
+    expect(map.get('C001')?.lateDays).toBeNull()
+  })
 
+  it('case 2: partly paid → open = total minus allocated amount', () => {
+    const map = aggregateContacts(
+      rows,
+      [
+        salesInvoice({
+          id: 'inv-part',
+          contactNumber: 'C001',
+          total: '121000',
+          outstanding: '81000',
+        }),
+      ],
+      [...purchases],
+      [],
+    )
+    expect(map.get('C001')?.openMinor).toBe(81000n)
+  })
+
+  it('case 3 (contacts list): credit note against invoice → net open, not double-counted', () => {
+    const map = aggregateContacts(
+      rows,
+      [
+        salesInvoice({
+          id: 'inv-net',
+          contactNumber: 'C001',
+          total: '121000',
+          outstanding: '100000',
+        }),
+        salesInvoice({
+          id: 'cn-1',
+          contactNumber: 'C001',
+          total: '21000',
+          outstanding: '0',
+          kind: 'credit_note',
+        }),
+      ],
+      [...purchases],
+      [],
+    )
+    expect(map.get('C001')?.openMinor).toBe(100000n)
+  })
+
+  it('case 4: fully paid → € 0,00 and no overdue marker', () => {
+    const map = aggregateContacts(
+      rows,
+      [
+        salesInvoice({
+          id: 'inv-paid',
+          contactNumber: 'C001',
+          total: '121000',
+          outstanding: '0',
+        }),
+      ],
+      [...purchases],
+      [],
+    )
+    expect(map.get('C001')?.openMinor).toBe(0n)
+    expect(map.get('C001')?.lateDays).toBeNull()
+  })
+
+  it('negative API outstanding is floored to 0n on aggregate (never-negative client)', () => {
+    const map = aggregateContacts(
+      rows,
+      [
+        salesInvoice({
+          id: 'inv-overpaid',
+          contactNumber: 'C001',
+          total: '121000',
+          outstanding: '-500',
+        }),
+      ],
+      [...purchases],
+      [],
+    )
+    expect(map.get('C001')?.openMinor).toBe(0n)
+  })
+
+  it('overdue invoice: open counted once; lateDays from overdue report only', () => {
+    const map = aggregateContacts(
+      rows,
+      [
+        salesInvoice({
+          id: 'inv-late',
+          contactNumber: 'C001',
+          total: '50000',
+          outstanding: '50000',
+          dueDate: '2026-01-01',
+        }),
+        salesInvoice({
+          id: 'inv-future',
+          contactNumber: 'C001',
+          total: '25000',
+          outstanding: '25000',
+          dueDate: '2026-12-01',
+        }),
+      ],
+      [...purchases],
+      [{ id: 'inv-late', contactName: 'Atlas Voorbeeld Handel', total: '50000', daysOverdue: 12 }],
+    )
     expect(map.get('C001')).toEqual({
-      volumeMinor: 12500n,
+      volumeMinor: 75000n,
       documentCount: 2,
-      openMinor: 10000n,
+      openMinor: 75000n,
       lateDays: 12,
     })
-    expect(map.get('S001')).toEqual({
-      volumeMinor: 4000n,
-      documentCount: 1,
-      openMinor: 1500n,
-      lateDays: null,
-    })
+  })
+
+  it('sums supplier open from purchase outstanding', () => {
+    const map = aggregateContacts(rows, [], [...purchases], [])
+    expect(map.get('S001')?.openMinor).toBe(1500n)
   })
 })
 
-describe('contactRoleLabel / missingEInvoicingDetails / salesDocStatus', () => {
+describe('contactOpenAmountIsOverdue (#195 styling)', () => {
+  it('is false when open but not yet overdue (lateDays null or 0)', () => {
+    expect(contactOpenAmountIsOverdue(null)).toBe(false)
+    expect(contactOpenAmountIsOverdue(0)).toBe(false)
+  })
+
+  it('is true only when lateDays > 0', () => {
+    expect(contactOpenAmountIsOverdue(1)).toBe(true)
+    expect(contactOpenAmountIsOverdue(12)).toBe(true)
+  })
+})
+
+describe('contactListOpenIsOverdue (#195 / supplier purchase due dates)', () => {
+  const asOf = '2026-06-15'
+
+  it('supplier: ink rule uses purchase dueDate via supplierOpenSummary (no new API)', () => {
+    const summaryNotDue = supplierOpenSummary(
+      [
+        {
+          id: 'b1',
+          contactNumber: 'S001',
+          total: '12100',
+          outstanding: '12100',
+          dueDate: '2026-12-01',
+          status: 'approved',
+        },
+      ],
+      asOf,
+    )
+    expect(
+      contactListOpenIsOverdue({
+        isCustomer: false,
+        isSupplier: true,
+        lateDays: null,
+        supplierSummary: summaryNotDue,
+      }),
+    ).toBe(false)
+
+    const summaryLate = supplierOpenSummary(
+      [
+        {
+          id: 'b2',
+          contactNumber: 'S001',
+          total: '5000',
+          outstanding: '5000',
+          dueDate: '2026-01-01',
+          status: 'approved',
+        },
+      ],
+      asOf,
+    )
+    expect(
+      contactListOpenIsOverdue({
+        isCustomer: false,
+        isSupplier: true,
+        lateDays: null,
+        supplierSummary: summaryLate,
+      }),
+    ).toBe(true)
+  })
+})
+
+describe('contactInvoiceRowHint (#195 contact card row)', () => {
+  const asOf = '2026-06-15'
+
+  it('not yet due: muted Vervalt date only (kind due), not overdue', () => {
+    const hint = contactInvoiceRowHint({
+      openMinor: 121000n,
+      dueDate: '2026-12-01',
+      asOf,
+      overdueDays: undefined,
+    })
+    expect(hint).toEqual({ kind: 'due', dueDateIso: '2026-12-01' })
+    expect(hint?.kind).not.toBe('overdue')
+  })
+
+  it('partly paid and not yet due: still Vervalt only, open amount stays at caller', () => {
+    const hint = contactInvoiceRowHint({
+      openMinor: 71000n,
+      dueDate: '2026-12-01',
+      asOf,
+      overdueDays: undefined,
+    })
+    expect(hint).toEqual({ kind: 'due', dueDateIso: '2026-12-01' })
+    expect(hint?.kind).not.toBe('overdue')
+  })
+
+  it('credit note row: neither Vervalt nor te-laat', () => {
+    expect(
+      contactInvoiceRowHint({
+        openMinor: null,
+        dueDate: '2026-12-01',
+        asOf,
+        overdueDays: undefined,
+      }),
+    ).toBeNull()
+  })
+
+  it('fully paid: neither Vervalt nor te-laat', () => {
+    expect(
+      contactInvoiceRowHint({
+        openMinor: null,
+        dueDate: '2026-02-19',
+        asOf,
+        overdueDays: undefined,
+      }),
+    ).toBeNull()
+  })
+
+  it('overdue: te-laat hint only (kind overdue), real open stays at caller — never Vervalt', () => {
+    const fullOpen = contactInvoiceRowHint({
+      openMinor: 121000n,
+      dueDate: '2026-02-19',
+      asOf,
+      overdueDays: 12,
+    })
+    expect(fullOpen).toEqual({ kind: 'overdue', lateDays: 12 })
+    expect(fullOpen?.kind).not.toBe('due')
+
+    const partialOpen = contactInvoiceRowHint({
+      openMinor: 50000n,
+      dueDate: '2026-02-19',
+      asOf,
+      overdueDays: 12,
+    })
+    expect(partialOpen).toEqual({ kind: 'overdue', lateDays: 12 })
+    expect(
+      contactInvoiceRowHint({
+        openMinor: 50000n,
+        dueDate: '2026-12-01',
+        asOf,
+        overdueDays: 12,
+      }),
+    ).toEqual({ kind: 'overdue', lateDays: 12 })
+  })
+})
+
+describe('salesDocStatus', () => {
+  it('pills only draft/cancelled; issued uses open text from outstanding', () => {
+    expect(salesDocStatus({ status: 'draft', kind: 'invoice', outstanding: '0' })).toEqual({
+      pill: 'draft',
+      openMinor: null,
+    })
+    expect(salesDocStatus({ status: 'cancelled', kind: 'invoice', outstanding: '0' })).toEqual({
+      pill: 'cancelled',
+      openMinor: null,
+    })
+    expect(salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '10000' })).toEqual({
+      pill: null,
+      openMinor: 10000n,
+    })
+    expect(salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '0' })).toEqual({
+      pill: null,
+      openMinor: null,
+    })
+    expect(salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '-500' })).toEqual({
+      pill: null,
+      openMinor: null,
+    })
+  })
+
+  it('case 3 (contact card row): invoice shows net open; linked credit note row shows no open', () => {
+    expect(
+      salesDocStatus({
+        status: 'issued',
+        kind: 'invoice',
+        outstanding: '100000',
+      }),
+    ).toEqual({ pill: null, openMinor: 100000n })
+    expect(
+      salesDocStatus({
+        status: 'issued',
+        kind: 'credit_note',
+        outstanding: '0',
+      }),
+    ).toEqual({ pill: null, openMinor: null })
+  })
+})
+
+describe('contactRoleLabel / missingEInvoicingDetails', () => {
   it('labels roles without inventing a third state', () => {
     expect(
       contactRoleLabel(rows[0]!, {
@@ -177,26 +465,6 @@ describe('contactRoleLabel / missingEInvoicingDetails / salesDocStatus', () => {
       }),
     ).toBe(true)
   })
-
-  it('pills only draft/cancelled from invoice_status; issued uses open text, never late/paid', () => {
-    const openById = new Map<string, bigint>([['inv-1', 10000n]])
-    expect(salesDocStatus({ id: 'd1', status: 'draft' }, openById)).toEqual({
-      pill: 'draft',
-      openMinor: null,
-    })
-    expect(salesDocStatus({ id: 'c1', status: 'cancelled' }, openById)).toEqual({
-      pill: 'cancelled',
-      openMinor: null,
-    })
-    expect(salesDocStatus({ id: 'inv-1', status: 'issued' }, openById)).toEqual({
-      pill: null,
-      openMinor: 10000n,
-    })
-    expect(salesDocStatus({ id: 'inv-2', status: 'issued' }, openById)).toEqual({
-      pill: null,
-      openMinor: null,
-    })
-  })
 })
 
 describe('supplierOpenSummary (#163 Legal)', () => {
@@ -207,7 +475,7 @@ describe('supplierOpenSummary (#163 Legal)', () => {
       contactNumber: 'S001',
       total: '121000',
       outstanding: '121000',
-      dueDate: '2026-03-01', // past → overdue
+      dueDate: '2026-03-01',
       status: 'approved',
     },
     {
@@ -215,7 +483,7 @@ describe('supplierOpenSummary (#163 Legal)', () => {
       contactNumber: 'S001',
       total: '50000',
       outstanding: '50000',
-      dueDate: '2026-12-01', // future → open, not overdue
+      dueDate: '2026-12-01',
       status: 'approved',
     },
     {
@@ -231,7 +499,7 @@ describe('supplierOpenSummary (#163 Legal)', () => {
       contactNumber: 'S001',
       total: '20000',
       outstanding: '20000',
-      dueDate: '2026-06-15', // due today → not overdue (#118 exclusive)
+      dueDate: '2026-06-15',
       status: 'approved',
     },
   ] as const

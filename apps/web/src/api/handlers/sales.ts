@@ -908,6 +908,7 @@ export async function handleListInvoices(context: RequestContext, query: Invoice
       invoices: rows.map((invoice) => ({
         ...invoice,
         total: invoice.total.toString(),
+        outstanding: invoice.outstanding.toString(),
         updatedAt: new Date(invoice.updatedAt).toISOString(),
       })),
     },

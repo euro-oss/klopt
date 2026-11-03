@@ -18,6 +18,11 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Contacts and sales outstanding (#195)
+
+Payment reminders and debtor ageing now subtract issued credit notes from what's
+still owed; draft credit notes count only once issued.
+
 ### Redesign: SignIn and Setup desktop light (#138)
 
 Sign-in and first-administration Setup match the #106 desktop-light boards
