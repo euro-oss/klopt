@@ -1010,6 +1010,37 @@
    "title": "Phone dark · general ledger per account (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's v2 system (#145), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "ReportsDark.dc.html": {
+   "x": 0,
+   "y": 31000,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · reports, five tabs (derived)",
+   "expand": "fill",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#146), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneReports.dc.html": {
+   "x": 1520,
+   "y": 31000,
+   "w": 390,
+   "h": 1441,
+   "title": "Phone · reports, five tabs (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#146), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneReportsDark.dc.html": {
+   "x": 1990,
+   "y": 31000,
+   "w": 390,
+   "h": 1441,
+   "title": "Phone dark · reports, five tabs (derived)",
+   "is_interactive": true,
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#146), not drawn by Hidde. See ../DERIVED.md."
   }
  },
  "order": [
@@ -1123,7 +1154,10 @@
   "PhoneEntryNew.dc.html",
   "PhoneEntryNewDark.dc.html",
   "PhoneLedger.dc.html",
-  "PhoneLedgerDark.dc.html"
+  "PhoneLedgerDark.dc.html",
+  "ReportsDark.dc.html",
+  "PhoneReports.dc.html",
+  "PhoneReportsDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -1237,6 +1271,13 @@
    "text": "Books: journal, new entry, ledger, dark and phone (derived, #145)",
    "kind": "title1",
    "maxW": 7300
+  },
+  "t146": {
+   "x": 0,
+   "y": 30700,
+   "text": "Reports: P&L, balance sheet, ageing, trial balance, dark and phone (derived, #146)",
+   "kind": "title1",
+   "maxW": 2400
   }
  },
  "designSystems": [
