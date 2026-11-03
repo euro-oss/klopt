@@ -992,7 +992,7 @@ export const nl = {
   'contacts.card.openCosts': 'Open in Kosten',
   'contacts.card.number': 'Relatienummer',
   'contacts.card.details': 'Adres, e-mail, IBAN',
-  'contacts.card.detailsRegion': 'Gegevens voor e-facturatie',
+  'contacts.card.detailsRegion': 'Contactgegevens',
   'contacts.card.addDetails': 'Gegevens toevoegen',
   'contacts.card.einvoiceNeed': 'nodig voor e-facturatie',
   'contacts.card.detailsOk': 'Compleet',

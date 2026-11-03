@@ -1201,7 +1201,7 @@ export const en: Record<MessageKey, string> = {
   'contacts.card.openCosts': 'Open in Costs',
   'contacts.card.number': 'Contact number',
   'contacts.card.details': 'Address, email, IBAN',
-  'contacts.card.detailsRegion': 'Details for e-invoicing',
+  'contacts.card.detailsRegion': 'Contact details',
   'contacts.card.addDetails': 'Add details',
   'contacts.card.einvoiceNeed': 'needed for e-invoicing',
   'contacts.card.detailsOk': 'Complete',
