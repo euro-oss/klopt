@@ -161,9 +161,22 @@ says "Log out", and the screens outside it no longer say "Afmelden".
 
 ### Fixed
 
+- Internal-error logs emit the request id and stack lines whose location
+  is `native`, `<anonymous>`, or `path:line:col` where `path` is an absolute
+  path starting with `/`, a Windows drive path (`C:\`), or a `file://`,
+  `webpack-internal:///`, or `http(s)://` URL without userinfo, or a `node:`
+  built-in module name (lowercase letters, `_`, and `/` only); paths other than
+  `node:` must end in `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.mts`, `.cts`, or
+  `.tsx`; URL query strings are stripped; `/home/<name>/`, `/Users/<name>/`, and
+  `C:\Users\<name>\` are rewritten with `~`. The logged `error.name` is kept
+  only when it matches `*Error` or `*Exception`; otherwise the log writes
+  `Error`. A linear IBAN-shaped backstop (case and separators ignored) replaces
+  matched substrings with `[iban]` on the error name and the strings written to
+  the log.
 - Contacts follow-up: NL supplier empty line is "Niets openstaand"; at
   desktop the Relatiekaart heading wraps long names and card actions sit
   on their own row; the card stays desktop-only.
+
 - Production invoice PDFs no longer 500. pdfkit 0.20.2 loads its standard fonts
   at runtime (`#standard-fonts/*`); bundling it into `.output/server/_ssr` made
   that lookup fail, so every invoice PDF and every send that attaches one
@@ -171,10 +184,9 @@ says "Log out", and the screens outside it no longer say "Afmelden".
   server output. `pnpm --filter @klopt/web run test:e2e` (the CI `e2e` job)
   now also downloads a PDF and sends one invoice against that built server,
   using the file outbox, before Playwright's `vite dev` suite. Unknown 500s
-  are logged with the request id, the error name, and the stack frames
-  only (a frame begins with four spaces and `at`). The message is not
-  logged: it is the start of `error.stack`, and a driver error can quote
-  row values.
+  are logged with the request id, the error name when it ends in `Error` or
+  `Exception`, and the stack-frame location only. The message is not logged.
+
 - Debtor-ageing report and overdue counts no longer count invoices that are due
   today (exclusive overdue boundary).
 
