@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LedgerError } from '@klopt/core'
-import { ApiError, problemResponse } from '../../src/api/errors.js'
+import { ApiError, problemResponse, redactIbansInLog } from '../../src/api/errors.js'
 
 /**
  * Unknown 500s used to leave the process log empty. The response must stay
@@ -430,5 +430,18 @@ describe('unknown internal errors', () => {
     expect(logged).not.toContain('NL91ABNA0417164300')
     expect(logged).not.toContain('Jan Jansen')
     expect(logged).not.toContain('postgres://u:pw@h:5432/x')
+  })
+
+  it('redacts IBAN-shaped text in linear time on large input', () => {
+    const pad = 'x'.repeat(200_000)
+    const token = 'nl91 abna 0417 1643 00'
+    const input = `${pad}${token}${pad}`
+    const start = performance.now()
+    const output = redactIbansInLog(input)
+    const elapsed = performance.now() - start
+    expect(elapsed).toBeLessThan(250)
+    expect(output).toContain('[iban]')
+    expect(output).not.toContain('NL91ABNA0417164300')
+    expect(output).not.toMatch(/nl91\s*abna/i)
   })
 })

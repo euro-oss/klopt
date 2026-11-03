@@ -173,9 +173,11 @@ function readOwn(value: object, key: 'name' | 'message' | 'stack' | 'cause'): un
 /**
  * The location half of a V8 frame, or null when the line is not one.
  *
- * The function name is dropped. What remains must be `path:line:col`
- * (a `node:` path is that shape), `native`, or `<anonymous>`. `@` and
- * `scheme://user:pass@host` userinfo are not locations.
+ * Only the location is kept, never the function name. Allowed shapes are
+ * `native`, `<anonymous>`, or `path:line:col` where `path` is a file URL,
+ * an http(s) URL without userinfo, a `node:` path, or a filesystem path
+ * (contains `/`, `\`, or a file extension). Query strings are stripped from
+ * URLs. A bare token ending in `:line:col` is not a path.
  */
 function frameLocation(line: string): string | null {
   if (!line.startsWith('    at ')) return null
@@ -184,10 +186,66 @@ function frameLocation(line: string): string | null {
   const wrappedAt = rest.lastIndexOf(' (')
   const location = wrappedAt !== -1 && rest.endsWith(')') ? rest.slice(wrappedAt + 2, -1) : rest
   if (location === 'native' || location === '<anonymous>') return location
-  if (location.includes('@')) return null
-  if (/[a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:[^/\s@]+@/i.test(location)) return null
-  if (!/^[^\s()@]+:\d+:\d+$/.test(location)) return null
-  return location
+
+  const parsed = parseFramePathLineCol(location)
+  if (parsed === null) return null
+  const path = stripUrlQuery(parsed.path)
+  if (path.includes('@') || urlLocationHasUserinfo(path)) return null
+  if (!allowedFramePath(path)) return null
+  return `${path}:${parsed.line}:${parsed.col}`
+}
+
+function parseFramePathLineCol(
+  location: string,
+): { path: string; line: string; col: string } | null {
+  const colSep = location.lastIndexOf(':')
+  if (colSep <= 0) return null
+  const col = location.slice(colSep + 1)
+  const beforeCol = location.slice(0, colSep)
+  const lineSep = beforeCol.lastIndexOf(':')
+  if (lineSep <= 0) return null
+  const line = beforeCol.slice(lineSep + 1)
+  const path = beforeCol.slice(0, lineSep)
+  if (!/^\d+$/.test(line) || !/^\d+$/.test(col)) return null
+  return { path, line, col }
+}
+
+function stripUrlQuery(path: string): string {
+  const lower = path.toLowerCase()
+  if (
+    !lower.startsWith('http://') &&
+    !lower.startsWith('https://') &&
+    !lower.startsWith('file://')
+  ) {
+    return path
+  }
+  const q = path.indexOf('?')
+  const h = path.indexOf('#')
+  let end = path.length
+  if (q !== -1 && q < end) end = q
+  if (h !== -1 && h < end) end = h
+  return path.slice(0, end)
+}
+
+function urlLocationHasUserinfo(path: string): boolean {
+  const scheme = path.indexOf('://')
+  if (scheme === -1) return false
+  const after = path.slice(scheme + 3)
+  const at = after.indexOf('@')
+  if (at === -1) return false
+  return after.slice(0, at).includes(':')
+}
+
+function allowedFramePath(path: string): boolean {
+  const lower = path.toLowerCase()
+  if (lower.startsWith('file://')) return true
+  if (lower.startsWith('node:')) return true
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    return !path.includes('@')
+  }
+  if (path.includes('/') || path.includes('\\')) return true
+  if (/\.[a-z0-9]+$/i.test(path)) return true
+  return false
 }
 
 /**
@@ -265,11 +323,67 @@ function loggedErrorName(name: unknown): string {
 }
 
 /**
- * IBAN-shaped token, spaces optional. Applied to every string we log.
- * Country code, two check digits, then 11–30 alphanumerics.
+ * IBAN-shaped substring, case and separators ignored. Linear scan, no
+ * word boundaries. Used on the error name, message, and every log string.
  */
-function redactIbans(text: string): string {
-  return text.replace(/\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b/g, '[iban]')
+export function redactIbansInLog(text: string): string {
+  let out = ''
+  let i = 0
+  while (i < text.length) {
+    const end = ibanSpanEnd(text, i)
+    if (end !== null) {
+      out += '[iban]'
+      i = end
+      continue
+    }
+    out += text[i]
+    i++
+  }
+  return out
+}
+
+function ibanSpanEnd(text: string, start: number): number | null {
+  if (start + 4 > text.length) return null
+  if (!isAsciiLetter(text[start]!) || !isAsciiLetter(text[start + 1]!)) return null
+  if (!isDigit(text[start + 2]!) || !isDigit(text[start + 3]!)) return null
+
+  let pos = start + 4
+  let compact = 4
+  while (pos < text.length && compact < 34) {
+    const ch = text[pos]!
+    if (ch === ' ' || ch === '\t') {
+      pos++
+      continue
+    }
+    if (!isAsciiLetter(ch) && !isDigit(ch)) break
+    compact++
+    pos++
+  }
+  if (compact < 15) return null
+
+  let body = ''
+  for (let p = start; p < pos; p++) {
+    const ch = text[p]!
+    if (ch === ' ' || ch === '\t') continue
+    body += ch.toUpperCase()
+  }
+  if (body.length < 15 || body.length > 34) return null
+  if (body[0]! < 'A' || body[0]! > 'Z' || body[1]! < 'A' || body[1]! > 'Z') return null
+  if (!isDigit(body[2]!) || !isDigit(body[3]!)) return null
+  for (let k = 4; k < body.length; k++) {
+    const ch = body[k]!
+    if (ch < '0' || (ch > '9' && ch < 'A') || ch > 'Z') return null
+  }
+  return pos
+}
+
+function isAsciiLetter(ch: string): boolean {
+  const code = ch.charCodeAt(0)
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+}
+
+function isDigit(ch: string): boolean {
+  return ch >= '0' && ch <= '9'
 }
 
 /**
@@ -280,7 +394,7 @@ function redactIbans(text: string): string {
  * value that is not an Error — that value may be a request body.
  */
 function logUnknownInternalError(error: unknown, requestId: string | null): void {
-  const request = redactIbans(requestId ?? '(no request id)')
+  const request = redactIbansInLog(requestId ?? '(no request id)')
   if (!(error instanceof Error)) {
     console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)
     return
@@ -288,8 +402,14 @@ function logUnknownInternalError(error: unknown, requestId: string | null): void
   let name: string
   let frames: string
   try {
-    name = redactIbans(loggedErrorName(readOwn(error, 'name')))
-    frames = redactIbans(stackFrames(error))
+    const rawName = readOwn(error, 'name')
+    const rawMessage = readOwn(error, 'message')
+    const nameInput = typeof rawName === 'string' ? rawName : ''
+    const messageInput = typeof rawMessage === 'string' ? rawMessage : ''
+    // Message is not logged; the same backstop still runs on it.
+    void redactIbansInLog(messageInput)
+    name = redactIbansInLog(loggedErrorName(redactIbansInLog(nameInput)))
+    frames = redactIbansInLog(stackFrames(error))
   } catch {
     name = 'Error'
     frames = '(no stack)'
