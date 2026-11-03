@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#147). Phone 390 of Settings.dc.html: the same six groups, rows
+  and status lines, one card per group, each row's detail under its name. "Show accounting detail" is
+  one 56px switch row. The ⌘K footnote is left out: phones have no keyboard shortcuts.
+  Takes `theme`. PhoneSettingsDark.dc.html sets dark.
+  Phone pattern: .k-phone at 390, Hidde's five-tab bar with More active (Settings lives under More),
+  sticky at the bottom.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), links in ink and
+  underlined, 44px targets, no key hints on phone, no ink-faint, self-hosted fonts.
+  JetBrains Mono only for codes (.k-code); numbers are Inter tabular.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root > .k-tabbar{position:sticky;bottom:0;z-index:1}
+a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-input{border-color:var(--line-control)}
+.k-phone .k-input{height:44px;font-size:15px}
+.k-phone .k-kbd,.k-phone .k-chord{display:none}
+.nw{white-space:nowrap}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.back{display:inline-flex;align-items:center;min-height:44px;font-size:15px;align-self:flex-start}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:var(--radius-pill);border:1px solid var(--line-control);background:var(--surface);color:var(--ink);font:500 14px var(--font-sans);cursor:pointer;box-sizing:border-box}
+.chip[aria-selected="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:600}
+.chip .cnt{font-variant-numeric:tabular-nums;font-weight:500;opacity:.85}
+.k-root .k-card{border-radius:var(--radius-lg)}
+.ch{padding:14px 16px 12px;display:flex;flex-direction:column;gap:2px}
+.ch h2,.cardp h2,.cardp h3{margin:0;font-size:16px;line-height:22px;font-weight:600}
+.cardp{padding:16px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 16px;border:0;border-top:1px solid var(--line-soft);background:var(--surface);color:var(--ink);font:400 15px/20px var(--font-sans);text-align:left;text-decoration:none;box-sizing:border-box;cursor:pointer}
+.row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.row-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+.sub{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.txt{margin:0;color:var(--ink-2);line-height:1.5}
+.note{margin:0;font-size:13px;line-height:1.5;color:var(--ink-muted)}
+.btn-wide{height:44px;justify-content:center;width:100%;box-sizing:border-box}
+.swrow{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:12px 16px;border:0;border-radius:var(--radius-md);background:var(--surface-sunken);color:var(--ink);font:400 15px/20px var(--font-sans);text-align:left;cursor:pointer;box-sizing:border-box}
+.swrow[disabled]{cursor:not-allowed}
+.swrow .k-switch{pointer-events:none}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.per{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.pc{height:32px;border-radius:var(--radius-xs);font:500 13px/32px var(--font-sans);font-variant-numeric:tabular-nums;text-align:center}
+.pc-closed{background:var(--neutral-bg);color:var(--ink-2)}
+.pc-open{background:var(--surface-sunken);color:var(--ink-muted);box-shadow:inset 0 0 0 1px var(--ink-muted)}
+.role{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:var(--radius-md);background:var(--surface-sunken)}
+.k-root .st{padding:14px 16px;gap:4px;border-radius:var(--radius-lg)}
+.k-root .st .k-stat-value{font-size:22px;line-height:28px}
+.k-root .k-input.miss{background:var(--brand-tint);box-shadow:inset 0 0 0 1px var(--selection-edge)}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 4px;">
+    <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600;">Settings</h1>
+  </div>
+  <div class="k-phone-body">
+    <p class="txt">Everything about Demo BV that you set once and rarely touch.</p>
+    <button type="button" class="swrow" role="switch" aria-checked="false" style="background: var(--surface); border: 1px solid var(--line);">
+      <span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><strong style="font-weight: 600;">Show accounting detail</strong><span class="sub" style="color: var(--ink-2);">Ledger numbers, RGS and VAT codes everywhere. Bookkeepers and accountants have it on.</span></span>
+      <span class="k-switch" aria-hidden="true"></span>
+    </button>
+    <section class="k-card k-card--flush" aria-labelledby="h1">
+      <div class="ch" style="flex-direction: row; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></span>
+        <span style="display: flex; flex-direction: column;"><h2 id="h1">Your company</h2><span style="font-size: 13px; line-height: 18px; color: var(--brand-ink); font-weight: 500;">2 details missing for e-invoicing</span></span></div>
+      <a href="PhoneSettingsCompany.dc.html" class="row"><span class="row-main"><span>Name, address, KvK and VAT number</span><span class="sub" style="color: var(--brand-ink); font-weight: 500;">Incomplete</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsCompany.dc.html" class="row"><span class="row-main"><span>Bank details on invoices</span><span class="sub">IBAN, BIC</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsCompany.dc.html" class="row"><span class="row-main"><span>E-invoicing (Peppol)</span><span class="sub">Uses KvK number</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsCompany.dc.html" class="row"><span class="row-main"><span>Invoice defaults</span><span class="sub">VAT per invoice, bank charges</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+    </section>
+    <section class="k-card k-card--flush" aria-labelledby="h2">
+      <div class="ch" style="flex-direction: row; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg></span>
+        <span style="display: flex; flex-direction: column;"><h2 id="h2">People and access</h2><span style="font-size: 13px; line-height: 18px; color: var(--ink-muted);">2 people, both owner</span></span></div>
+      <a href="PhoneSettingsAccess.dc.html" class="row"><span class="row-main"><span>People and roles</span><span class="sub">Invite a bookkeeper</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsAccess.dc.html" class="row"><span class="row-main"><span>API tokens and AI assistants</span><span class="sub">MCP, read or make drafts</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsAccess.dc.html" class="row"><span class="row-main"><span>Who did what</span><span class="sub">Append-only log</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+    </section>
+    <section class="k-card k-card--flush" aria-labelledby="h3">
+      <div class="ch" style="flex-direction: row; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>
+        <span style="display: flex; flex-direction: column;"><h2 id="h3">Books</h2><span style="font-size: 13px; line-height: 18px; color: var(--success); font-weight: 500;">All 31 accounts mapped to RGS</span></span></div>
+      <a href="PhoneSettingsBooks.dc.html" class="row"><span class="row-main"><span>Book years and periods</span><span class="sub">2025 open · 3 periods closed</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsBooks.dc.html" class="row"><span class="row-main"><span>Categories (ledger accounts)</span><span class="sub">31 · RGS 3.7</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsBooks.dc.html" class="row"><span class="row-main"><span>VAT codes</span><span class="sub">27 codes, 5 in use</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+    </section>
+    <section class="k-card k-card--flush" aria-labelledby="h4">
+      <div class="ch" style="flex-direction: row; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span>
+        <span style="display: flex; flex-direction: column;"><h2 id="h4">Switching to Klopt</h2><span style="font-size: 13px; line-height: 18px; color: var(--ink-muted);">Bring your history across</span></span></div>
+      <a href="PhoneImportSource.dc.html" class="row"><span class="row-main"><span>From Moneybird</span><span class="sub">API token</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneImportSource.dc.html" class="row"><span class="row-main"><span>From Exact Online</span><span class="sub">Connect your account</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsData.dc.html" class="row"><span class="row-main"><span>From any package</span><span class="sub">XAF audit file</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+    </section>
+    <section class="k-card k-card--flush" aria-labelledby="h5">
+      <div class="ch" style="flex-direction: row; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></span>
+        <span style="display: flex; flex-direction: column;"><h2 id="h5">Your data, anywhere</h2><span style="font-size: 13px; line-height: 18px; color: var(--ink-muted);">Export and connect</span></span></div>
+      <a href="PhoneSettingsData.dc.html" class="row"><span class="row-main"><span>Download audit file</span><span class="sub">XAF 3.2 with RGS</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsData.dc.html" class="row"><span class="row-main"><span>Webhooks</span><span class="sub">None yet</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+    </section>
+    <section class="k-card k-card--flush" aria-labelledby="h6">
+      <div class="ch" style="flex-direction: row; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span style="display: flex; flex-direction: column;"><h2 id="h6">Proof and retention</h2><span style="font-size: 13px; line-height: 18px; color: var(--success); font-weight: 500;">2025 sealed, no drift</span></span></div>
+      <a href="PhoneSettingsData.dc.html" class="row"><span class="row-main"><span>Sealed snapshots</span><span class="sub">1 seal · 216 entries</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+      <a href="PhoneSettingsData.dc.html" class="row"><span class="row-main"><span>Retention</span><span class="sub">7 years, as the law asks</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--ink-muted);"><path d="m9 18 6-6-6-6"/></svg></a>
+    </section>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="PhoneMore.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>
