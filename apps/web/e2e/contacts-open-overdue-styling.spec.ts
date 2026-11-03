@@ -94,6 +94,7 @@ test('not-yet-due open amount is not red on list or card; overdue is red with te
   const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
   await expect(listOpen).toHaveAttribute('data-contacts-open-overdue', 'false')
   await expect(listOpen).not.toHaveClass(/text-destructive/)
+  await expect(listOpen).not.toHaveClass(/text-ink-muted/)
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
   await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo')

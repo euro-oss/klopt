@@ -732,7 +732,11 @@ function Contacts() {
                         data-contacts-open-overdue={openOverdue ? 'true' : 'false'}
                         className={cn(
                           'hidden self-center text-right tabular-nums md:block',
-                          openOverdue ? 'text-destructive font-semibold' : 'text-ink-muted',
+                          openOverdue
+                            ? 'text-destructive font-semibold'
+                            : openMinor > 0n
+                              ? undefined
+                              : 'text-ink-muted',
                         )}
                       >
                         {openMinor > 0n ? (
