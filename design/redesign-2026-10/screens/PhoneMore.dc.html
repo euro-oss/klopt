@@ -8,13 +8,15 @@
 <link rel="stylesheet" href="ds/klopt/components/bundle.css">
 </head>
 <body>
-<!-- Derived board (PhoneTabBar): what the More tab opens. Every sidebar destination the tab bar doesn't have, in the sidebar's groups and order. -->
+<!-- Derived board (PhoneTabBar): what the More tab opens. Every sidebar destination the tab bar doesn't have, in the sidebar's groups and order.
+     #150 follow-up: a 44px Search button (aria-label "Search", NL "Zoeken") at the right of the top bar opens PhoneCommand in the start view (PhoneCommandDark in dark). -->
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="../design-system/fonts/fonts.css">
 <style>
 body{margin:0;background:var(--ground)}
 a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
 .mo-group{display:flex;flex-direction:column;gap:6px}
 .mo-label{margin:0 4px;font:600 11px/16px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted)}
 .mo-row{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 16px;border:0;border-top:1px solid var(--line-soft);background:var(--surface);color:var(--ink);font:500 15px/20px var(--font-sans);text-align:left;text-decoration:none;box-sizing:border-box;cursor:pointer}
@@ -27,6 +29,7 @@ a{color:var(--ink)}
 <div class="k-root k-phone" data-theme="{{theme}}">
   <div class="k-phone-top">
     <h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">More</h1>
+    <a href="{{searchHref}}" class="k-btn k-btn--icon" aria-label="Search" style="width: 44px; height: 44px; flex: none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a>
   </div>
   <div class="k-phone-body">
     <nav aria-label="More" style="display: flex; flex-direction: column; gap: 16px;">
@@ -105,7 +108,7 @@ a{color:var(--ink)}
     </nav>
   </div>
   <nav class="k-tabbar" aria-label="Main">
-    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneHomeSearch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
     <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
     <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
     <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
@@ -115,7 +118,10 @@ a{color:var(--ink)}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { theme, searchHref: (theme === 'dark' ? 'PhoneCommandDark' : 'PhoneCommand') + '.dc.html?view=start' };
+  }
 }
 </script>
 </body>

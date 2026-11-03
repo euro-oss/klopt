@@ -2,6 +2,29 @@
 
 Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Batch 1 leaves Hidde's own boards unchanged, apart from the keymap fix, the XAF copy and the Sidebar fixture below.
 
+## Phone search entry: Search button in the Home and More top bars (#150)
+
+Follow-up to #150 and #149 (Hidde's comment on #150): on phone the command bar is the `PhoneCommand` search sheet, and nothing opened it. A 44px Search button now sits at the right of the top bar on Home and More, and opens the sheet in the `start` view. Screenshots are in `derived-shots/search-150/`.
+
+| Board | Change | Screenshots in `derived-shots/search-150/` |
+| --- | --- | --- |
+| `PhoneHomeSearch.dc.html`, `theme` prop | New own file: Hidde's `PhoneHome` with its Search button linked | `Home-light-390` |
+| `PhoneHomeSearchDark.dc.html` | New: `PhoneHomeSearch` with `theme="dark"` | `Home-dark-390` |
+| `PhoneMore.dc.html`, `theme` prop | Edited in place (a derived board, #150): Search button added to the top bar | `More-light-390` |
+| `PhoneMoreDark.dc.html` | Not edited: it wraps `PhoneMore`, so it gets the button | `More-dark-390` |
+
+The button links to `PhoneCommand.dc.html?view=start` in light and to `PhoneCommandDark.dc.html?view=start` in dark (the board picks the link from its `theme` prop).
+
+- **Why Home is a new file.** `PhoneHome` is Hidde's board (no `derived` flag in `canvas.json`), and there is no `PhoneHomeDark`. His board already draws the button: a 44 × 44 `k-btn k-btn--icon` with `aria-label="Search"` and the magnifier icon, right-aligned in `k-phone-top`, linked to `#`. To link it without touching his file, `PhoneHomeSearch` is a copy with that link set. Its dark wrapper follows the `PhoneMoreDark` pattern. Both are registered with `"derived": true` (note `t150s` at y 43300, boards at y 43600, x 0 and 470). Hidde's `PhoneHome` keeps `href="#"`; linking it there is a one-line change, left to him.
+- **The button.** It's the same on both boards: Hidde's Home button, so the icon is his 20px magnifier (stroke 2, round caps). The sheet's search field uses the same icon. The button is 44 × 44 with `flex: none`, sits at the right edge of the top bar (16px inset), and has no keycap or key hint. It carries `aria-label="Search"`. On a Dutch screen that's `aria-label="Zoeken"` (copy table below). The border uses `--ink-muted`, per #107 decision 4 (3:1 or better in light and dark), not `--line-control`.
+- **Other changes in the Home copy.** Fonts are self-hosted (Hidde's board loads Google Fonts). Receipt and More in its tab bar link to `PhoneReceipt` and `PhoneMore`, so you can go round the flow. Everything else is Hidde's.
+- **More.** The Home tab on `PhoneMore` now links to `PhoneHomeSearch`, not to Hidde's `PhoneHome`, so Home keeps its Search button. The PNGs don't change.
+- **Superseded shots.** `derived-shots/phonetabbar/PhoneMore-{light,dark}-390.png` (#150) show More before the button. The current ones are in `derived-shots/search-150/`.
+
+| EN | NL |
+| --- | --- |
+| Search (button `aria-label`) | Zoeken |
+
 ## Command bar and shortcut sheet: dark and phone (#149)
 
 Hidde's desktop-light `Command` board (the command bar with the query "zand", next to the keyboard shortcut sheet) gets a dark 1440 board and a phone 390 search sheet in light and dark. His file is not edited. Screenshots are in `derived-shots/command-149/`.
@@ -62,7 +85,7 @@ The shortcut sheet has no phone board, on purpose. It only lists keys, and phone
 
 ### Invented, for Hidde to check
 
-- **Where the sheet opens from.** It isn't drawn. The proposal is a 44px search button in the top bar of Home and More, the phone equivalent of the sidebar's "Search or jump to". `PhoneMore` (#150) and `PhoneHome` aren't changed in this PR.
+- **Where the sheet opens from.** It isn't drawn. The proposal is a 44px search button in the top bar of Home and More, the phone equivalent of the sidebar's "Search or jump to". `PhoneMore` (#150) and `PhoneHome` aren't changed in this PR. Since drawn: see the #150 section above.
 - **`view=start`.** The Create rows (New invoice, Receipt or bill with "Take a photo or choose a file", New contact) and the Recent rows (Zandbank Advies "Contact", 2025-0036 "Invoice · Zandbank Advies" € 958,34, Bank "Page") are invented. Hidde's board only shows results.
 - **Cancel and the clear button**, and "Customer" with a capital C on the second line.
 - **Where the rows go.** The contact goes to `PhoneContactCard`, invoices and the final notice to `PhoneInvoice`, Receipt or bill to `PhoneReceipt`, Bank to `PhoneMatch` and New contact to `PhoneContacts`. New invoice goes to the desktop `Editor`, because there is no phone invoice editor yet.
