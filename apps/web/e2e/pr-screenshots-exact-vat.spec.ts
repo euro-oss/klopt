@@ -34,7 +34,7 @@ async function ready(page: Page): Promise<void> {
   await signIn(page, EVA_EMAIL)
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
   await page.goto('/setup')
-  await page.getByLabel('Naam van de administratie').fill(EVA_ADMIN)
+  await page.getByLabel('Naam', { exact: true }).fill(EVA_ADMIN)
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),

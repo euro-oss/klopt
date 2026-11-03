@@ -20,7 +20,7 @@ async function openSales(page: Page): Promise<void> {
   await signIn(page, uniqueEmail())
   await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('Verkoop Demo BV')
+  await page.getByLabel('Naam', { exact: true }).fill('Verkoop Demo BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),

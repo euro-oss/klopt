@@ -135,8 +135,9 @@ export async function signIn(page: Page, email: string): Promise<void> {
   await page.getByRole('button', { name: 'Stuur me een code' }).click()
 
   await expect(page.getByLabel('Code')).toBeVisible()
+  // The 6th digit auto-submits (codeHelp). Do not click Aanmelden after fill.
   await page.getByLabel('Code').fill(await codeFor(email))
-  await page.getByRole('button', { name: 'Aanmelden' }).click()
+  await expect(page.getByLabel('Code')).toHaveCount(0)
 }
 
 /**

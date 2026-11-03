@@ -211,6 +211,7 @@ const access: ModuleContract = {
     'auth_rate_limit',
     'entity_members',
     'entity_invitations',
+    'legal_acceptances',
     'api_tokens',
     'oauth_clients',
     'oauth_authorization_codes',

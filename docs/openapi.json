@@ -504,6 +504,13 @@
                 "message": {
                   "type": "string"
                 },
+                "messageKey": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Names which sentence `message` is (ADR 0046). Clients translate from this; `legal_acceptance_required` maps to the Setup checkbox copy."
+                },
                 "detail": {
                   "type": "object",
                   "additionalProperties": {
@@ -4365,6 +4372,11 @@
                       "per_invoice",
                       "per_line"
                     ]
+                  },
+                  "acceptedLegal": {
+                    "default": false,
+                    "description": "When terms URL, DPA URL, terms version and DPA version are all configured, must be true or the request is refused with 422 and no administration is created. On a successful create the server records a terms_dpa acceptance with those configured versions (never taken from the client) in the same transaction. Ignored when any of those four are unset (self-hosted).",
+                    "type": "boolean"
                   }
                 },
                 "required": [

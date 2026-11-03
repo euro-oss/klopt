@@ -1,4 +1,4 @@
-import type { Database } from './client.js'
+import type { Database, Transaction } from './client.js'
 import { DrizzleLedgerRepository } from './repositories/ledger.js'
 import { ReportingRepository } from './repositories/reporting.js'
 import { RgsRepository } from './repositories/rgs.js'
@@ -149,13 +149,15 @@ export async function withSalesRead<T>(
  * A half-created administration — journals but no periods, accounts but no
  * owner — is worse than none at all, because it is reachable and broken. So the
  * entity, its owner, its chart, its journals, its tax codes and its first book
- * year all commit together or not at all.
+ * year all commit together or not at all. Callers that must also write a
+ * hosted terms/DPA acceptance (Setup) receive `tx` as the second argument and
+ * keep that write inside this same transaction.
  */
 export async function withSetup<T>(
   database: Database,
-  work: (repository: SetupRepository) => Promise<T>,
+  work: (repository: SetupRepository, tx: Transaction) => Promise<T>,
 ): Promise<T> {
-  return database.transaction(async (tx) => work(new SetupRepository(tx)))
+  return database.transaction(async (tx) => work(new SetupRepository(tx), tx))
 }
 
 /**
