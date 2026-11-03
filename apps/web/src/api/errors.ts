@@ -142,15 +142,281 @@ export function toProblem(error: unknown, requestId: string | null): ProblemDocu
 }
 
 /**
- * Stack frames only.
+ * The leading `name: message` block of a V8 stack.
  *
- * `error.stack` starts with `error.message`, and a driver message can quote
- * a row: an IBAN, a name, a connection string. Those lines are not frames.
- * A frame is a line that starts with four spaces and `at `.
+ * Same steps as `Error.prototype.toString`. Node writes that string in
+ * front of the frames. The message may be several lines, and a line of it
+ * may begin with `    at `. An empty name is omitted; an empty message is
+ * omitted. Anything that is not a string has no block we can remove.
+ */
+function stackMessageBlock(name: unknown, message: unknown): string {
+  if (typeof name !== 'string' || typeof message !== 'string') return ''
+  if (name === '') return message
+  if (message === '') return name
+  return `${name}: ${message}`
+}
+
+/**
+ * Read one own property. A getter may throw; the 500 handler must not.
+ */
+function readOwn(value: object, key: 'name' | 'message' | 'stack' | 'cause'): unknown {
+  try {
+    if (key === 'name') return (value as { name?: unknown }).name
+    if (key === 'message') return (value as { message?: unknown }).message
+    if (key === 'stack') return (value as { stack?: unknown }).stack
+    return (value as { cause?: unknown }).cause
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The location half of a V8 frame, or null when the line is not one.
+ *
+ * Only the location is kept, never the function name. Allowed shapes are
+ * `native`, `<anonymous>`, or `path:line:col` where `path` is an absolute
+ * POSIX or Windows path, or a `file://`, `node:`, `webpack-internal:///`, or
+ * `http(s)://` URL without userinfo, with a JS/TS source extension, or a
+ * `node:` built-in module path (`^node:[a-z_/]+$`). Home profile segments are
+ * rewritten before logging.
+ */
+function frameLocation(line: string): string | null {
+  if (!line.startsWith('    at ')) return null
+  let rest = line.slice('    at '.length)
+  if (rest.startsWith('async ')) rest = rest.slice('async '.length)
+  const wrappedAt = rest.lastIndexOf(' (')
+  const location = wrappedAt !== -1 && rest.endsWith(')') ? rest.slice(wrappedAt + 2, -1) : rest
+  if (location === 'native' || location === '<anonymous>') return location
+
+  const parsed = parseFramePathLineCol(location)
+  if (parsed === null) return null
+  const path = stripUrlQuery(parsed.path)
+  if (path.includes('@') || urlLocationHasUserinfo(path)) return null
+  if (!allowedFramePath(path)) return null
+  const loggedPath = rewriteHomeInPath(path)
+  return `${loggedPath}:${parsed.line}:${parsed.col}`
+}
+
+/** Exported for unit tests of internal-error stack frame parsing. */
+export function internalErrorStackFrameLine(line: string): string | null {
+  return frameLocation(line)
+}
+
+const SOURCE_FILE = /\.(js|mjs|cjs|jsx|ts|mts|cts|tsx)$/i
+const NODE_BUILTIN_PATH = /^node:[a-z_/]+$/
+
+function hasSourceExtension(path: string): boolean {
+  return SOURCE_FILE.test(path)
+}
+
+function rewriteHomeInPath(path: string): string {
+  if (path.startsWith('/home/')) {
+    return path.replace(/^(\/home\/)[^/]+(\/)/, '$1~$2')
+  }
+  if (path.startsWith('/Users/')) {
+    return path.replace(/^(\/Users\/)[^/]+(\/)/, '$1~$2')
+  }
+  if (/^[A-Za-z]:\\/.test(path)) {
+    return path.replace(/^([A-Za-z]:\\Users\\)[^\\]+(\\)/, '$1~$2')
+  }
+  return path
+}
+
+function allowedFramePath(path: string): boolean {
+  if (/\s/.test(path)) return false
+
+  const lower = path.toLowerCase()
+  if (lower.startsWith('node:')) return NODE_BUILTIN_PATH.test(path)
+  if (lower.startsWith('file://')) return hasSourceExtension(path)
+  if (lower.startsWith('webpack-internal:///')) return hasSourceExtension(path)
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    if (path.includes('@') || urlLocationHasUserinfo(path)) return false
+    return hasSourceExtension(path)
+  }
+  if (path.includes('://')) return false
+
+  if (path.startsWith('/')) return hasSourceExtension(path)
+  if (/^[A-Za-z]:\\/.test(path)) return hasSourceExtension(path)
+  return false
+}
+
+function parseFramePathLineCol(
+  location: string,
+): { path: string; line: string; col: string } | null {
+  const colSep = location.lastIndexOf(':')
+  if (colSep <= 0) return null
+  const col = location.slice(colSep + 1)
+  const beforeCol = location.slice(0, colSep)
+  const lineSep = beforeCol.lastIndexOf(':')
+  if (lineSep <= 0) return null
+  const line = beforeCol.slice(lineSep + 1)
+  const path = beforeCol.slice(0, lineSep)
+  if (!/^\d+$/.test(line) || !/^\d+$/.test(col)) return null
+  return { path, line, col }
+}
+
+function stripUrlQuery(path: string): string {
+  const lower = path.toLowerCase()
+  if (
+    !lower.startsWith('http://') &&
+    !lower.startsWith('https://') &&
+    !lower.startsWith('file://')
+  ) {
+    return path
+  }
+  const q = path.indexOf('?')
+  const h = path.indexOf('#')
+  let end = path.length
+  if (q !== -1 && q < end) end = q
+  if (h !== -1 && h < end) end = h
+  return path.slice(0, end)
+}
+
+function urlLocationHasUserinfo(path: string): boolean {
+  const scheme = path.indexOf('://')
+  if (scheme === -1) return false
+  const after = path.slice(scheme + 3)
+  const at = after.indexOf('@')
+  if (at === -1) return false
+  return after.slice(0, at).includes(':')
+}
+
+/**
+ * Locations from one stack string.
+ *
+ * The leading `name: message` block is removed first, including when the
+ * message is several lines. Lines that are the message itself are dropped
+ * too, for a stack that was overwritten or whose message was replaced after
+ * the stack was read.
+ */
+function locationsFromStack(stack: string, name: unknown, message: unknown): string[] {
+  const block = stackMessageBlock(name, message)
+  let trace = block.length > 0 && stack.startsWith(block) ? stack.slice(block.length) : stack
+  if (typeof message === 'string' && message.length > 0) {
+    const hidden = new Set(message.split('\n'))
+    trace = trace
+      .split('\n')
+      .filter((line) => !hidden.has(line))
+      .join('\n')
+  }
+  const locations: string[] = []
+  for (const line of trace.split('\n')) {
+    const location = frameLocation(line)
+    if (location !== null) locations.push(`    at ${location}`)
+  }
+  return locations
+}
+
+/**
+ * Locations from a cause chain. The cause message is not logged. A throwing
+ * getter, or a cycle, stops the walk.
+ */
+function causeLocations(cause: unknown, seen: Set<object>): string[] {
+  if (typeof cause !== 'object' || cause === null || seen.has(cause)) return []
+  if (seen.size > 8) return []
+  seen.add(cause)
+  const stack = readOwn(cause, 'stack')
+  const name = readOwn(cause, 'name')
+  const message = readOwn(cause, 'message')
+  const next = readOwn(cause, 'cause')
+  const own = typeof stack === 'string' ? locationsFromStack(stack, name, message) : []
+  return [...own, ...causeLocations(next, seen)]
+}
+
+/**
+ * Stack locations only.
+ *
+ * `stack` is not always a string. It may be missing, or an object. Then
+ * there are no frames. A thrown value that is not an Error never reaches
+ * this function.
  */
 function stackFrames(error: Error): string {
-  const frames = (error.stack ?? '').split('\n').filter((line) => line.startsWith('    at '))
-  return frames.length === 0 ? '(no stack)' : frames.join('\n')
+  const stack = readOwn(error, 'stack')
+  const name = readOwn(error, 'name')
+  const message = readOwn(error, 'message')
+  const cause = readOwn(error, 'cause')
+  if (typeof stack !== 'string') return '(no stack)'
+  const lines = [
+    ...locationsFromStack(stack, name, message),
+    ...causeLocations(cause, new Set<object>([error])),
+  ]
+  return lines.length === 0 ? '(no stack)' : lines.join('\n')
+}
+
+/**
+ * What may be written next to the request id.
+ *
+ * Only a class-shaped name ending in `Error` or `Exception`. Anything else
+ * is logged as `Error`.
+ */
+const ERROR_NAME = /^[A-Z][A-Za-z0-9]*(Error|Exception)$/
+
+function loggedErrorName(name: unknown): string {
+  return typeof name === 'string' && ERROR_NAME.test(name) ? name : 'Error'
+}
+
+/**
+ * IBAN-shaped substring, case and separators ignored. Linear scan, no
+ * word boundaries. Used on the error name, message, and every log string.
+ */
+export function redactIbansInLog(text: string): string {
+  let out = ''
+  let i = 0
+  while (i < text.length) {
+    const end = ibanSpanEnd(text, i)
+    if (end !== null) {
+      out += '[iban]'
+      i = end
+      continue
+    }
+    out += text[i]
+    i++
+  }
+  return out
+}
+
+function ibanSpanEnd(text: string, start: number): number | null {
+  if (start + 4 > text.length) return null
+  if (!isAsciiLetter(text[start]!) || !isAsciiLetter(text[start + 1]!)) return null
+  if (!isDigit(text[start + 2]!) || !isDigit(text[start + 3]!)) return null
+
+  let pos = start + 4
+  let compact = 4
+  while (pos < text.length && compact < 34) {
+    const ch = text[pos]!
+    if (ch === ' ' || ch === '\t') {
+      pos++
+      continue
+    }
+    if (!isAsciiLetter(ch) && !isDigit(ch)) break
+    compact++
+    pos++
+  }
+  if (compact < 15) return null
+
+  let body = ''
+  for (let p = start; p < pos; p++) {
+    const ch = text[p]!
+    if (ch === ' ' || ch === '\t') continue
+    body += ch.toUpperCase()
+  }
+  if (body.length < 15 || body.length > 34) return null
+  if (body[0]! < 'A' || body[0]! > 'Z' || body[1]! < 'A' || body[1]! > 'Z') return null
+  if (!isDigit(body[2]!) || !isDigit(body[3]!)) return null
+  for (let k = 4; k < body.length; k++) {
+    const ch = body[k]!
+    if (ch < '0' || (ch > '9' && ch < 'A') || ch > 'Z') return null
+  }
+  return pos
+}
+
+function isAsciiLetter(ch: string): boolean {
+  const code = ch.charCodeAt(0)
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+}
+
+function isDigit(ch: string): boolean {
+  return ch >= '0' && ch <= '9'
 }
 
 /**
@@ -161,12 +427,27 @@ function stackFrames(error: Error): string {
  * value that is not an Error — that value may be a request body.
  */
 function logUnknownInternalError(error: unknown, requestId: string | null): void {
-  const request = requestId ?? '(no request id)'
-  if (error instanceof Error) {
-    console.error('[api] internal_error', request, error.name, stackFrames(error))
+  const request = redactIbansInLog(requestId ?? '(no request id)')
+  if (!(error instanceof Error)) {
+    console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)
     return
   }
-  console.error('[api] internal_error', request, `(no stack, thrown ${typeof error})`)
+  let name: string
+  let frames: string
+  try {
+    const rawName = readOwn(error, 'name')
+    const rawMessage = readOwn(error, 'message')
+    const nameInput = typeof rawName === 'string' ? rawName : ''
+    const messageInput = typeof rawMessage === 'string' ? rawMessage : ''
+    // Message is not logged; the same backstop still runs on it.
+    void redactIbansInLog(messageInput)
+    name = redactIbansInLog(loggedErrorName(redactIbansInLog(nameInput)))
+    frames = redactIbansInLog(stackFrames(error))
+  } catch {
+    name = 'Error'
+    frames = '(no stack)'
+  }
+  console.error('[api] internal_error', request, name, frames)
 }
 
 export function problemResponse(error: unknown, requestId: string | null): Response {
