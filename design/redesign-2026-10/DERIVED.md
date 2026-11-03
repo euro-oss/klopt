@@ -50,7 +50,7 @@ A first version of this PR made them thin wrappers, which kept Hidde's copy: "Kl
 
 - **The e-invoice's content.** Hidde draws Internet Voorbeeld only as a "Ready" row. `view=ubl` opens it as INK-DEMO-2025-0003, 15-11-2025, due 15-12-2025, "Zakelijk internet, november" 208,95 + 21% 43,88 = 252,83 (the amount Internet Voorbeeld has outstanding on Reports' "You owe"), with the same ✓ labels and the "check this" category as his PDF.
 - **The photo row.** Hidde's "Brandstof Teststation · photo · phone · € 159,21" becomes `IMG_2041.jpg`, "Photo · from your phone", "To fill in" (the file name is the one on `PhoneReceipt`).
-- **Phone first run.** Take a photo (primary, to `PhoneReceipt`) and Choose files in the empty card. "See it with example documents" is an underlined link under the chips instead of a fourth segment. "Finish company details" goes to `PhoneSettingsCompany`, which is in #190 and not on main yet.
+- **Phone first run.** Take a photo (primary, to `PhoneReceipt`) and Choose files in the empty card. "See it with example documents" is an underlined link under the chips instead of a fourth segment. "Finish company details" goes to `PhoneSettingsCompany` (#147, PR #190).
 - **Phone review.** "‹ Inbox" back link; the paper is full width with the file name and page count under it ("factuur-november.pdf · 1 page"); Total gets "Including VAT" as help; empty fields have the placeholders "Start typing a name", "dd-mm-yyyy", "0,00" and "Choose a category".
 
 ### Contrast (WCAG 2.x)
