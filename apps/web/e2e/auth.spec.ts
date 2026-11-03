@@ -60,8 +60,8 @@ test('a wrong code says so instead of doing nothing', async ({ page }) => {
   await page.getByRole('button', { name: 'Stuur me een code' }).click()
   await expect(page.getByLabel('Code')).toBeVisible()
 
+  // The 6th digit auto-submits; do not click Aanmelden after fill.
   await page.getByLabel('Code').fill('000000')
-  await page.getByRole('button', { name: 'Aanmelden' }).click()
 
   await expect(page.getByRole('alert')).toBeVisible()
   await expect(page).toHaveURL(/\/sign-in/)

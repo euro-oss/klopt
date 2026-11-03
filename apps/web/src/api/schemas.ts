@@ -383,6 +383,17 @@ export const createEntityBody = z.object({
     'the current year',
   ),
   vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
+  /**
+   * Hosted terms/DPA checkbox (issue #138). Enforced in `handleCreateEntity`
+   * for every create path (REST and the Setup server function).
+   */
+  acceptedLegal: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'When terms URL, DPA URL, terms version and DPA version are all configured, must be true or the request is refused with 422 and no administration is created. On a successful create the server records a terms_dpa acceptance with those configured versions (never taken from the client) in the same transaction. Ignored when any of those four are unset (self-hosted).',
+    ),
 })
 
 export const createFiscalYearBody = z.object({
