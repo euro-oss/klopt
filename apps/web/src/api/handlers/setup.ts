@@ -1,5 +1,12 @@
 import { PERMISSIONS, isUuid, planEntitySetup, uuidv7 } from '@klopt/core'
-import { setActiveEntity, withBankRead, withSetup } from '@klopt/db'
+import {
+  LegalAcceptancesRepository,
+  setActiveEntity,
+  withBankRead,
+  withSetup,
+  type ProvisionedEntity,
+  type Transaction,
+} from '@klopt/db'
 import {
   hasPermission,
   hasSetupPermission,
@@ -8,6 +15,7 @@ import {
 } from '../context.js'
 import { ApiError, requireIfMatch } from '../errors.js'
 import { recordAudit } from '../audit.js'
+import { agreementRequired, readLegalLinks, type LegalLinksConfig } from '../legal-links.js'
 import { referenceData } from '../reference-data.js'
 import type { CreateEntityBody, CreateFiscalYearBody, UpdateEntityBody } from '../schemas.js'
 import { etagOf } from '../etag.js'
@@ -66,10 +74,27 @@ export function handleListCharts(context: SetupContext) {
  * A client-chosen id under PUT is the standard answer, and it also means a
  * double-submitted setup form produces one administration rather than two.
  */
+export type CreateEntityOptions = {
+  /**
+   * Hosted legal URLs/versions. Defaults to `readLegalLinks()` (process env),
+   * which is what `PUT /api/v1/entities/{id}` uses. The Setup server function
+   * passes `readLegalLinksForRequest` so the Playwright legal cookie still
+   * works when the webServer leaves the env unset.
+   */
+  readonly legal?: LegalLinksConfig
+  /**
+   * Runs inside the same provisioning transaction, after any terms/DPA
+   * acceptance write. Tests use this to prove a failed side-effect rolls the
+   * administration back.
+   */
+  readonly afterProvision?: (tx: Transaction, provisioned: ProvisionedEntity) => Promise<void>
+}
+
 export async function handleCreateEntity(
   context: SetupContext,
   entityId: string,
   body: CreateEntityBody,
+  options?: CreateEntityOptions,
 ) {
   requireSetupPermission(context)
 
@@ -77,6 +102,28 @@ export async function handleCreateEntity(
     throw new ApiError('validation_failed', 'The administration id must be a UUID.', [
       { code: 'invalid_request', path: 'entityId', message: 'Not a UUID.' },
     ])
+  }
+
+  // Hosted enforcement lives here — every create path (REST and the Setup
+  // server function) goes through it. Self-hosted leaves the env unset and
+  // never requires or records acceptance, even if a client sent the flag.
+  const legal = options?.legal ?? readLegalLinks()
+  const needsAgreement = agreementRequired(legal)
+  if (needsAgreement && body.acceptedLegal !== true) {
+    throw new ApiError(
+      'validation_failed',
+      'Agree to the terms and the data processing agreement to continue.',
+      [
+        {
+          code: 'legal_acceptance_required',
+          // Stable key so the Setup UI can map to t('legal.required') and
+          // re-fetch legal config when a stale tab meets a newly hosted server.
+          messageKey: 'legal_acceptance_required',
+          path: 'acceptedLegal',
+          message: 'Agree to the terms and the data processing agreement to continue.',
+        },
+      ],
+    )
   }
 
   const store = referenceData()
@@ -105,9 +152,27 @@ export async function handleCreateEntity(
     chart,
   )
 
-  const result = await withSetup(context.database, (repository) =>
-    repository.provision({ entityId, ownerUserId: context.user.id, plan }),
-  )
+  const result = await withSetup(context.database, async (repository, tx) => {
+    const provisioned = await repository.provision({
+      entityId,
+      ownerUserId: context.user.id,
+      plan,
+    })
+    // Only on a real create: an idempotent retry must not append a second
+    // terms_dpa row. Versions come from the server config, never the client.
+    if (needsAgreement && provisioned.created) {
+      await new LegalAcceptancesRepository(tx).recordTermsDpa({
+        id: uuidv7(),
+        userId: context.user.id,
+        termsVersion: legal.termsVersion!,
+        dpaVersion: legal.dpaVersion!,
+      })
+    }
+    if (options?.afterProvision !== undefined) {
+      await options.afterProvision(tx, provisioned)
+    }
+    return provisioned
+  })
 
   return {
     status: result.created ? 201 : 200,

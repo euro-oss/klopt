@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { runMigrations } from '@klopt/db'
+import { closeDatabase, createDatabase, resolveToken, runMigrations } from '@klopt/db'
 import { chooseOption, DATABASE_URL, signIn, uniqueEmail } from './support'
 
 /**
@@ -22,7 +22,7 @@ async function anAdministration(page: Page) {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
-  await page.getByLabel('Naam van de administratie').fill('OAuth BV')
+  await page.getByLabel('Naam', { exact: true }).fill('OAuth BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -109,6 +109,19 @@ test('a human approves, and the code becomes a token that reads the books', asyn
   // An hour, and no refresh token to leave lying in a client we did not write.
   expect(grant.expires_in).toBe(3600)
   expect(grant).not.toHaveProperty('refresh_token')
+
+  // Agent + principal: Who did what can name both the OAuth client and the
+  // human who approved it. Consent copy does not claim more than this.
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  try {
+    const resolved = await resolveToken(database, grant.access_token)
+    expect(resolved).not.toBeNull()
+    expect(resolved?.actorKind).toBe('agent')
+    expect(resolved?.actorId).toBe(`oauth:${client.client_id}`)
+    expect(resolved?.principalId).toEqual(expect.any(String))
+  } finally {
+    await closeDatabase(database)
+  }
 
   // And the point of all of it: the token works on MCP.
   const call = await page.request.post('/api/mcp', {
