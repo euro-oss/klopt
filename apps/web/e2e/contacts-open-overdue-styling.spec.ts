@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
+import { addCalendarDays, todayInAmsterdam } from '../src/lib/amsterdam-date.js'
 import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
 
 /**
@@ -10,14 +11,8 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-function isoDaysAgo(days: number): string {
-  const date = new Date()
-  date.setHours(12, 0, 0, 0)
-  date.setDate(date.getDate() - days)
-  const year = String(date.getFullYear())
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+function invoiceIssueDateDaysAgo(days: number): string {
+  return addCalendarDays(todayInAmsterdam(), -days)
 }
 
 async function openAdmin(page: Page): Promise<void> {
@@ -102,7 +97,7 @@ test('not-yet-due open amount is not red on list or card; overdue is red with te
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
   await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo')
-  await issueInvoice(page, /Klif Te Laat Demo/, isoDaysAgo(45))
+  await issueInvoice(page, /Klif Te Laat Demo/, invoiceIssueDateDaysAgo(45))
 
   await page.goto('/contacts')
   await hydrated(page)
