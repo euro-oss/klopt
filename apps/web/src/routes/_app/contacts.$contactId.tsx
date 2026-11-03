@@ -1,38 +1,229 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { PhoneContactCard } from '~/components/contacts/contact-card'
 import { PageHeader } from '~/components/app-shell'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { useT } from '~/i18n/provider'
+import {
+  aggregateContacts,
+  CONTACTS_DOCS_FETCH_LIMIT,
+  type ContactListRow,
+  type ContactSalesDoc,
+} from '~/lib/contacts-list'
 import { useHydrated } from '~/lib/hydration'
-import { getContact, pseudonymiseContact, updateContact } from '~/server/sales'
+import { localTodayIso } from '~/lib/local-clock'
+import { listPurchaseInvoices } from '~/server/purchase'
+import {
+  getContact,
+  listInvoices,
+  listOverdueInvoices,
+  pseudonymiseContact,
+  updateContact,
+} from '~/server/sales'
 
 /**
- * Correcting a relatie (#130 — edit surface for the Contacts card).
- *
- * Master data is corrected in place. There is no journal here to keep honest,
- * and everything already booked points at this row by id — so fixing a mistyped
- * IBAN fixes the next betaalrun without touching a cent of what happened
- * before. What was *sent* does not move: an issued invoice's UBL and PDF are
- * stored artefacts, and a name corrected today does not rewrite them.
- *
- * The screen sends the whole form rather than only what changed, which is fine
- * because a contact is edited by one person at a time — but the API takes a
- * patch, because a machine correcting one field should not have to know the
- * other fifteen.
- *
- * Erasure stays behind `retention:manage`, separate from edit (design + #107).
+ * Contact detail (#130): phone card at 390 (`PhoneContactCard` boards) and
+ * desktop edit form. Phone edit opens with `?edit=1` from the card.
  */
 export const Route = createFileRoute('/_app/contacts/$contactId')({
-  loader: async ({ params }) => ({
-    contact: await getContact({ data: { contactId: params.contactId } }),
-  }),
-  component: EditContact,
+  validateSearch: (search: Record<string, unknown>): { edit?: boolean } => {
+    const edit = search['edit'] === true || search['edit'] === '1' || search['edit'] === 'true'
+    return edit ? { edit: true } : {}
+  },
+  loader: async ({ params }) => {
+    const asOf = localTodayIso()
+    const [contact, invoices, purchases, overdue] = await Promise.all([
+      getContact({ data: { contactId: params.contactId } }),
+      listInvoices({ data: { status: null, limit: CONTACTS_DOCS_FETCH_LIMIT } }),
+      listPurchaseInvoices({ data: {} }),
+      listOverdueInvoices({ data: { asOf } }),
+    ])
+    return { contact, invoices, purchases, overdue, asOf }
+  },
+  component: ContactDetail,
 })
 
-function EditContact() {
-  const { contact } = Route.useLoaderData()
+function contactToListRow(
+  row: {
+    readonly id: string
+    readonly number: string
+    readonly name: string
+    readonly isCustomer: boolean
+    readonly isSupplier: boolean
+    readonly email: string | null
+    readonly vatNumber: string | null
+    readonly countryCode: string
+    readonly paymentTermsDays: number
+    readonly isBlocked: boolean
+  },
+): ContactListRow {
+  return {
+    id: row.id,
+    number: row.number,
+    name: row.name,
+    isCustomer: row.isCustomer,
+    isSupplier: row.isSupplier,
+    email: row.email,
+    vatNumber: row.vatNumber,
+    countryCode: row.countryCode,
+    paymentTermsDays: row.paymentTermsDays,
+    isBlocked: row.isBlocked,
+  }
+}
+
+function ContactDetail() {
+  const { contact, invoices, purchases, overdue, asOf } = Route.useLoaderData()
   const { contactId } = Route.useParams()
+  const { edit } = Route.useSearch()
+  const router = useRouter()
+
+  const cardData = useMemo(() => {
+    if (!contact.ok) return null
+    const listRow = contactToListRow(contact.data.contact)
+    const salesDocs: readonly ContactSalesDoc[] = invoices.ok
+      ? invoices.data.invoices
+          .filter((inv) => inv.contactNumber === listRow.number)
+          .map((invoice) => ({
+            id: invoice.id,
+            number: invoice.number,
+            total: invoice.total,
+            contactNumber: invoice.contactNumber,
+            status: invoice.status,
+            kind: invoice.kind,
+            dueDate: invoice.dueDate,
+          }))
+      : []
+    const purchaseDocs = purchases.ok
+      ? purchases.data.invoices.filter((inv) => inv.contactNumber === listRow.number)
+      : []
+    const overdueRows = overdue.ok ? overdue.data.invoices : []
+    const aggregates = aggregateContacts(
+      [listRow],
+      salesDocs,
+      purchaseDocs.map((row) => ({
+        id: row.id,
+        contactNumber: row.contactNumber,
+        total: row.total,
+        outstanding: row.outstanding,
+        dueDate: row.dueDate,
+        status: row.status,
+      })),
+      overdueRows.map((row) => ({
+        id: row.id,
+        contactName: row.contactName,
+        total: row.total,
+        daysOverdue: row.daysOverdue,
+      })),
+    )
+    const openByInvoiceId = new Map<string, bigint>()
+    for (const row of overdueRows) openByInvoiceId.set(row.id, BigInt(row.total))
+
+    return {
+      listRow,
+      aggregate: aggregates.get(listRow.number),
+      salesDocs,
+      purchaseDocs,
+      openByInvoiceId,
+    }
+  }, [contact, invoices, purchases, overdue])
+
+  if (!contact.ok) {
+    return <ContactLoadError detail={contact.problem.detail} />
+  }
+
+  const showPhoneCard = edit !== true
+
+  return (
+    <>
+      {showPhoneCard && cardData !== null && (
+        <PhoneContactCard
+          contact={cardData.listRow}
+          aggregate={cardData.aggregate}
+          salesDocs={cardData.salesDocs}
+          purchaseDocs={cardData.purchaseDocs}
+          openByInvoiceId={cardData.openByInvoiceId}
+          asOf={asOf}
+          onErased={() => {
+            void router.invalidate()
+          }}
+        />
+      )}
+
+      {edit === true && (
+        <div className="md:hidden">
+          <ContactEditForm
+            contact={contact.data}
+            contactId={contactId}
+            layout="phone"
+            onSaved={() => {
+              void router.invalidate()
+            }}
+          />
+        </div>
+      )}
+
+      <div className="hidden md:block">
+        <ContactEditForm
+          contact={contact.data}
+          contactId={contactId}
+          layout="desktop"
+          onSaved={() => {
+            void router.invalidate()
+          }}
+        />
+      </div>
+    </>
+  )
+}
+
+function ContactLoadError({ detail }: { detail: string }) {
+  const { t } = useT()
+  return (
+    <>
+      <PageHeader title={t('contact.title')} />
+      <p role="alert" className="text-destructive text-sm">
+        {detail}
+      </p>
+    </>
+  )
+}
+
+function ContactEditForm({
+  contact,
+  contactId,
+  layout,
+  onSaved,
+}: {
+  contact: {
+    readonly contact: {
+      readonly number: string
+      readonly name: string
+      readonly legalName: string | null
+      readonly isCustomer: boolean
+      readonly isSupplier: boolean
+      readonly isBlocked: boolean
+      readonly email: string | null
+      readonly phone: string | null
+      readonly vatNumber: string | null
+      readonly kvkNumber: string | null
+      readonly countryCode: string
+      readonly paymentTermsDays: number
+      readonly iban: string | null
+      readonly address: {
+        readonly street: string | null
+        readonly houseNumber: string | null
+        readonly postalCode: string | null
+        readonly city: string | null
+      } | null
+    }
+    readonly openDocuments: { readonly sales: number; readonly purchase: number }
+    readonly canErase: boolean
+  }
+  contactId: string
+  layout: 'desktop' | 'phone'
+  onSaved: () => void
+}) {
   const router = useRouter()
   const hydrated = useHydrated()
   const { t, plural } = useT()
@@ -43,19 +234,8 @@ function EditContact() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const key = useRef(crypto.randomUUID())
 
-  if (!contact.ok) {
-    return (
-      <>
-        <PageHeader title={t('contact.title')} />
-        <p role="alert" className="text-destructive text-sm">
-          {contact.problem.detail}
-        </p>
-      </>
-    )
-  }
-
-  const row = contact.data.contact
-  const open = contact.data.openDocuments
+  const row = contact.contact
+  const open = contact.openDocuments
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -112,7 +292,7 @@ function EditContact() {
 
     key.current = crypto.randomUUID()
     setSaved(true)
-    await router.invalidate()
+    onSaved()
   }
 
   const field = (
@@ -121,35 +301,25 @@ function EditContact() {
     props: React.InputHTMLAttributes<HTMLInputElement> = {},
   ) => (
     <div>
-      <label htmlFor={name} className="text-muted-foreground mb-1 block text-xs font-medium">
+      <label htmlFor={`${layout}-${name}`} className="text-muted-foreground mb-1 block text-xs font-medium">
         {label}
       </label>
       <Input
-        id={name}
+        id={`${layout}-${name}`}
         name={name}
-        aria-describedby={fieldErrors[name] === undefined ? undefined : `${name}-error`}
+        aria-describedby={fieldErrors[name] === undefined ? undefined : `${layout}-${name}-error`}
         {...props}
       />
       {fieldErrors[name] !== undefined && (
-        <p id={`${name}-error`} role="alert" className="text-destructive mt-1 text-xs">
+        <p id={`${layout}-${name}-error`} role="alert" className="text-destructive mt-1 text-xs">
           {fieldErrors[name]}
         </p>
       )}
     </div>
   )
 
-  return (
+  const formBody = (
     <>
-      <PageHeader
-        title={`${row.number} · ${row.name}`}
-        description={t('contact.intro')}
-        actions={
-          <Button asChild variant="outline">
-            <Link to="/contacts">{t('contact.back')}</Link>
-          </Button>
-        }
-      />
-
       {(open.sales > 0 || open.purchase > 0) && (
         <p className="text-muted-foreground mb-6 text-sm">
           {t('contact.stillOpen')}{' '}
@@ -203,7 +373,7 @@ function EditContact() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_10rem]">
           {field('iban', 'IBAN', {
             defaultValue: row.iban ?? '',
-            placeholder: 'NL02ABNA0123456789',
+            placeholder: 'NL02INGB0999999999',
           })}
           {field('paymentTermsDays', t('contacts.paymentTerms'), {
             defaultValue: String(row.paymentTermsDays),
@@ -233,12 +403,12 @@ function EditContact() {
         )}
         {saved && <p className="text-sm">{t('contact.saved')}</p>}
 
-        <Button type="submit" disabled={busy || !hydrated}>
+        <Button type="submit" className="min-h-11 md:min-h-10" disabled={busy || !hydrated}>
           {busy ? t('common.busy') : t('common.save')}
         </Button>
       </form>
 
-      {contact.data.canErase && (
+      {contact.canErase && layout === 'desktop' && (
         <Erase
           contactId={contactId}
           open={open.sales + open.purchase}
@@ -249,20 +419,37 @@ function EditContact() {
       )}
     </>
   )
+
+  if (layout === 'phone') {
+    return (
+      <div className="flex flex-col gap-4">
+        <Button asChild variant="ghost" className="min-h-11 self-start px-2">
+          <Link to="/contacts/$contactId" params={{ contactId }}>
+            {t('contacts.phoneBack')}
+          </Link>
+        </Button>
+        <h1 className="text-xl font-semibold">{row.name}</h1>
+        {formBody}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <PageHeader
+        title={`${row.number} · ${row.name}`}
+        description={t('contact.intro')}
+        actions={
+          <Button asChild variant="outline">
+            <Link to="/contacts">{t('contact.back')}</Link>
+          </Button>
+        }
+      />
+      {formBody}
+    </>
+  )
 }
 
-/**
- * Answering a right-to-erasure request (spec 7.6).
- *
- * At the bottom of the contact, behind its own heading and its own reason
- * field, because it is not an edit. Editing a contact corrects what we know;
- * this destroys it, and the two should not sit in the same form where a stray
- * submit reaches the wrong one.
- *
- * Shown only when the caller holds `retention:manage` — the server says so
- * rather than the screen inferring it from a role — on the same principle as
- * the navigation: do not offer an action that will answer 403.
- */
 function Erase({
   contactId,
   open,

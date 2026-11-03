@@ -123,6 +123,12 @@ test('02 seeded — desktop 1440 light/dark + phone bonus', async ({ page }) => 
   await shoot(page, '02-contacts-data-dark-desktop-1440.png', { width: 1440, height: 1040 })
 
   await setTheme(page, 'light')
+  await page.setViewportSize({ width: 390, height: 844 })
+  const id = new URL(page.url()).searchParams.get('id')
+  expect(id).toBeTruthy()
+  await page.goto(`/contacts/${id}`)
+  await setTheme(page, 'light')
+  await expect(page.getByRole('complementary', { name: 'Relatiekaart' })).toBeVisible()
   await shoot(page, '02-contacts-data-light-mobile-390.png', { width: 390, height: 844 })
   await setTheme(page, 'dark')
   await shoot(page, '02-contacts-data-dark-mobile-390.png', { width: 390, height: 844 })
