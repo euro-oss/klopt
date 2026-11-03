@@ -6,10 +6,12 @@ import {
   issueToken,
   priceDraft,
   runMigrations,
+  withSalesRead,
   withSales,
   type Database,
   type DraftInvoiceRequest,
 } from '@klopt/db'
+import { bankTransactionAllocations, bankTransactions } from '@klopt/db/schema'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -30,12 +32,14 @@ import {
   handleBookPurchaseInvoice,
   handleCapturePurchaseInvoice,
 } from '../src/api/handlers/purchase.js'
+import { handleCreateBankAccount } from '../src/api/handlers/bank.js'
 import { handleGetProfitAndLoss, handleGetBalanceSheet } from '../src/api/handlers/compliance.js'
 import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
 import {
   bookPurchaseInvoiceBody,
   capturePurchaseInvoiceBody,
   contactsQuery,
+  createBankAccountBody,
   createContactBody,
   draftInvoiceBody,
   invoicesQuery,
@@ -92,6 +96,46 @@ async function withCustomer(token: string, number = 'DEB-0001') {
     }),
   )
   return number
+}
+
+/** Direct allocation row — see matching.test.ts for the full bank-match path. */
+async function allocateInvoiceDirect(
+  entityId: string,
+  bankAccountId: string,
+  invoiceId: string,
+  amountMinor: bigint,
+): Promise<void> {
+  const transactionId = uuidv7()
+  await database.insert(bankTransactions).values({
+    id: transactionId,
+    entityId,
+    bankAccountId,
+    dedupeKey: transactionId,
+    amountMinorUnits: amountMinor,
+    currency: 'EUR',
+    bookingDate: '2026-04-01',
+    valueDate: '2026-04-01',
+  })
+  await database.insert(bankTransactionAllocations).values({
+    id: uuidv7(),
+    entityId,
+    transactionId,
+    invoiceId,
+    amountMinorUnits: amountMinor,
+  })
+}
+
+async function testBankAccount(token: string): Promise<string> {
+  const suffix = Date.now().toString(36).replace(/\D/g, '').slice(-9).padStart(9, '0')
+  const created = await handleCreateBankAccount(
+    await context(token, uuidv7()),
+    createBankAccountBody.parse({
+      iban: `NL91ABNA0${suffix}`,
+      name: 'Testrekening',
+      ledgerAccountNumber: '1100',
+    }),
+  )
+  return (created.body as { id: string }).id
 }
 
 const draft = (overrides: Record<string, unknown> = {}) =>
@@ -716,6 +760,305 @@ describe('listing and ageing', () => {
     const creditNote = afterCredit.body.invoices.find((row) => row.kind === 'credit_note')
     expect(creditNote).toBeDefined()
     expect(invoice?.outstanding).toBe(String(BigInt(invoice!.total) - BigInt(creditNote!.total)))
+    expect(creditNote?.outstanding).toBe('0')
+  })
+
+  it('listInvoices: partial bank allocation reduces outstanding', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+    const bankAccountId = await testBankAccount(token)
+    await allocateInvoiceDirect(entityId, bankAccountId, issued.body.id, 50_000n)
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    const row = listed.body.invoices.find((inv) => inv.id === issued.body.id)
+    expect(row?.total).toBe('121000')
+    expect(row?.outstanding).toBe('71000')
+  })
+
+  it('listInvoices: bank allocation plus linked credit note nets outstanding', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+    const bankAccountId = await testBankAccount(token)
+    await allocateInvoiceDirect(entityId, bankAccountId, issued.body.id, 50_000n)
+
+    const creditDraft = await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({
+        kind: 'credit_note',
+        creditsInvoiceId: drafted.body.id,
+        lines: [
+          {
+            description: 'Korting',
+            quantity: '1',
+            unitPrice: '2100',
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }),
+    )
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      creditDraft.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    const invoice = listed.body.invoices.find((row) => row.id === issued.body.id)
+    expect(invoice?.outstanding).toBe('68459')
+  })
+
+  it('openInvoices and dunnable outstanding net allocations and issued credit notes', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+    const bankAccountId = await testBankAccount(token)
+    await allocateInvoiceDirect(entityId, bankAccountId, issued.body.id, 21_000n)
+
+    const creditDraft = await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({
+        kind: 'credit_note',
+        creditsInvoiceId: drafted.body.id,
+        lines: [
+          {
+            description: 'Korting',
+            quantity: '1',
+            unitPrice: '2100',
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }),
+    )
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      creditDraft.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const asOf = '2026-03-01'
+    await withSalesRead(database, async (sales) => {
+      const overdue = await sales.openInvoices(entityId, asOf)
+      expect(overdue).toHaveLength(1)
+      expect(overdue[0]?.id).toBe(issued.body.id)
+      expect(overdue[0]?.total).toBe(97_459n)
+
+      const dunnable = await sales.dunnable(entityId, asOf)
+      expect(dunnable).toHaveLength(1)
+      expect(dunnable[0]?.invoiceId).toBe(issued.body.id)
+      expect(dunnable[0]?.total).toBe(97_459n)
+    })
+  })
+
+  it('draft credit notes do not reduce outstanding until issued', async () => {
+    const { token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({ kind: 'credit_note', creditsInvoiceId: drafted.body.id }),
+    )
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    expect(listed.body.invoices.find((row) => row.id === issued.body.id)?.outstanding).toBe(
+      '121000',
+    )
+  })
+
+  it('outstanding never goes below zero when allocations exceed the invoice', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+    const bankAccountId = await testBankAccount(token)
+    await allocateInvoiceDirect(entityId, bankAccountId, issued.body.id, 121_000n)
+    await allocateInvoiceDirect(entityId, bankAccountId, issued.body.id, 10_000n)
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    expect(listed.body.invoices.find((row) => row.id === issued.body.id)?.outstanding).toBe('0')
+
+    await withSalesRead(database, async (sales) => {
+      const open = await sales.openInvoices(entityId, '2026-03-01')
+      expect(open).toEqual([])
+      expect(await sales.dunnable(entityId, '2026-03-01')).toEqual([])
+    })
+  })
+
+  it('partial issued credit note nets openInvoices and dunnable (not dropped by uncredited filter)', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const creditDraft = await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({
+        kind: 'credit_note',
+        creditsInvoiceId: drafted.body.id,
+        lines: [
+          {
+            description: 'Korting',
+            quantity: '1',
+            unitPrice: '2100',
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }),
+    )
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      creditDraft.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const asOf = '2026-03-01'
+    await withSalesRead(database, async (sales) => {
+      const open = await sales.openInvoices(entityId, asOf)
+      expect(open).toHaveLength(1)
+      expect(open[0]?.id).toBe(issued.body.id)
+      expect(open[0]?.total).toBe(118_459n)
+
+      const dunnable = await sales.dunnable(entityId, asOf)
+      expect(dunnable).toHaveLength(1)
+      expect(dunnable[0]?.invoiceId).toBe(issued.body.id)
+      expect(dunnable[0]?.total).toBe(118_459n)
+    })
+  })
+
+  it('full issued credit note drops invoice from openInvoices and dunnable', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const creditDraft = await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({ kind: 'credit_note', creditsInvoiceId: drafted.body.id }),
+    )
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      creditDraft.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    expect(listed.body.invoices.find((row) => row.id === issued.body.id)?.outstanding).toBe('0')
+
+    const asOf = '2026-03-01'
+    await withSalesRead(database, async (sales) => {
+      expect(await sales.openInvoices(entityId, asOf)).toEqual([])
+      expect(await sales.dunnable(entityId, asOf)).toEqual([])
+    })
+  })
+
+  it('openInvoices: credited invoice is netted once, not excluded and subtracted twice', async () => {
+    const { entityId, token } = await newEntity()
+    await withCustomer(token)
+
+    const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
+    const issued = await handleIssueInvoice(
+      await context(token, uuidv7()),
+      drafted.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const creditDraft = await handleDraftInvoice(
+      await context(token, uuidv7()),
+      draft({
+        kind: 'credit_note',
+        creditsInvoiceId: drafted.body.id,
+        lines: [
+          {
+            description: 'Korting',
+            quantity: '1',
+            unitPrice: '2100',
+            revenueAccountNumber: '8000',
+            taxCode: 'H21',
+          },
+        ],
+      }),
+    )
+    await handleIssueInvoice(
+      await context(token, uuidv7()),
+      creditDraft.body.id,
+      issueInvoiceBody.parse({}),
+    )
+
+    const asOf = '2026-03-01'
+    await withSalesRead(database, async (sales) => {
+      const open = await sales.openInvoices(entityId, asOf)
+      expect(open).toHaveLength(1)
+      // Net once: 121000 − 2541, not filtered out and not still at gross.
+      expect(open[0]?.total).toBe(118_459n)
+      expect(open[0]?.total).not.toBe(121_000n)
+    })
+
+    const listed = await handleListInvoices(
+      await context(token),
+      invoicesQuery.parse({ status: 'issued', limit: '100' }),
+    )
+    const invoice = listed.body.invoices.find((row) => row.id === issued.body.id)
+    const creditNote = listed.body.invoices.find((row) => row.kind === 'credit_note')
+    expect(invoice?.outstanding).toBe('118459')
     expect(creditNote?.outstanding).toBe('0')
   })
 

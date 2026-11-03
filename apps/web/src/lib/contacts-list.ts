@@ -273,6 +273,32 @@ export function contactOpenAmountIsOverdue(lateDays: number | null): boolean {
 }
 
 /**
+ * Secondary line under an issued invoice open amount on the contact card (#195).
+ *
+ * Design: not-yet-due → muted “Vervalt {date}”; overdue → destructive late-days
+ * line (open amount stays the real outstanding above); fully paid → neither.
+ */
+export type ContactInvoiceRowHint =
+  | { readonly kind: 'due'; readonly dueDateIso: string }
+  | { readonly kind: 'overdue'; readonly lateDays: number }
+
+export function contactInvoiceRowHint(input: {
+  readonly openMinor: bigint | null
+  readonly dueDate: string
+  readonly asOf: string
+  readonly overdueDays: number | undefined
+}): ContactInvoiceRowHint | null {
+  if (input.openMinor === null || input.openMinor <= 0n) return null
+  if (input.overdueDays !== undefined && input.overdueDays > 0) {
+    return { kind: 'overdue', lateDays: input.overdueDays }
+  }
+  if (input.dueDate >= input.asOf && input.overdueDays === undefined) {
+    return { kind: 'due', dueDateIso: input.dueDate }
+  }
+  return null
+}
+
+/**
  * Purchase-side open summary for the contact card (#163 Legal).
  *
  * Count and amount come only from purchase `outstanding` — never from

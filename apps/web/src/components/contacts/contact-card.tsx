@@ -10,6 +10,7 @@ import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import {
   contactInitials,
+  contactInvoiceRowHint,
   contactRoleLabel,
   contactOpenAmountIsOverdue,
   missingEInvoicingDetails,
@@ -552,11 +553,16 @@ function InvoiceRow({
 }) {
   const { t, plural, tag } = useT()
   const status = salesDocStatus(doc)
-  const overdueDays = overdueDaysByInvoiceId.get(doc.id)
-  const showDueHint = status.openMinor !== null && doc.dueDate >= asOf && overdueDays === undefined
-  const dueHint = showDueHint
-    ? t('contacts.card.invoiceDue', { date: formatBankDay(doc.dueDate, tag) })
-    : null
+  const rowHint = contactInvoiceRowHint({
+    openMinor: status.openMinor,
+    dueDate: doc.dueDate,
+    asOf,
+    overdueDays: overdueDaysByInvoiceId.get(doc.id),
+  })
+  const dueHint =
+    rowHint?.kind === 'due'
+      ? t('contacts.card.invoiceDue', { date: formatBankDay(rowHint.dueDateIso, tag) })
+      : null
 
   const statusLine =
     status.pill !== null ? (
@@ -577,9 +583,9 @@ function InvoiceRow({
         </span>
         {dueHint !== null ? (
           <span className="text-ink-muted text-xs font-normal">{dueHint}</span>
-        ) : overdueDays !== undefined && overdueDays > 0 ? (
+        ) : rowHint?.kind === 'overdue' ? (
           <Badge variant="destructive" className="font-normal">
-            {plural('sales.pill.daysLate', overdueDays, { days: String(overdueDays) })}
+            {plural('sales.pill.daysLate', rowHint.lateDays, { days: String(rowHint.lateDays) })}
           </Badge>
         ) : null}
       </span>

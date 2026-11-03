@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   aggregateContacts,
   contactInitials,
+  contactInvoiceRowHint,
   contactOpenAmountIsOverdue,
   contactRoleLabel,
   countContactRoles,
@@ -232,6 +233,81 @@ describe('contactOpenAmountIsOverdue (#195 styling)', () => {
   it('is true only when lateDays > 0', () => {
     expect(contactOpenAmountIsOverdue(1)).toBe(true)
     expect(contactOpenAmountIsOverdue(12)).toBe(true)
+  })
+})
+
+describe('contactInvoiceRowHint (#195 contact card row)', () => {
+  const asOf = '2026-06-15'
+
+  it('not yet due: muted Vervalt date only (kind due), not overdue', () => {
+    const hint = contactInvoiceRowHint({
+      openMinor: 121000n,
+      dueDate: '2026-12-01',
+      asOf,
+      overdueDays: undefined,
+    })
+    expect(hint).toEqual({ kind: 'due', dueDateIso: '2026-12-01' })
+    expect(hint?.kind).not.toBe('overdue')
+  })
+
+  it('partly paid and not yet due: still Vervalt only, open amount stays at caller', () => {
+    const hint = contactInvoiceRowHint({
+      openMinor: 71000n,
+      dueDate: '2026-12-01',
+      asOf,
+      overdueDays: undefined,
+    })
+    expect(hint).toEqual({ kind: 'due', dueDateIso: '2026-12-01' })
+    expect(hint?.kind).not.toBe('overdue')
+  })
+
+  it('credit note row: neither Vervalt nor te-laat', () => {
+    expect(
+      contactInvoiceRowHint({
+        openMinor: null,
+        dueDate: '2026-12-01',
+        asOf,
+        overdueDays: undefined,
+      }),
+    ).toBeNull()
+  })
+
+  it('fully paid: neither Vervalt nor te-laat', () => {
+    expect(
+      contactInvoiceRowHint({
+        openMinor: null,
+        dueDate: '2026-02-19',
+        asOf,
+        overdueDays: undefined,
+      }),
+    ).toBeNull()
+  })
+
+  it('overdue: te-laat hint only (kind overdue), real open stays at caller — never Vervalt', () => {
+    const fullOpen = contactInvoiceRowHint({
+      openMinor: 121000n,
+      dueDate: '2026-02-19',
+      asOf,
+      overdueDays: 12,
+    })
+    expect(fullOpen).toEqual({ kind: 'overdue', lateDays: 12 })
+    expect(fullOpen?.kind).not.toBe('due')
+
+    const partialOpen = contactInvoiceRowHint({
+      openMinor: 50000n,
+      dueDate: '2026-02-19',
+      asOf,
+      overdueDays: 12,
+    })
+    expect(partialOpen).toEqual({ kind: 'overdue', lateDays: 12 })
+    expect(
+      contactInvoiceRowHint({
+        openMinor: 50000n,
+        dueDate: '2026-12-01',
+        asOf,
+        overdueDays: 12,
+      }),
+    ).toEqual({ kind: 'overdue', lateDays: 12 })
   })
 })
 

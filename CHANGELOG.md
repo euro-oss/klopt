@@ -18,6 +18,12 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Contacts and sales outstanding (#195)
+
+Payment reminder (`dunnable()`) and debtor ageing (`openInvoices()`) amounts now
+subtract linked **issued** credit notes from each invoice’s outstanding total (in
+addition to bank allocations). Draft credit notes are not subtracted until issued.
+
 ### Redesign: SignIn and Setup desktop light (#138)
 
 Sign-in and first-administration Setup match the #106 desktop-light boards
