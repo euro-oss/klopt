@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · Inbox</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#148). Phone 390 of Inbox.dc.html, the first run: nothing to
+  handle yet. Status segments become 44px chips; the drop area becomes a card with Take a photo
+  (to PhoneReceipt) and Choose files; the three sources and three steps stack.
+  Honest copy (#107 Phase 5, #148): nothing promises reading PDFs, photos or screenshots. Only
+  e-invoices (UBL, Peppol) are read; for a PDF or photo you fill in the fields. The Peppol card says
+  it is not set up yet, as SettingsCompany does ("Not reachable yet"). No paste-a-screenshot or key
+  hints on phone; the mailbox card drops Hidde's "every five minutes".
+  Takes `theme`. PhoneInboxDark.dc.html sets dark.
+  Phone pattern: .k-phone at 390, Hidde's five-tab bar with More active (Inbox lives under More),
+  sticky at the bottom.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), links in ink and
+  underlined, 44px targets, no key hints on phone, no ink-faint, self-hosted fonts.
+  JetBrains Mono only for codes (.k-code); numbers are Inter tabular.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+.k-root > .k-tabbar{position:sticky;bottom:0;z-index:1}
+a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-input{border-color:var(--line-control)}
+.k-phone .k-input{height:44px;font-size:15px}
+.k-phone .k-kbd,.k-phone .k-chord{display:none}
+.nw{white-space:nowrap}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.back{display:inline-flex;align-items:center;min-height:44px;font-size:15px;align-self:flex-start}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:var(--radius-pill);border:1px solid var(--line-control);background:var(--surface);color:var(--ink);font:500 14px var(--font-sans);cursor:pointer;box-sizing:border-box}
+.chip[aria-selected="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:600}
+.chip .cnt{font-variant-numeric:tabular-nums;font-weight:500;opacity:.85}
+.k-root .k-card{border-radius:var(--radius-lg)}
+.ch{padding:14px 16px 12px;display:flex;flex-direction:column;gap:2px}
+.ch h2,.cardp h2,.cardp h3{margin:0;font-size:16px;line-height:22px;font-weight:600}
+.cardp{padding:16px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 16px;border:0;border-top:1px solid var(--line-soft);background:var(--surface);color:var(--ink);font:400 15px/20px var(--font-sans);text-align:left;text-decoration:none;box-sizing:border-box;cursor:pointer}
+.row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.row-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+.sub{font-size:13px;line-height:18px;color:var(--ink-muted)}
+.txt{margin:0;color:var(--ink-2);line-height:1.5}
+.note{margin:0;font-size:13px;line-height:1.5;color:var(--ink-muted)}
+.btn-wide{height:44px;justify-content:center;width:100%;box-sizing:border-box}
+.swrow{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:12px 16px;border:0;border-radius:var(--radius-md);background:var(--surface-sunken);color:var(--ink);font:400 15px/20px var(--font-sans);text-align:left;cursor:pointer;box-sizing:border-box}
+.swrow[disabled]{cursor:not-allowed}
+.swrow .k-switch{pointer-events:none}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.per{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.pc{height:32px;border-radius:var(--radius-xs);font:500 13px/32px var(--font-sans);font-variant-numeric:tabular-nums;text-align:center}
+.pc-closed{background:var(--neutral-bg);color:var(--ink-2)}
+.pc-open{background:var(--surface-sunken);color:var(--ink-muted);box-shadow:inset 0 0 0 1px var(--ink-muted)}
+.role{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:var(--radius-md);background:var(--surface-sunken)}
+.k-root .st{padding:14px 16px;gap:4px;border-radius:var(--radius-lg)}
+.k-root .st .k-stat-value{font-size:22px;line-height:28px}
+.k-root .k-input.miss{background:var(--brand-tint);box-shadow:inset 0 0 0 1px var(--selection-edge)}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:flex;flex-direction:column;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+.k-root .k-tile--brand{flex:none}
+.step{display:flex;gap:12px}
+.step-no{width:28px;height:28px;border-radius:var(--radius-sm);background:var(--surface-sunken);color:var(--ink-2);font:600 13px/28px var(--font-sans);text-align:center;flex:none}
+.src{display:flex;flex-direction:column;gap:8px}
+.src .lnk{display:inline-flex;align-items:center;min-height:44px;font-weight:600;align-self:flex-start}
+.read{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--success);font-weight:500}
+.check{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--brand-ink);font-weight:600}
+.hl{background:rgba(255,212,59,.45);border-radius:2px;padding:0 2px}
+.k-root .k-paper{aspect-ratio:auto;padding:20px;font-size:12px;line-height:1.5;display:flex;flex-direction:column;gap:14px}
+.k-root .k-input.sugg{box-shadow:inset 0 0 0 1px var(--selection-edge)}
+.k-root .k-row.doc{min-height:60px;padding:10px 16px}
+.dock-bar .k-btn.half{height:44px;font-size:14px}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <div class="k-phone-top" style="flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 4px;">
+    <div style="display: flex; align-items: center; gap: 12px;"><h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 30px; font-weight: 600;">Inbox</h1></div>
+  </div>
+  <div class="k-phone-body">
+    <p class="txt" style="margin-top: -8px;">Receipts and bills land here. You check them and book.</p>
+    <div class="chips" role="tablist" aria-label="Inbox status">
+      <button type="button" role="tab" class="chip" aria-selected="true">To handle <span class="cnt">0</span></button>
+      <button type="button" role="tab" class="chip" aria-selected="false">Booked <span class="cnt">0</span></button>
+      <button type="button" role="tab" class="chip" aria-selected="false">Set aside <span class="cnt">0</span></button>
+    </div>
+    <a href="PhoneInboxReview.dc.html" class="lnk back" style="margin-top: -8px;">See it with example documents</a>
+
+    <section aria-labelledby="empty-h" class="k-drop" style="padding: 24px 16px; gap: 12px;">
+      <span class="k-tile k-tile--brand" style="width: 48px; height: 48px; border-radius: 14px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg></span>
+      <h2 id="empty-h" style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 600; color: var(--ink);">Nothing to handle</h2>
+      <p style="margin: 0; line-height: 1.5;">Take a photo, add a PDF or UBL file, or connect a source below so they arrive by themselves.</p>
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+        <a href="PhoneReceipt.dc.html" class="k-btn k-btn--primary btn-wide">Take a photo</a>
+        <button type="button" class="k-btn btn-wide">Choose files</button>
+      </div>
+      <p class="note">E-invoices (UBL) are read for you. For a PDF or photo, you fill in supplier, amount and VAT next to it.</p>
+    </section>
+
+    <section aria-labelledby="src-h" style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="src-h" style="margin: 0; font-size: 16px; line-height: 22px; font-weight: 600;">Where documents can come from</h2>
+      <div class="k-card cardp src">
+        <div style="display: flex; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><strong style="font-size: 15px;">A mailbox</strong></div>
+        <span style="color: var(--ink-2); line-height: 1.5;">Forward bills to a mailbox Klopt checks for you. Attachments become documents, the mail itself is kept as proof.</span>
+        <a href="#" class="lnk">Connect a mailbox</a>
+      </div>
+      <div class="k-card cardp src">
+        <div style="display: flex; align-items: center; gap: 12px;"><span class="k-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><strong style="font-size: 15px;">A folder</strong></div>
+        <span style="color: var(--ink-2); line-height: 1.5;">Point Klopt at a folder, a scanner's output for example. No password needed, the usual choice when you run Klopt on your own server.</span>
+        <a href="#" class="lnk">Choose a folder</a>
+      </div>
+      <div class="k-card cardp src">
+        <div style="display: flex; align-items: center; gap: 12px;"><span class="k-tile k-tile--info"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><strong style="font-size: 15px; flex: 1;">Peppol e-invoices</strong><span class="k-pill k-pill--draft">Not set up</span></div>
+        <span style="color: var(--ink-2); line-height: 1.5;">Once Peppol receiving is set up, suppliers who send e-invoices reach you directly, already read. It needs your KvK number first.</span>
+        <a href="PhoneSettingsCompany.dc.html" class="lnk">Finish company details</a>
+      </div>
+    </section>
+
+    <section aria-labelledby="how-h" class="k-card cardp">
+      <h2 id="how-h">What happens to a document</h2>
+      <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px;">
+        <li class="step"><span class="step-no" aria-hidden="true">1</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>It lands here</strong><span class="sub">An e-invoice is read: supplier, date, amounts and VAT. For a PDF or photo, you fill these in.</span></span></li>
+        <li class="step"><span class="step-no" aria-hidden="true">2</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>You check and book</strong><span class="sub">Next to the document. Book it, or set it aside.</span></span></li>
+        <li class="step"><span class="step-no" aria-hidden="true">3</span><span style="display: flex; flex-direction: column; gap: 2px;"><strong>It waits for the bank</strong><span class="sub">When the payment shows up, Match offers this bill first.</span></span></li>
+      </ol>
+    </section>
+  </div>
+  <nav class="k-tabbar" aria-label="Main">
+    <a class="k-tabbar-item" href="PhoneHome.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="k-tabbar-item" href="PhoneSales.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+    <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+    <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+    <a class="k-tabbar-item is-active" href="PhoneMore.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'light' }; }
+}
+</script>
+</body>
+</html>
