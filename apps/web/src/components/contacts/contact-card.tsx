@@ -369,7 +369,11 @@ export function PhoneContactCard({
         </Button>
         <span className="flex-1" aria-hidden="true" />
         <Button asChild variant="outline" className="min-h-11">
-          <Link to="/contacts/$contactId" params={{ contactId: contact.id }} search={{ edit: true }}>
+          <Link
+            to="/contacts/$contactId"
+            params={{ contactId: contact.id }}
+            search={{ edit: true }}
+          >
             {t('contacts.card.edit')}
           </Link>
         </Button>
@@ -417,10 +421,7 @@ export function PhoneContactCard({
         </FiguresRow>
         <FiguresRow label={t('contacts.card.stillOpen')}>
           <span
-            className={cn(
-              'text-[17px] font-semibold',
-              copy.openMinor > 0n && 'text-destructive',
-            )}
+            className={cn('text-[17px] font-semibold', copy.openMinor > 0n && 'text-destructive')}
           >
             €&nbsp;
             <Money amount={copy.openMinor} />

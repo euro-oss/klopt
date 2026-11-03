@@ -44,20 +44,18 @@ export const Route = createFileRoute('/_app/contacts/$contactId')({
   component: ContactDetail,
 })
 
-function contactToListRow(
-  row: {
-    readonly id: string
-    readonly number: string
-    readonly name: string
-    readonly isCustomer: boolean
-    readonly isSupplier: boolean
-    readonly email: string | null
-    readonly vatNumber: string | null
-    readonly countryCode: string
-    readonly paymentTermsDays: number
-    readonly isBlocked: boolean
-  },
-): ContactListRow {
+function contactToListRow(row: {
+  readonly id: string
+  readonly number: string
+  readonly name: string
+  readonly isCustomer: boolean
+  readonly isSupplier: boolean
+  readonly email: string | null
+  readonly vatNumber: string | null
+  readonly countryCode: string
+  readonly paymentTermsDays: number
+  readonly isBlocked: boolean
+}): ContactListRow {
   return {
     id: row.id,
     number: row.number,
@@ -301,7 +299,10 @@ function ContactEditForm({
     props: React.InputHTMLAttributes<HTMLInputElement> = {},
   ) => (
     <div>
-      <label htmlFor={`${layout}-${name}`} className="text-muted-foreground mb-1 block text-xs font-medium">
+      <label
+        htmlFor={`${layout}-${name}`}
+        className="text-muted-foreground mb-1 block text-xs font-medium"
+      >
         {label}
       </label>
       <Input

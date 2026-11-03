@@ -31,12 +31,7 @@ import { isTypingInto } from '~/lib/keyboard'
 import { localTodayIso } from '~/lib/local-clock'
 import { cn } from '~/lib/utils'
 import { listPurchaseInvoices } from '~/server/purchase'
-import {
-  createContact,
-  listContacts,
-  listInvoices,
-  listOverdueInvoices,
-} from '~/server/sales'
+import { createContact, listContacts, listInvoices, listOverdueInvoices } from '~/server/sales'
 
 /**
  * Contacts — list + card (#107 Phase 6 / #130).
@@ -617,10 +612,11 @@ function Contacts() {
                   const openMinor = stats?.openMinor ?? 0n
                   const lateDays = stats?.lateDays ?? null
                   const isActive = row.id === activeId
-                  const sub =
-                    row.email !== null && row.email !== '' ? row.email : row.number
+                  const sub = row.email !== null && row.email !== '' ? row.email : row.number
                   const role = contactRoleLabel(row, roleLabels)
-                  const rowPurchases = purchaseDocs.filter((doc) => doc.contactNumber === row.number)
+                  const rowPurchases = purchaseDocs.filter(
+                    (doc) => doc.contactNumber === row.number,
+                  )
                   const supplierStats =
                     row.isSupplier && !row.isCustomer
                       ? supplierOpenSummary(
@@ -700,7 +696,10 @@ function Contacts() {
                             {openLabel}
                           </span>
                         </span>
-                        <span className="text-ink-muted hidden truncate text-xs md:block" title={sub}>
+                        <span
+                          className="text-ink-muted hidden truncate text-xs md:block"
+                          title={sub}
+                        >
                           {sub}
                         </span>
                         <span className="text-ink-2 flex items-center justify-between gap-3 text-[13px] md:hidden">
