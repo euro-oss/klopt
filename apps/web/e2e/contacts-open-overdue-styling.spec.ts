@@ -1,10 +1,17 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { addCalendarDays, todayInAmsterdam } from '../src/lib/amsterdam-date.js'
-import { DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+import {
+  chooseOption,
+  DATABASE_URL,
+  enableAdvancedMode,
+  hydrated,
+  signIn,
+  uniqueEmail,
+} from './support'
 
 /**
- * #195 item 1 — open amount ink by default; red only when contact has overdue sales (lateDays > 0).
+ * #195 item 1 — open amount ink by default; red only when contact has overdue sales or purchase bills.
  */
 
 test.beforeAll(async () => {
@@ -13,6 +20,12 @@ test.beforeAll(async () => {
 
 function invoiceIssueDateDaysAgo(days: number): string {
   return addCalendarDays(todayInAmsterdam(), -days)
+}
+
+async function expectOpenInk(openLocator: Locator): Promise<void> {
+  await expect(openLocator).toHaveClass(/text-ink/)
+  await expect(openLocator).not.toHaveClass(/text-destructive/)
+  await expect(openLocator).not.toHaveClass(/text-ink-muted/)
 }
 
 async function openAdmin(page: Page): Promise<void> {
@@ -55,6 +68,20 @@ async function seedCustomer(page: Page, number: string, name: string): Promise<v
   await expect(page.getByRole('button', { name: new RegExp(name) })).toBeVisible()
 }
 
+async function seedSupplier(page: Page, number: string, name: string): Promise<void> {
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill(number)
+  await page.getByLabel('Naam', { exact: true }).fill(name)
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL000001950B99')
+  await page.getByLabel('E-mail').fill('inkoop@example.nl')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('checkbox', { name: /Klant/ }).uncheck()
+  await page.getByRole('checkbox', { name: /Leverancier/ }).check()
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('button', { name: new RegExp(name) })).toBeVisible()
+}
+
 async function issueInvoice(page: Page, customer: RegExp, issueDate?: string): Promise<void> {
   await page.goto('/invoices/new')
   await page.getByRole('combobox', { name: 'Klant' }).click()
@@ -71,30 +98,59 @@ async function issueInvoice(page: Page, customer: RegExp, issueDate?: string): P
   await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
 }
 
-test('not-yet-due open amount is not red on list or card; overdue is red with te-laat badge', async ({
+async function bookSupplierBill(
+  page: Page,
+  opts: { number: string; invoiceDate: string; dueDate: string },
+): Promise<void> {
+  await page.goto('/purchases/new')
+  await expect(page.getByRole('button', { name: 'Btw berekenen voor regel 1' })).toBeEnabled()
+  await page.getByLabel('Hun nummer').fill(opts.number)
+  await page.getByLabel('Factuurdatum').fill(opts.invoiceDate)
+  await page.getByLabel('Vervaldatum').fill(opts.dueDate)
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
+  await page.getByLabel('Btw', { exact: true }).fill('21,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('121,00')
+  await page.getByLabel('Omschrijving regel 1').fill('Inkoop demo')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await page.getByRole('button', { name: 'Concept opslaan' }).click()
+  await page.getByRole('button', { name: 'Boeken', exact: true }).click()
+  await expect(page.getByRole('link', { name: /^boeking \d/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Goedkeuren voor betaling' }).click()
+  await expect(page.getByText('goedgekeurd voor betaling')).toBeVisible()
+}
+
+test('not-yet-due open amount is ink on list and card; overdue is red; Niets open stays muted', async ({
   page,
 }) => {
   await openAdmin(page)
   await seedEntityForSales(page)
+  await seedCustomer(page, 'DEB-1950', 'Stilte Niets Open')
   await seedCustomer(page, 'DEB-1952', 'Windvaan Open Kleur')
   await issueInvoice(page, /Windvaan Open Kleur/)
 
   await page.setViewportSize({ width: 1440, height: 1040 })
   await page.goto('/contacts')
   await hydrated(page)
+
+  const emptyRow = page.getByRole('button', { name: /Stilte Niets Open/ })
+  const emptyListOpen = emptyRow.locator('[data-contacts-list-open-amount]:visible')
+  await expect(emptyListOpen).toHaveClass(/text-ink-muted/)
+  await expect(emptyListOpen).toHaveText('–')
+
   await page.getByRole('button', { name: /Windvaan Open Kleur/ }).click()
 
   const card = page.getByRole('complementary', { name: 'Relatiekaart' })
   await expect(card).toBeVisible()
   const cardOpen = card.locator('[data-contact-open-amount]')
   await expect(cardOpen).toHaveAttribute('data-contact-open-overdue', 'false')
-  await expect(cardOpen).not.toHaveClass(/text-destructive/)
+  await expectOpenInk(cardOpen)
 
   const listRow = page.getByRole('button', { name: /Windvaan Open Kleur/ })
   const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
   await expect(listOpen).toHaveAttribute('data-contacts-open-overdue', 'false')
-  await expect(listOpen).not.toHaveClass(/text-destructive/)
-  await expect(listOpen).not.toHaveClass(/text-ink-muted/)
+  await expectOpenInk(listOpen)
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
   await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo')
@@ -124,4 +180,54 @@ test('not-yet-due open amount is not red on list or card; overdue is red with te
   const mobileOpen = overdueRowMobile.locator('[data-contacts-list-open-amount]:visible')
   await expect(mobileOpen).toHaveAttribute('data-contacts-open-overdue', 'true')
   await expect(mobileOpen).toHaveClass(/text-destructive/)
+
+  const emptyRowMobile = page.getByRole('button', { name: /Stilte Niets Open/ })
+  const emptyMobileOpen = emptyRowMobile.locator('[data-contacts-list-open-amount]:visible')
+  await expect(emptyMobileOpen.locator('span.text-ink-muted', { hasText: 'Niets open' })).toBeVisible()
+})
+
+test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purchase due dates)', async ({
+  page,
+}) => {
+  await openAdmin(page)
+  await seedEntityForSales(page)
+  await seedSupplier(page, 'LEV-1954', 'Leverancier Kleur Proef')
+  await bookSupplierBill(page, {
+    number: 'F-1954-future',
+    invoiceDate: '2026-10-01',
+    dueDate: '2099-12-31',
+  })
+
+  await page.setViewportSize({ width: 1440, height: 1040 })
+  await page.goto('/contacts')
+  await hydrated(page)
+  await page.getByRole('button', { name: /Leverancier Kleur Proef/ }).click()
+
+  const card = page.getByRole('complementary', { name: 'Relatiekaart' })
+  const cardOpen = card.locator('[data-contact-open-amount]')
+  await expect(cardOpen).toHaveAttribute('data-contact-open-overdue', 'false')
+  await expectOpenInk(cardOpen)
+
+  const listRow = page.getByRole('button', { name: /Leverancier Kleur Proef/ })
+  const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
+  await expectOpenInk(listOpen)
+
+  await bookSupplierBill(page, {
+    number: 'F-1954-late',
+    invoiceDate: '2026-01-10',
+    dueDate: addCalendarDays(todayInAmsterdam(), -30),
+  })
+
+  await page.goto('/contacts')
+  await hydrated(page)
+  await page.getByRole('button', { name: /Leverancier Kleur Proef/ }).click()
+
+  await expect(card.locator('[data-contact-open-amount]')).toHaveAttribute(
+    'data-contact-open-overdue',
+    'true',
+  )
+  await expect(card.locator('[data-contact-open-amount]')).toHaveClass(/text-destructive/)
+
+  const listOpenLate = listRow.locator('[data-contacts-list-open-amount]:visible')
+  await expect(listOpenLate).toHaveClass(/text-destructive/)
 })

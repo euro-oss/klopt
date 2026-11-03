@@ -12,7 +12,7 @@ import {
   contactInitials,
   contactInvoiceRowHint,
   contactRoleLabel,
-  contactOpenAmountIsOverdue,
+  contactListOpenIsOverdue,
   missingEInvoicingDetails,
   salesDocStatus,
   supplierOpenSummary,
@@ -107,7 +107,6 @@ function useContactCardCopy({
   const volume = aggregate?.volumeMinor ?? 0n
   const docs = aggregate?.documentCount ?? 0
   const openMinor = aggregate?.openMinor ?? 0n
-  const openOverdue = contactOpenAmountIsOverdue(aggregate?.lateDays ?? null)
   const openCount =
     detail !== null && detail.ok ? detail.openDocuments.sales + detail.openDocuments.purchase : 0
 
@@ -149,6 +148,12 @@ function useContactCardCopy({
     status: bill.status,
   }))
   const supplierSummary = supplierOpenSummary(purchaseSide, asOf)
+  const openOverdue = contactListOpenIsOverdue({
+    isCustomer: contact.isCustomer,
+    isSupplier: contact.isSupplier,
+    lateDays: aggregate?.lateDays ?? null,
+    supplierSummary: contact.isSupplier ? supplierSummary : null,
+  })
   const supplierOpenLine =
     supplierSummary.openCount === 0
       ? t('contacts.card.supplierOpenNone')
@@ -288,6 +293,7 @@ export function ContactCard({
             className={cn(
               'text-xl font-semibold tabular-nums',
               copy.openOverdue && 'text-destructive',
+              !copy.openOverdue && copy.openMinor > 0n && 'text-ink',
             )}
           >
             €&nbsp;
@@ -431,7 +437,11 @@ export function PhoneContactCard({
           <span
             data-contact-open-amount=""
             data-contact-open-overdue={copy.openOverdue ? 'true' : 'false'}
-            className={cn('text-[17px] font-semibold', copy.openOverdue && 'text-destructive')}
+            className={cn(
+              'text-[17px] font-semibold',
+              copy.openOverdue && 'text-destructive',
+              !copy.openOverdue && copy.openMinor > 0n && 'text-ink',
+            )}
           >
             €&nbsp;
             <Money amount={copy.openMinor} />

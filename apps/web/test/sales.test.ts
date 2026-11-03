@@ -878,7 +878,7 @@ describe('listing and ageing', () => {
   })
 
   it('draft credit notes do not reduce outstanding until issued', async () => {
-    const { token } = await newEntity()
+    const { entityId, token } = await newEntity()
     await withCustomer(token)
 
     const drafted = await handleDraftInvoice(await context(token, uuidv7()), draft())
@@ -900,6 +900,19 @@ describe('listing and ageing', () => {
     expect(listed.body.invoices.find((row) => row.id === issued.body.id)?.outstanding).toBe(
       '121000',
     )
+
+    const asOf = '2026-03-01'
+    await withSalesRead(database, async (sales) => {
+      const open = await sales.openInvoices(entityId, asOf)
+      expect(open).toHaveLength(1)
+      expect(open[0]?.id).toBe(issued.body.id)
+      expect(open[0]?.total).toBe(121_000n)
+
+      const dunnable = await sales.dunnable(entityId, asOf)
+      expect(dunnable).toHaveLength(1)
+      expect(dunnable[0]?.invoiceId).toBe(issued.body.id)
+      expect(dunnable[0]?.total).toBe(121_000n)
+    })
   })
 
   it('outstanding never goes below zero when allocations exceed the invoice', async () => {

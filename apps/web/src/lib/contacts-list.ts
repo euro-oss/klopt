@@ -272,6 +272,25 @@ export function contactOpenAmountIsOverdue(lateDays: number | null): boolean {
   return lateDays !== null && lateDays > 0
 }
 
+/** List/card open amount: red when sales or purchase side is actually overdue. */
+export function contactListOpenIsOverdue(input: {
+  readonly isCustomer: boolean
+  readonly isSupplier: boolean
+  readonly lateDays: number | null
+  readonly supplierSummary: SupplierOpenSummary | null
+}): boolean {
+  if (input.isCustomer && contactOpenAmountIsOverdue(input.lateDays)) return true
+  if (
+    input.isSupplier &&
+    input.supplierSummary !== null &&
+    input.supplierSummary.openMinor > 0n &&
+    input.supplierSummary.overdueCount > 0
+  ) {
+    return true
+  }
+  return false
+}
+
 /**
  * Secondary line under an issued invoice open amount on the contact card (#195).
  *

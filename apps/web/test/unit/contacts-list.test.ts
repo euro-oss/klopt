@@ -3,6 +3,7 @@ import {
   aggregateContacts,
   contactInitials,
   contactInvoiceRowHint,
+  contactListOpenIsOverdue,
   contactOpenAmountIsOverdue,
   contactRoleLabel,
   countContactRoles,
@@ -188,6 +189,23 @@ describe('aggregateContacts (#195 item 1 — customer open)', () => {
     expect(map.get('C001')?.lateDays).toBeNull()
   })
 
+  it('negative API outstanding is floored to 0n on aggregate (never-negative client)', () => {
+    const map = aggregateContacts(
+      rows,
+      [
+        salesInvoice({
+          id: 'inv-overpaid',
+          contactNumber: 'C001',
+          total: '121000',
+          outstanding: '-500',
+        }),
+      ],
+      [...purchases],
+      [],
+    )
+    expect(map.get('C001')?.openMinor).toBe(0n)
+  })
+
   it('overdue invoice: open counted once; lateDays from overdue report only', () => {
     const map = aggregateContacts(
       rows,
@@ -233,6 +251,56 @@ describe('contactOpenAmountIsOverdue (#195 styling)', () => {
   it('is true only when lateDays > 0', () => {
     expect(contactOpenAmountIsOverdue(1)).toBe(true)
     expect(contactOpenAmountIsOverdue(12)).toBe(true)
+  })
+})
+
+describe('contactListOpenIsOverdue (#195 / supplier purchase due dates)', () => {
+  const asOf = '2026-06-15'
+
+  it('supplier: ink rule uses purchase dueDate via supplierOpenSummary (no new API)', () => {
+    const summaryNotDue = supplierOpenSummary(
+      [
+        {
+          id: 'b1',
+          contactNumber: 'S001',
+          total: '12100',
+          outstanding: '12100',
+          dueDate: '2026-12-01',
+          status: 'approved',
+        },
+      ],
+      asOf,
+    )
+    expect(
+      contactListOpenIsOverdue({
+        isCustomer: false,
+        isSupplier: true,
+        lateDays: null,
+        supplierSummary: summaryNotDue,
+      }),
+    ).toBe(false)
+
+    const summaryLate = supplierOpenSummary(
+      [
+        {
+          id: 'b2',
+          contactNumber: 'S001',
+          total: '5000',
+          outstanding: '5000',
+          dueDate: '2026-01-01',
+          status: 'approved',
+        },
+      ],
+      asOf,
+    )
+    expect(
+      contactListOpenIsOverdue({
+        isCustomer: false,
+        isSupplier: true,
+        lateDays: null,
+        supplierSummary: summaryLate,
+      }),
+    ).toBe(true)
   })
 })
 
@@ -326,6 +394,10 @@ describe('salesDocStatus', () => {
       openMinor: 10000n,
     })
     expect(salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '0' })).toEqual({
+      pill: null,
+      openMinor: null,
+    })
+    expect(salesDocStatus({ status: 'issued', kind: 'invoice', outstanding: '-500' })).toEqual({
       pill: null,
       openMinor: null,
     })
