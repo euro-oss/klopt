@@ -984,6 +984,7 @@ export const nl = {
   'contacts.card.bills_other': '{count} inkoopfacturen',
   'contacts.card.draft': 'Concept',
   'contacts.card.docOpen': 'Open €\u00a0{amount}',
+  'contacts.card.invoiceDue': 'Vervalt {date}',
   // Purchase side only (#163 Legal): open count/amount; never claim betaald.
   'contacts.card.supplierOpenNone': 'Niets openstaand',
   'contacts.card.supplierOpenSummary': '{count} open · €\u00a0{amount}',

@@ -37,6 +37,11 @@ Phone 390 hides the stepper (a “step n of 6” line instead) so the page does
 not scroll sideways. With no `?bron=`, the shell title is Importeren / Import,
 not Moneybird. Screenshots under `docs/pr-screenshots/180/`.
 
+### Contacts and sales outstanding (#195)
+
+Payment reminders and debtor ageing now subtract issued credit notes from what's
+still owed; draft credit notes count only once issued.
+
 ### Redesign: SignIn and Setup desktop light (#138)
 
 Sign-in and first-administration Setup match the #106 desktop-light boards

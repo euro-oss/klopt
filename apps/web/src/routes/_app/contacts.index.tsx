@@ -17,6 +17,7 @@ import {
   aggregateContacts,
   CONTACTS_DOCS_FETCH_LIMIT,
   contactInitials,
+  contactListOpenIsOverdue,
   contactRoleLabel,
   countContactRoles,
   filterContacts,
@@ -149,6 +150,7 @@ function Contacts() {
       id: invoice.id,
       number: invoice.number,
       total: invoice.total,
+      outstanding: invoice.outstanding,
       contactNumber: invoice.contactNumber,
       status: invoice.status,
       kind: invoice.kind,
@@ -158,10 +160,10 @@ function Contacts() {
   const purchaseDocs = useMemo(() => (purchases.ok ? purchases.data.invoices : []), [purchases])
   const overdueRows = useMemo(() => (overdue.ok ? overdue.data.invoices : []), [overdue])
 
-  /** Outstanding by invoice id from the overdue report (issued + past due). */
-  const openByInvoiceId = useMemo(() => {
-    const map = new Map<string, bigint>()
-    for (const row of overdueRows) map.set(row.id, BigInt(row.total))
+  /** Days overdue by invoice id from the overdue report (open amount comes from listInvoices). */
+  const overdueDaysByInvoiceId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const row of overdueRows) map.set(row.id, row.daysOverdue)
     return map
   }, [overdueRows])
 
@@ -617,20 +619,25 @@ function Contacts() {
                   const rowPurchases = purchaseDocs.filter(
                     (doc) => doc.contactNumber === row.number,
                   )
-                  const supplierStats =
-                    row.isSupplier && !row.isCustomer
-                      ? supplierOpenSummary(
-                          rowPurchases.map((bill) => ({
-                            id: bill.id,
-                            contactNumber: bill.contactNumber,
-                            total: bill.total,
-                            outstanding: bill.outstanding,
-                            dueDate: bill.dueDate,
-                            status: bill.status,
-                          })),
-                          asOf,
-                        )
-                      : null
+                  const supplierStats = row.isSupplier
+                    ? supplierOpenSummary(
+                        rowPurchases.map((bill) => ({
+                          id: bill.id,
+                          contactNumber: bill.contactNumber,
+                          total: bill.total,
+                          outstanding: bill.outstanding,
+                          dueDate: bill.dueDate,
+                          status: bill.status,
+                        })),
+                        asOf,
+                      )
+                    : null
+                  const openOverdue = contactListOpenIsOverdue({
+                    isCustomer: row.isCustomer,
+                    isSupplier: row.isSupplier,
+                    lateDays,
+                    supplierSummary: supplierStats,
+                  })
                   const openLabel =
                     openMinor > 0n ? (
                       <>
@@ -688,9 +695,15 @@ function Contacts() {
                             {row.name}
                           </span>
                           <span
+                            data-contacts-list-open-amount=""
+                            data-contacts-open-overdue={openOverdue ? 'true' : 'false'}
                             className={cn(
                               'shrink-0 tabular-nums md:hidden',
-                              openMinor > 0n ? 'text-destructive text-[15px] font-semibold' : '',
+                              openOverdue
+                                ? 'text-destructive text-[15px] font-semibold'
+                                : openMinor > 0n
+                                  ? 'text-ink text-[15px] font-semibold'
+                                  : '',
                             )}
                           >
                             {openLabel}
@@ -723,9 +736,15 @@ function Contacts() {
                         {role}
                       </span>
                       <span
+                        data-contacts-list-open-amount=""
+                        data-contacts-open-overdue={openOverdue ? 'true' : 'false'}
                         className={cn(
                           'hidden self-center text-right tabular-nums md:block',
-                          openMinor > 0n ? 'text-destructive font-semibold' : 'text-ink-muted',
+                          openOverdue
+                            ? 'text-destructive font-semibold'
+                            : openMinor > 0n
+                              ? 'text-ink font-semibold'
+                              : 'text-ink-muted',
                         )}
                       >
                         {openMinor > 0n ? (
@@ -752,7 +771,7 @@ function Contacts() {
             aggregate={aggregates.get(active.number)}
             salesDocs={salesDocs.filter((doc) => doc.contactNumber === active.number)}
             purchaseDocs={purchaseDocs.filter((doc) => doc.contactNumber === active.number)}
-            openByInvoiceId={openByInvoiceId}
+            overdueDaysByInvoiceId={overdueDaysByInvoiceId}
             asOf={asOf}
             onErased={() => {
               void router.invalidate()

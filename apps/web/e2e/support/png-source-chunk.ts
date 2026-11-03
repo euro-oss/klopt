@@ -1,6 +1,6 @@
 import { crc32 } from 'node:zlib'
 
-/** Insert a PNG tEXt chunk (key `Source`) before IEND. Value is repo-root-relative (e.g. apps/web/e2e/foo.spec.ts). */
+/** Insert a PNG tEXt `Source` chunk before IEND (repo-relative path, no /tmp). */
 export function withPngSourceChunk(png: Buffer, source: string): Buffer {
   const data = Buffer.concat([Buffer.from('Source\0', 'latin1'), Buffer.from(source, 'latin1')])
   const type = Buffer.from('tEXt', 'latin1')

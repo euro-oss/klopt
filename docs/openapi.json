@@ -23232,6 +23232,9 @@
                           },
                           "allocated": {
                             "type": "string"
+                          },
+                          "credited": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -23243,7 +23246,8 @@
                           "currency",
                           "contactName",
                           "contactEmail",
-                          "allocated"
+                          "allocated",
+                          "credited"
                         ]
                       }
                     },
@@ -24823,6 +24827,9 @@
                           "total": {
                             "type": "string"
                           },
+                          "outstanding": {
+                            "type": "string"
+                          },
                           "updatedAt": {
                             "type": "string"
                           },
@@ -24866,6 +24873,7 @@
                         },
                         "required": [
                           "total",
+                          "outstanding",
                           "updatedAt",
                           "id",
                           "kind",

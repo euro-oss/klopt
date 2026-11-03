@@ -102,6 +102,7 @@ function ContactDetail() {
             id: invoice.id,
             number: invoice.number,
             total: invoice.total,
+            outstanding: invoice.outstanding,
             contactNumber: invoice.contactNumber,
             status: invoice.status,
             kind: invoice.kind,
@@ -130,15 +131,15 @@ function ContactDetail() {
         daysOverdue: row.daysOverdue,
       })),
     )
-    const openByInvoiceId = new Map<string, bigint>()
-    for (const row of overdueRows) openByInvoiceId.set(row.id, BigInt(row.total))
+    const overdueDaysByInvoiceId = new Map<string, number>()
+    for (const row of overdueRows) overdueDaysByInvoiceId.set(row.id, row.daysOverdue)
 
     return {
       listRow,
       aggregate: aggregates.get(listRow.number),
       salesDocs,
       purchaseDocs,
-      openByInvoiceId,
+      overdueDaysByInvoiceId,
     }
   }, [contact, invoices, purchases, overdue])
 
@@ -156,7 +157,7 @@ function ContactDetail() {
           aggregate={cardData.aggregate}
           salesDocs={cardData.salesDocs}
           purchaseDocs={cardData.purchaseDocs}
-          openByInvoiceId={cardData.openByInvoiceId}
+          overdueDaysByInvoiceId={cardData.overdueDaysByInvoiceId}
           asOf={asOf}
           onErased={() => {
             void router.invalidate()

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
-import { withPngSourceChunk } from './support/png-source-chunk'
+import { withPngSourceChunk } from './support/png-source-chunk.js'
 import {
   startNullRateMoneybirdStandIn,
   startPreValidFromMoneybirdStandIn,

@@ -1193,6 +1193,7 @@ export const en: Record<MessageKey, string> = {
   'contacts.card.bills_other': '{count} bills',
   'contacts.card.draft': 'Draft',
   'contacts.card.docOpen': 'Open €\u00a0{amount}',
+  'contacts.card.invoiceDue': 'Due {date}',
   // Purchase side only (#163 Legal): open count/amount; never claim paid.
   'contacts.card.supplierOpenNone': 'Nothing open',
   'contacts.card.supplierOpenSummary': '{count} open · €\u00a0{amount}',
