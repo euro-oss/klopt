@@ -131,8 +131,9 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
 
 /** Take a brand-new address all the way to a signed-in session. */
 export async function signIn(page: Page, email: string): Promise<void> {
-  await page.getByLabel('E-mail').fill(email)
   const sendCode = page.getByRole('button', { name: 'Stuur me een code' })
+  await expect(sendCode).toBeEnabled({ timeout: 15_000 })
+  await page.getByLabel('E-mail').fill(email)
   await expect(sendCode).toBeEnabled({ timeout: 15_000 })
   await sendCode.click()
 
