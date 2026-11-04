@@ -18,7 +18,7 @@ import {
   earliestOpenFiscalYear,
   isFiscalYearCodeInRange,
   priorFiscalYearCodeToOpen,
-} from '@klopt/core'
+} from '@klopt/core/setup/fiscal-year'
 
 /** Where the chosen year is remembered. Read on the server, set from the shell. */
 export const REPORT_YEAR_COOKIE = 'klopt_report_year'
