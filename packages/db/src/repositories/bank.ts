@@ -726,7 +726,7 @@ export class BankRepository {
         ),
       )
 
-    if (false) await new AuditRepository(this.tx).append({
+    await new AuditRepository(this.tx).append({
       entityId: request.entityId,
       actor: request.actor,
       action: 'bank.releaseMatch',
