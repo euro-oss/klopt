@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
 import { installFiscalYearBookingFakeClock } from './support/fiscal-year-booking-fake-clock'
 import { withPngSourceChunk } from './support/png-source-chunk.js'
 
@@ -35,6 +35,30 @@ async function aSupplier(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /Leverancier B\.V\./ })).toBeVisible()
 }
 
+async function aCustomer(page: Page): Promise<void> {
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('DEB-0001')
+  await page.getByLabel('Naam', { exact: true }).fill('Klant B.V.')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL123456789B01')
+  await page.getByLabel('E-mail').fill('klant@example.nl')
+  await page.getByRole('checkbox', { name: /Klant/ }).check()
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('button', { name: /Klant B\.V\./ })).toBeVisible()
+}
+
+async function enableAccountingDetails(page: Page): Promise<void> {
+  await page.goto('/settings')
+  const toggle = page.getByRole('switch', {
+    name: /Boekhouddetails|accounting details|Show accounting|Geavanceerd|Advanced/i,
+  })
+  await expect(toggle).toBeVisible({ timeout: 30_000 })
+  if ((await toggle.getAttribute('aria-checked')) !== 'true') {
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', 'true', { timeout: 15_000 })
+  }
+}
+
 async function setBillDate(page: Page, isoDate: string): Promise<void> {
   const field = page.getByLabel('Factuurdatum', { exact: true })
   await field.click()
@@ -63,6 +87,7 @@ async function ready(page: Page): Promise<void> {
   ).toBeVisible()
   await hydrated(page)
   await aSupplier(page)
+  await aCustomer(page)
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -126,8 +151,9 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
 
   await shoot(page, 'purchase-date-hint', page.locator('#purchase-invoice-date-hint'))
 
+  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
-  await hydrated(page)
+  await expect(page.getByLabel('Factuurdatum', { exact: true })).toBeVisible({ timeout: 30_000 })
   await setIssueDate(page, '2025-12-15')
   await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
   await shoot(page, 'invoice-blocked', page.locator('#sales-invoice-date-hint'))

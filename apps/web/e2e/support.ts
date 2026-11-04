@@ -112,9 +112,8 @@ export function advancedModeSwitch(page: Page): Locator {
  */
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
   await page.goto('/settings')
-  await hydrated(page)
   const toggle = advancedModeSwitch(page)
-  await expect(toggle).toBeVisible()
+  await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
   if ((await toggle.getAttribute('aria-checked')) !== want) {
     const persisted = page.waitForResponse(isAdvancedModeSaveResponse, { timeout: 15_000 })
