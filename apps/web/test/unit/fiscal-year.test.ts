@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { planFiscalYear } from '@klopt/core'
+import { planFiscalYear, priorFiscalYearCodeToOpen } from '@klopt/core'
 import {
   currentFiscalYear,
   dayAfter,
@@ -268,10 +268,26 @@ describe('earlier unclosed book years on Boekjaren', () => {
     expect(earlierUnclosedBookYearCodes(years, calendar('2026'))).toEqual([])
   })
 
+  it('shows no hint once every earlier year is closed', () => {
+    const years = [
+      { ...calendar('2024'), status: 'closed' },
+      { ...calendar('2025'), status: 'closed' },
+      calendar('2026'),
+    ]
+    expect(earlierUnclosedBookYearCodes(years, calendar('2026'))).toEqual([])
+  })
+
   it('formats year lists for Dutch copy', () => {
     expect(formatBookYearCodeList(['2025'], 'nl')).toBe('2025')
     expect(formatBookYearCodeList(['2024', '2025'], 'nl')).toBe('2024 en 2025')
     expect(formatBookYearCodeList(['2023', '2024', '2025'], 'nl')).toBe('2023, 2024 en 2025')
     expect(formatBookYearCodeList(['2023', '2024', '2025'], 'en')).toBe('2023, 2024 and 2025')
+  })
+})
+
+describe('opening the prior book year from Boekjaren', () => {
+  it('offers no year below the 1960 floor', () => {
+    expect(priorFiscalYearCodeToOpen('1960')).toBeNull()
+    expect(priorFiscalYearCodeToOpen('1961')).toBe('1960')
   })
 })

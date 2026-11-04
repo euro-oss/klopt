@@ -66,11 +66,17 @@ describe('prior year to open', () => {
     expect(earliest?.code).toBe('2026')
     expect(priorFiscalYearCodeToOpen(earliest!.code)).toBe('2025')
   })
+
+  it('is null at the configured floor so no prior year is offered', () => {
+    expect(priorFiscalYearCodeToOpen('1960')).toBeNull()
+    expect(priorFiscalYearCodeToOpen(String(FISCAL_YEAR_CODE_MIN))).toBeNull()
+  })
 })
 
 describe('planFiscalYear range', () => {
   it('refuses implausible labels', () => {
     expect(() => planFiscalYear('1925', 1)).toThrow(LedgerError)
+    expect(() => planFiscalYear('1959', 1)).toThrow(LedgerError)
     expect(() => planFiscalYear('2205', 1)).toThrow(LedgerError)
   })
 

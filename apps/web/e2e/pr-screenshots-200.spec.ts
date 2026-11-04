@@ -59,11 +59,15 @@ async function ready(page: Page): Promise<void> {
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
-  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: theme })
   await page.evaluate((value) => {
     document.documentElement.classList.toggle('dark', value === 'dark')
   }, theme)
-  await page.waitForTimeout(100)
+  if (theme === 'dark') {
+    await expect(page.locator('html')).toHaveClass(/dark/)
+  } else {
+    await expect(page.locator('html')).not.toHaveClass(/dark/)
+  }
 }
 
 async function shoot(page: Page, name: string): Promise<void> {
@@ -72,8 +76,8 @@ async function shoot(page: Page, name: string): Promise<void> {
     for (const size of SIZES) {
       await page.setViewportSize({ width: size.width, height: size.height })
       await page.evaluate(() => window.scrollTo(0, 0))
-      await page.waitForTimeout(80)
-      const png = await page.screenshot({ fullPage: false })
+      await expect(page.locator('body')).toBeVisible()
+      const png = await page.screenshot({ fullPage: false, animations: 'disabled' })
       writeFileSync(
         join(OUT, `${name}-${theme}-${size.label}.png`),
         withPngSourceChunk(png, SCREENSHOT_SOURCE),
