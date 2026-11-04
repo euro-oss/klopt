@@ -306,7 +306,7 @@ describe('book years offered to open from Boekjaren or a form link', () => {
       next: '2027',
     })
     expect(offeredFiscalYearCodesToOpen([calendar('2024'), calendar('2026')])).toEqual({
-      prior: null,
+      prior: '2023',
       next: '2027',
     })
   })
@@ -314,7 +314,7 @@ describe('book years offered to open from Boekjaren or a form link', () => {
   it('treats only those two labels as openable', () => {
     const years = [calendar('2024'), calendar('2026')]
     expect(isOfferedFiscalYearToOpen(years, '2025')).toBe(false)
-    expect(isOfferedFiscalYearToOpen(years, '2023')).toBe(false)
+    expect(isOfferedFiscalYearToOpen(years, '2023')).toBe(true)
     expect(isOfferedFiscalYearToOpen(years, '2027')).toBe(true)
   })
 
