@@ -52,6 +52,16 @@ describe('localTodayIso', () => {
     expect(localTodayIso()).toBe('2026-01-15')
   })
 
+  it('does not follow KLOPT_E2E_TODAY_ISO mutations after module import', async () => {
+    process.env['KLOPT_E2E_TODAY_ISO'] = '2027-06-10'
+    const { localTodayIso } = await loadLocalClock()
+    expect(localTodayIso()).toBe('2027-06-10')
+    process.env['KLOPT_E2E_TODAY_ISO'] = '2027-12-25'
+    expect(localTodayIso()).toBe('2027-06-10')
+    delete process.env['KLOPT_E2E_TODAY_ISO']
+    expect(localTodayIso()).toBe('2027-06-10')
+  })
+
   it('rejects impossible calendar dates in KLOPT_E2E_TODAY_ISO', async () => {
     process.env['KLOPT_E2E_TODAY_ISO'] = '2027-13-45'
     const { localTodayIso } = await loadLocalClock()

@@ -1,8 +1,11 @@
 /**
- * The browser clock for greetings and "today" labels.
+ * Local “today” for greetings and date labels (server and browser).
  *
- * Kept out of route modules so `report-year.test.ts` can forbid `new Date()` /
- * `getFullYear` on boekjaar screens without also forbidding the greeting.
+ * On the server in non-production e2e, `KLOPT_E2E_TODAY_ISO` is read once at
+ * module load (gated by `KLOPT_E2E_LEGAL_TOGGLE`); the browser and production
+ * never use that override. Kept out of route modules so `report-year.test.ts`
+ * can forbid `new Date()` / `getFullYear` on boekjaar screens without also
+ * forbidding the greeting.
  */
 
 import { dayPartAt, type DayPart } from './dashboard'
