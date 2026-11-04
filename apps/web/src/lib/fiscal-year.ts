@@ -18,6 +18,7 @@ import {
   earliestOpenFiscalYear,
   isFiscalYearCodeInRange,
   priorFiscalYearCodeToOpen,
+  type FiscalYearGateInput,
 } from '@klopt/core/setup/fiscal-year'
 
 /** Where the chosen year is remembered. Read on the server, set from the shell. */
@@ -289,7 +290,7 @@ export function formatBookYearCodeList(codes: readonly string[], language: 'nl' 
 }
 
 /** The two book-year labels Boekjaren may offer to open: prior and next. */
-export function offeredFiscalYearCodesToOpen(years: readonly FiscalYearOption[]): {
+export function offeredFiscalYearCodesToOpen(years: readonly FiscalYearGateInput[]): {
   readonly prior: string | null
   readonly next: string | null
 } {
@@ -302,7 +303,7 @@ export function offeredFiscalYearCodesToOpen(years: readonly FiscalYearOption[])
 
 /** Whether this label is one of the two offered opens and inside 1960–2100. */
 export function isOfferedFiscalYearToOpen(
-  years: readonly FiscalYearOption[],
+  years: readonly FiscalYearGateInput[],
   code: string,
 ): boolean {
   if (!isFiscalYearCodeInRange(code)) return false
@@ -318,7 +319,7 @@ export type BookYearOpenSearch = {
 
 /** Drop ?openYear= and ?focus= when the year is not one of the two offered opens. */
 export function sanitizeBookYearOpenSearch(
-  years: readonly FiscalYearOption[],
+  years: readonly FiscalYearGateInput[],
   search: BookYearOpenSearch,
 ): BookYearOpenSearch {
   const base =

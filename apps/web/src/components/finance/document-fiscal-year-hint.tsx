@@ -4,7 +4,7 @@ import {
   type DocumentFiscalYearGate,
   type FiscalYearGateInput,
 } from '~/lib/booking-fiscal-year-gate'
-import { isOfferedFiscalYearToOpen, type FiscalYearOption } from '~/lib/fiscal-year'
+import { isOfferedFiscalYearToOpen } from '~/lib/fiscal-year'
 import { useMemo } from 'react'
 import { useT } from '~/i18n/provider'
 import { cn } from '~/lib/utils'
@@ -48,9 +48,7 @@ export function DocumentFiscalYearHint({
       : t('booking.fiscalYearNotOpen', { year: gate.code })
 
   const showLink =
-    canOpenYear &&
-    gate.reason === 'missing' &&
-    isOfferedFiscalYearToOpen(years as readonly FiscalYearOption[], gate.code)
+    canOpenYear && gate.reason === 'missing' && isOfferedFiscalYearToOpen(years, gate.code)
 
   return (
     <p id={id} role="status" className="text-muted-foreground mt-1 text-xs">

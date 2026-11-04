@@ -458,7 +458,7 @@ function OpenNextYear({
           onClick={() => {
             void create()
           }}
-          className="bg-primary text-primary-foreground whitespace-nowrap px-3 py-2 text-sm font-medium disabled:opacity-50 sm:px-4"
+          className="bg-primary text-primary-foreground inline-flex min-h-11 items-center whitespace-nowrap px-3 py-2 text-sm font-medium disabled:opacity-50 sm:px-4"
         >
           {busy
             ? t('common.busy')
@@ -470,7 +470,7 @@ function OpenNextYear({
         {priorAvailable && priorCode !== null && !priorExpanded ? (
           <button
             type="button"
-            className="border-input text-muted-foreground hover:bg-accent whitespace-nowrap border px-3 py-2 text-sm font-medium sm:px-4"
+            className="border-input text-muted-foreground hover:bg-accent inline-flex min-h-11 items-center whitespace-nowrap border px-3 py-2 text-sm font-medium sm:px-4"
             onClick={() => {
               setPriorExpanded(true)
             }}
