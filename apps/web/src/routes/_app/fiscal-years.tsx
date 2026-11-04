@@ -367,11 +367,9 @@ function OpenNextYear({
   const latest = latestFiscalYear(years)
   const earliest = earliestOpenFiscalYear(years)
   const priorCode = earliest === undefined ? null : priorFiscalYearCodeToOpen(earliest.code)
-  const priorAvailable =
-    priorCode !== null && !years.some((year) => year.code === priorCode)
+  const priorAvailable = priorCode !== null && !years.some((year) => year.code === priorCode)
   const wantsPriorUi =
-    priorAvailable &&
-    (search.openYear === undefined || search.openYear === priorCode)
+    priorAvailable && (search.openYear === undefined || search.openYear === priorCode)
 
   const initialCode =
     search.openYear !== undefined && suggestion !== null && search.openYear === suggestion.code
@@ -383,9 +381,7 @@ function OpenNextYear({
   const [problems, setProblems] = useState<readonly string[] | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [priorExpanded, setPriorExpanded] = useState(
-    () =>
-      wantsPriorUi &&
-      (search.focus === 'confirm' || search.openYear === priorCode),
+    () => wantsPriorUi && (search.focus === 'confirm' || search.openYear === priorCode),
   )
 
   /** What the server will make of what has been typed, while it is being typed. */

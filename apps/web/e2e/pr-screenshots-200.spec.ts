@@ -155,11 +155,7 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
     await hydrated(auditorPage)
     await setBillDate(auditorPage, '2025-12-15')
     await expect(auditorPage.getByRole('link', { name: 'Boekjaar 2025 openen' })).toHaveCount(0)
-    await shoot(
-      auditorPage,
-      'purchase-no-link',
-      auditorPage.locator('#purchase-invoice-date-hint'),
-    )
+    await shoot(auditorPage, 'purchase-no-link', auditorPage.locator('#purchase-invoice-date-hint'))
   } finally {
     await owner.close()
     await auditor.close()
@@ -211,9 +207,5 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await expect(hint).toContainText('de resultaten staan nog niet in de beginbalans van 2026')
   await shoot(page, 'fiscal-years-list', hint.first())
 
-  await shoot(
-    page,
-    'fiscal-years-next-card',
-    page.getByTestId('derived-dates'),
-  )
+  await shoot(page, 'fiscal-years-next-card', page.getByTestId('derived-dates'))
 })
