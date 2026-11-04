@@ -28,7 +28,7 @@ async function aSupplier(page: Page): Promise<void> {
   await page.getByLabel('Nummer', { exact: true }).fill('CRE-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Leverancier B.V.')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
-  await page.getByLabel('E-mail').fill('facturen@leverancier.test')
+  await page.getByLabel('E-mail').fill('leverancier@example.nl')
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
@@ -75,6 +75,9 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
   } else {
     await expect(page.locator('html')).not.toHaveClass(/dark/)
   }
+  await page.evaluate(async () => {
+    await document.fonts.ready
+  })
 }
 
 async function shoot(page: Page, name: string, scrollTarget?: Locator): Promise<void> {
@@ -82,11 +85,15 @@ async function shoot(page: Page, name: string, scrollTarget?: Locator): Promise<
     await setTheme(page, theme)
     for (const size of SIZES) {
       await page.setViewportSize({ width: size.width, height: size.height })
+      await expect(page.locator('body')).toBeVisible()
       if (scrollTarget !== undefined) {
         await scrollTarget.scrollIntoViewIfNeeded()
         await expect(scrollTarget).toBeVisible()
       } else {
         await page.evaluate(() => window.scrollTo(0, 0))
+        await expect
+          .poll(() => page.evaluate(() => window.scrollY))
+          .toBe(0)
       }
       await expect(page.locator('body')).toBeVisible()
       const png = await page.screenshot({ fullPage: false, animations: 'disabled' })
