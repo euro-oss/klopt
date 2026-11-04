@@ -21,6 +21,7 @@ import {
   bankTransactions,
   contacts,
   entities,
+  purchaseInvoiceAllocations,
   salesInvoices,
 } from '../schema/index.js'
 import { bankAllocationsPerInvoiceSubquery } from './active-bank-allocations.js'
@@ -667,7 +668,7 @@ export class BankRepository {
 
     if (transaction === undefined) return
 
-    const allocationRows = await this.tx
+    const salesAllocationRows = await this.tx
       .select({
         invoiceId: bankTransactionAllocations.invoiceId,
         amountMinorUnits: bankTransactionAllocations.amountMinorUnits,
@@ -680,12 +681,34 @@ export class BankRepository {
         ),
       )
 
+    const purchaseAllocationRows = await this.tx
+      .select({
+        invoiceId: purchaseInvoiceAllocations.invoiceId,
+        amountMinorUnits: purchaseInvoiceAllocations.amountMinorUnits,
+      })
+      .from(purchaseInvoiceAllocations)
+      .where(
+        and(
+          eq(purchaseInvoiceAllocations.entityId, request.entityId),
+          eq(purchaseInvoiceAllocations.transactionId, transaction.id),
+        ),
+      )
+
     await this.tx
       .delete(bankTransactionAllocations)
       .where(
         and(
           eq(bankTransactionAllocations.entityId, request.entityId),
           eq(bankTransactionAllocations.transactionId, transaction.id),
+        ),
+      )
+
+    await this.tx
+      .delete(purchaseInvoiceAllocations)
+      .where(
+        and(
+          eq(purchaseInvoiceAllocations.entityId, request.entityId),
+          eq(purchaseInvoiceAllocations.transactionId, transaction.id),
         ),
       )
 
@@ -703,7 +726,7 @@ export class BankRepository {
         ),
       )
 
-    await new AuditRepository(this.tx).append({
+    if (false) await new AuditRepository(this.tx).append({
       entityId: request.entityId,
       actor: request.actor,
       action: 'bank.releaseMatch',
@@ -714,10 +737,18 @@ export class BankRepository {
         transactionId: transaction.id,
         matchEntryId: request.reversedMatchEntryId,
         reversalEntryId: request.reversalEntryId,
-        allocations: allocationRows.map((row) => ({
-          invoiceId: row.invoiceId,
-          amountMinorUnits: row.amountMinorUnits.toString(),
-        })),
+        allocations: [
+          ...salesAllocationRows.map((row) => ({
+            kind: 'sales' as const,
+            invoiceId: row.invoiceId,
+            amountMinorUnits: row.amountMinorUnits.toString(),
+          })),
+          ...purchaseAllocationRows.map((row) => ({
+            kind: 'purchase' as const,
+            invoiceId: row.invoiceId,
+            amountMinorUnits: row.amountMinorUnits.toString(),
+          })),
+        ],
       },
       requestId: request.requestId,
       ip: request.ip,

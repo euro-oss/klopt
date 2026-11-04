@@ -6,6 +6,7 @@ import {
   accountDimensionRequirements,
   accounts,
   bankAccounts,
+  bankTransactionAllocations,
   bankTransactions,
   dimensionTypes,
   dimensionValues,
@@ -521,4 +522,62 @@ export async function readAuditLogForActor(
     .orderBy(asc(auditLog.occurredAt))
 
   return rows
+}
+
+/** Fail the next `bank.releaseMatch` audit insert; restored in `finally`. */
+export async function withBlockedReleaseMatchAudit(
+  database: Database,
+  run: () => Promise<void>,
+): Promise<void> {
+  await database.execute(
+    sql.raw(`
+    CREATE OR REPLACE FUNCTION klopt.test_block_release_match_audit()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.action = 'bank.releaseMatch' THEN
+        RAISE EXCEPTION 'test_block_release_match_audit';
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+  `),
+  )
+  await database.execute(
+    sql.raw(`
+    DROP TRIGGER IF EXISTS test_block_release_match_audit ON klopt.audit_log;
+    CREATE TRIGGER test_block_release_match_audit
+    BEFORE INSERT ON klopt.audit_log
+    FOR EACH ROW EXECUTE FUNCTION klopt.test_block_release_match_audit();
+  `),
+  )
+  try {
+    await run()
+  } finally {
+    await database.execute(
+      sql.raw(`DROP TRIGGER IF EXISTS test_block_release_match_audit ON klopt.audit_log`),
+    )
+    await database.execute(
+      sql.raw(`DROP FUNCTION IF EXISTS klopt.test_block_release_match_audit()`),
+    )
+  }
+}
+
+/** Workflow-only sales allocation row (not created through confirmMatch). */
+export async function insertBankTransactionAllocationForTest(
+  database: Database,
+  row: {
+    readonly id: string
+    readonly entityId: string
+    readonly transactionId: string
+    readonly invoiceId: string
+    readonly amountMinorUnits: bigint
+  },
+): Promise<void> {
+  await database.insert(bankTransactionAllocations).values({
+    id: row.id,
+    entityId: row.entityId,
+    transactionId: row.transactionId,
+    invoiceId: row.invoiceId,
+    amountMinorUnits: row.amountMinorUnits,
+  })
 }

@@ -3,13 +3,16 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { uuidv7 } from '@klopt/core'
+import { uuidv7, postJournalEntry, systemClock, type PostJournalEntryCommand } from '@klopt/core'
 import {
   closeDatabase,
   createDatabase,
   issueToken,
   runMigrations,
+  withBankMatch,
   withBankRead,
+  withLedger,
+  withPurchaseRead,
   withSalesRead,
   type Database,
 } from '@klopt/db'
@@ -17,7 +20,9 @@ import {
   seedEntity,
   seedSalesConfiguration,
   cleanupSeededBackgroundWork,
+  insertBankTransactionAllocationForTest,
   setPeriodStatus,
+  withBlockedReleaseMatchAudit,
 } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -40,6 +45,12 @@ import {
   handleListOverdueInvoices,
 } from '../src/api/handlers/sales.js'
 import {
+  handleCapturePurchaseInvoice,
+  handleBookPurchaseInvoice,
+  handleListPurchaseInvoices,
+  handleTransitionPurchaseInvoice,
+} from '../src/api/handlers/purchase.js'
+import {
   handleGetJournalEntry,
   handlePostJournalEntry,
   handleReverseJournalEntry,
@@ -49,14 +60,18 @@ import { handleListAuditLog } from '../src/api/handlers/audit.js'
 import {
   updateEntityBody,
   auditLogQuery,
+  bookPurchaseInvoiceBody,
+  capturePurchaseInvoiceBody,
   confirmMatchBody,
   createBankAccountBody,
   createContactBody,
   draftInvoiceBody,
   importStatementBody,
   issueInvoiceBody,
+  listPurchaseInvoicesQuery,
   postJournalEntryBody,
   transactionsQuery,
+  transitionPurchaseInvoiceBody,
 } from '../src/api/schemas.js'
 
 /**
@@ -88,6 +103,7 @@ const FIXTURES = join(
 
 let database: Database
 let token: string
+let humanToken: string
 let entityId: string
 let bankAccountId: string
 let iban: string
@@ -211,6 +227,168 @@ async function aTransaction(options: {
   return added.id
 }
 
+function buildSupplierPaymentEntry(request: {
+  readonly entityId: string
+  readonly journalCode: string
+  readonly bookingDate: string
+  readonly valueDate: string
+  readonly bankAccountNumber: string
+  readonly amount: bigint
+  readonly counterpartyName: string | null
+  readonly description: string
+  readonly payableAccountNumber: string
+  readonly contactId: string
+  readonly contactNumber: string
+  readonly contactName: string
+  readonly invoiceNumber: string
+}): PostJournalEntryCommand {
+  const magnitude = request.amount < 0n ? -request.amount : request.amount
+  return {
+    entityId: request.entityId,
+    journalCode: request.journalCode,
+    bookingDate: request.bookingDate,
+    documentDate: request.valueDate,
+    description: `Betaling ${request.invoiceNumber}`,
+    sourceDocumentRef: request.invoiceNumber,
+    reversesEntryId: null,
+    lines: [
+      {
+        accountNumber: request.bankAccountNumber,
+        description: request.counterpartyName ?? request.description.slice(0, 120),
+        debit: 0n,
+        credit: magnitude,
+        currency: null,
+        exchangeRate: null,
+        exchangeRateSource: null,
+        taxCode: null,
+        taxRole: null,
+        taxAmount: null,
+        dimensions: [],
+        subledgerKind: null,
+        subledgerId: null,
+      },
+      {
+        accountNumber: request.payableAccountNumber,
+        description: `${request.contactNumber} ${request.contactName} · ${request.invoiceNumber}`,
+        debit: magnitude,
+        credit: 0n,
+        currency: null,
+        exchangeRate: null,
+        exchangeRateSource: null,
+        taxCode: null,
+        taxRole: null,
+        taxAmount: null,
+        dimensions: [],
+        subledgerKind: 'supplier',
+        subledgerId: request.contactId,
+      },
+    ],
+  }
+}
+
+async function anApprovedPurchaseInvoice(supplierNumber = `CRE-${randomUUID().slice(0, 8)}`) {
+  await handleCreateContact(
+    await contextFor(uuidv7()),
+    createContactBody.parse({
+      number: supplierNumber,
+      name: 'Leverancier B.V.',
+      isCustomer: false,
+      isSupplier: true,
+      iban: 'NL02ABNA0123456789',
+    }),
+  )
+  const captured = await handleCapturePurchaseInvoice(
+    await contextFor(uuidv7()),
+    capturePurchaseInvoiceBody.parse({
+      contactNumber: supplierNumber,
+      supplierInvoiceNumber: `F-${randomUUID().slice(0, 8)}`,
+      invoiceDate: '2026-03-01',
+      dueDate: '2026-04-01',
+      net: '100000',
+      tax: '21000',
+      total: '121000',
+      lines: [
+        {
+          description: 'Inkoop',
+          accountNumber: '4000',
+          taxCode: 'VH21',
+          net: '100000',
+          tax: '21000',
+        },
+      ],
+    }),
+  )
+  const invoiceId = (captured.body as { id: string }).id
+  await handleBookPurchaseInvoice(
+    await contextFor(uuidv7()),
+    invoiceId,
+    bookPurchaseInvoiceBody.parse({}),
+  )
+  await handleTransitionPurchaseInvoice(
+    await contextAs(humanToken, uuidv7()),
+    invoiceId,
+    transitionPurchaseInvoiceBody.parse({ action: 'approve' }),
+  )
+  return { invoiceId, supplierNumber }
+}
+
+async function matchPurchasePayment(transactionId: string, invoiceId: string): Promise<string> {
+  return withBankMatch(database, async ({ bank, ledger, purchase }) => {
+    const loaded = await purchase.load(entityId, invoiceId)
+    if (loaded === null) throw new Error('No purchase invoice.')
+    const row = loaded.row
+
+    const transaction = await bank.findTransaction(entityId, transactionId)
+    if (transaction === null || transaction.bankLedgerAccountNumber === null) {
+      throw new Error('Missing bank transaction.')
+    }
+
+    const command = buildSupplierPaymentEntry({
+      entityId,
+      journalCode: 'BNK',
+      bookingDate: transaction.bookingDate,
+      valueDate: transaction.valueDate,
+      bankAccountNumber: transaction.bankLedgerAccountNumber,
+      amount: transaction.amount,
+      counterpartyName: transaction.counterpartyName,
+      description: transaction.description,
+      payableAccountNumber: '1600',
+      contactId: loaded.contactId,
+      contactNumber: row.contactNumber,
+      contactName: row.contactName,
+      invoiceNumber: row.supplierInvoiceNumber,
+    })
+
+    const posted = await postJournalEntry(
+      command,
+      { kind: 'script', id: 'test', principalId: null },
+      {
+        dryRun: false,
+        idempotencyKey: uuidv7(),
+        requestId: uuidv7(),
+        ip: null,
+        mayPostToSoftClosedPeriod: true,
+      },
+      { repository: ledger, clock: systemClock },
+    )
+
+    await bank.recordMatch({
+      entityId,
+      transactionId,
+      journalEntryId: posted.entry.id,
+      allocations: [],
+    })
+    await purchase.recordBankPayment({
+      entityId,
+      transactionId,
+      invoiceId,
+      amount: row.total,
+    })
+
+    return posted.entry.id
+  })
+}
+
 beforeAll(async () => {
   await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
@@ -227,6 +405,15 @@ beforeAll(async () => {
     actorId: 'test',
   })
   token = issued.token
+
+  const human = await issueToken(database, {
+    entityId,
+    name: 'matching-test-human',
+    permissions: ['*'],
+    actorKind: 'human',
+    actorId: `human-${entityId.slice(0, 8)}`,
+  })
+  humanToken = human.token
 
   iban = `NL${String(Date.now()).slice(-2)}TEST${String(Date.now()).slice(-10)}`
   const account = await handleCreateBankAccount(
@@ -516,8 +703,8 @@ describe('reversing a bank match', () => {
       matchEntryId,
       reversalEntryId,
       allocations: [
-        { invoiceId: first.invoiceId, amountMinorUnits: '50000' },
-        { invoiceId: second.invoiceId, amountMinorUnits: '30000' },
+        { kind: 'sales', invoiceId: first.invoiceId, amountMinorUnits: '50000' },
+        { kind: 'sales', invoiceId: second.invoiceId, amountMinorUnits: '30000' },
       ],
     })
   })
@@ -760,6 +947,159 @@ describe('reversing a bank match', () => {
     await withBankRead(database, async (bank) => {
       const allocated = await bank.allocatedFor(entityId, [invoice.invoiceId])
       expect(allocated.get(invoice.invoiceId) ?? 0n).toBe(0n)
+    })
+  })
+
+  it('refuses to allocate a purchase invoice through confirmMatch', async () => {
+    const purchase = await anApprovedPurchaseInvoice()
+    const transactionId = await aTransaction({
+      amount: '-1210,00',
+      description: 'Leverancier',
+      sequence: 128,
+    })
+
+    await expect(
+      handleConfirmMatch(
+        await contextFor(uuidv7()),
+        transactionId,
+        confirmMatchBody.parse({
+          allocations: [{ invoiceId: purchase.invoiceId, amount: '121000' }],
+        }),
+      ),
+    ).rejects.toThrow(/not open/)
+  })
+
+  it('releases a purchase match, lists it in audit, and allows rematch', async () => {
+    const purchase = await anApprovedPurchaseInvoice()
+    const transactionId = await aTransaction({
+      amount: '-1210,00',
+      description: 'Betaling inkoop',
+      sequence: 129,
+    })
+
+    const matchEntryId = await matchPurchasePayment(transactionId, purchase.invoiceId)
+
+    const paid = await handleListPurchaseInvoices(
+      await contextFor(),
+      listPurchaseInvoicesQuery.parse({ openOnly: 'true' }),
+    )
+    expect(paid.body.invoices.some((row) => row.id === purchase.invoiceId)).toBe(false)
+
+    await reverseMatchEntry(matchEntryId)
+
+    const open = await handleListPurchaseInvoices(
+      await contextFor(),
+      listPurchaseInvoicesQuery.parse({ openOnly: 'true' }),
+    )
+    const row = open.body.invoices.find((item) => item.id === purchase.invoiceId)
+    expect(row?.outstanding).toBe('121000')
+
+    const audits = await releaseMatchAuditsFor(transactionId)
+    expect(audits).toHaveLength(1)
+    expect(audits[0]?.after).toMatchObject({
+      allocations: [
+        { kind: 'purchase', invoiceId: purchase.invoiceId, amountMinorUnits: '121000' },
+      ],
+    })
+
+    await matchPurchasePayment(transactionId, purchase.invoiceId)
+
+    const paidAgain = await handleListPurchaseInvoices(
+      await contextFor(),
+      listPurchaseInvoicesQuery.parse({ openOnly: 'true' }),
+    )
+    expect(paidAgain.body.invoices.some((item) => item.id === purchase.invoiceId)).toBe(false)
+  })
+
+  it('lists sales and purchase rows in one audit when both allocation tables were set', async () => {
+    const sales = await anInvoice()
+    const purchase = await anApprovedPurchaseInvoice()
+    const transactionId = await aTransaction({
+      amount: '-1210,00',
+      description: 'Inkoop plus stray sales link',
+      sequence: 130,
+    })
+
+    const matchEntryId = await matchPurchasePayment(transactionId, purchase.invoiceId)
+
+    await insertBankTransactionAllocationForTest(database, {
+      id: uuidv7(),
+      entityId,
+      transactionId,
+      invoiceId: sales.invoiceId,
+      amountMinorUnits: 10_000n,
+    })
+
+    await reverseMatchEntry(matchEntryId)
+
+    const audits = await releaseMatchAuditsFor(transactionId)
+    expect(audits).toHaveLength(1)
+    const releaseAfter = audits[0]?.after as unknown as {
+      allocations: readonly {
+        kind: 'sales' | 'purchase'
+        invoiceId: string
+        amountMinorUnits: string
+      }[]
+    }
+    expect(releaseAfter.allocations).toContainEqual({
+      kind: 'purchase',
+      invoiceId: purchase.invoiceId,
+      amountMinorUnits: '121000',
+    })
+    expect(releaseAfter.allocations).toContainEqual({
+      kind: 'sales',
+      invoiceId: sales.invoiceId,
+      amountMinorUnits: '10000',
+    })
+    expect(releaseAfter.allocations).toHaveLength(2)
+
+    await withSalesRead(database, async (salesRepo) => {
+      const open = await salesRepo.openInvoices(entityId, '2026-06-01')
+      const row = open.find((item) => item.id === sales.invoiceId)
+      expect(row?.total).toBe(121_000n)
+    })
+    await withBankRead(database, async (bank) => {
+      expect(await bank.allocatedFor(entityId, [sales.invoiceId])).toEqual(new Map())
+    })
+    await withPurchaseRead(database, async (purchaseRepo) => {
+      const loaded = await purchaseRepo.load(entityId, purchase.invoiceId)
+      expect(loaded?.row.outstanding).toBe(121_000n)
+    })
+
+    const openPurchase = await handleListPurchaseInvoices(
+      await contextFor(),
+      listPurchaseInvoicesQuery.parse({ openOnly: 'true' }),
+    )
+    expect(openPurchase.body.invoices.some((item) => item.id === purchase.invoiceId)).toBe(true)
+  })
+
+  it('rolls back the reversal when bank.releaseMatch audit insert fails', async () => {
+    const purchase = await anApprovedPurchaseInvoice()
+    const transactionId = await aTransaction({
+      amount: '-1210,00',
+      description: 'Rollback inkoop',
+      sequence: 131,
+    })
+    const matchEntryId = await matchPurchasePayment(transactionId, purchase.invoiceId)
+
+    await withBlockedReleaseMatchAudit(database, async () => {
+      await expect(reverseMatchEntry(matchEntryId)).rejects.toThrow(/audit_log/)
+    })
+
+    const reversalId = await withLedger(database, (ledger) =>
+      ledger.findReversalOf(entityId, matchEntryId),
+    )
+    expect(reversalId).toBeNull()
+
+    const list = await handleListBankTransactions(
+      await contextFor(),
+      transactionsQuery.parse({ bankAccountId, limit: 1000 }),
+    )
+    expect(list.body.transactions.find((item) => item.id === transactionId)?.status).toBe('matched')
+
+    await withPurchaseRead(database, async (purchaseRepo) => {
+      const loaded = await purchaseRepo.load(entityId, purchase.invoiceId)
+      expect(loaded?.row.outstanding).toBe(0n)
     })
   })
 })
