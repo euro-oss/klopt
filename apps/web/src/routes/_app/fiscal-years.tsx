@@ -307,10 +307,6 @@ function FiscalYears() {
         <Withheld title={t('fiscalYears.openTitle')} why={t('fiscalYears.mayNotOpen')} />
       )}
 
-      {may(MAY_OPEN_YEAR, role) ? (
-        <OpenRequestedYear years={rows} search={fiscalYearsSearch} />
-      ) : null}
-
       {may(MAY_CLOSE_YEAR, role) ? (
         <CloseYear
           years={rows}
@@ -637,79 +633,6 @@ function PriorYearConfirmPanel({
         <p className="border-border text-muted-foreground mt-3 border p-3 text-sm">{notice}</p>
       )}
     </div>
-  )
-}
-
-/** Deep link when the invoice names a missing year that is not the fixed prior offer. */
-function OpenRequestedYear({
-  years,
-  search,
-}: {
-  years: readonly FiscalYearOption[]
-  search: FiscalYearsSearch
-}) {
-  const { t } = useT()
-  const latest = latestFiscalYear(years)
-  if (search.openYear === undefined || latest === undefined) return null
-
-  const earliest = earliestOpenFiscalYear(years)
-  const priorCode = earliest === undefined ? null : priorFiscalYearCodeToOpen(earliest.code)
-  const suggestion = nextFiscalYear(years)
-
-  if (years.some((year) => year.code === search.openYear)) return null
-  if (search.openYear === priorCode || search.openYear === suggestion?.code) return null
-
-  return (
-    <FixedYearOpenPanel
-      code={search.openYear}
-      startMonth={startingMonth(latest)}
-      title={t('fiscalYears.openSpecificTitle', { year: search.openYear })}
-      search={search}
-      dataTestId="open-requested-year"
-    />
-  )
-}
-
-function FixedYearOpenPanel({
-  code,
-  startMonth,
-  title,
-  search,
-  dataTestId,
-}: {
-  code: string
-  startMonth: number
-  title: string
-  search: FiscalYearsSearch
-  dataTestId: string
-}) {
-  const [expanded, setExpanded] = useState(
-    () => search.focus === 'confirm' || search.openYear === code,
-  )
-
-  return (
-    <section className="border-border mt-4 border p-4" data-testid={dataTestId}>
-      {!expanded ? (
-        <button
-          type="button"
-          className="border-input text-muted-foreground hover:bg-accent min-h-11 border px-4 py-2 text-sm font-medium"
-          onClick={() => {
-            setExpanded(true)
-          }}
-        >
-          {title}
-        </button>
-      ) : (
-        <PriorYearConfirmPanel
-          code={code}
-          startMonth={startMonth}
-          search={search}
-          dataTestId={`${dataTestId}-confirm`}
-          title={title}
-          autoFocusConfirm={search.focus === 'confirm' && search.openYear === code}
-        />
-      )}
-    </section>
   )
 }
 

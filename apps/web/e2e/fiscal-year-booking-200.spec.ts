@@ -30,7 +30,7 @@ async function aSupplier(page: Page): Promise<void> {
   await page.getByLabel('Nummer', { exact: true }).fill('CRE-0001')
   await page.getByLabel('Naam', { exact: true }).fill('Leverancier B.V.')
   await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
-  await page.getByLabel('E-mail').fill('facturen@leverancier.test')
+  await page.getByLabel('E-mail').fill('leverancier@example.nl')
   await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
   await page.getByRole('checkbox', { name: /Leverancier/ }).check()
   await page.getByRole('button', { name: 'Opslaan' }).click()
@@ -275,6 +275,19 @@ test('Boekjaren omits the note when only the earliest year exists', async ({ pag
   await page.goto('/fiscal-years')
   await hydrated(page)
   await expect(page.getByTestId('fiscal-year-prior-not-closed-hint')).toHaveCount(0)
+})
+
+test('Boekjaren ignores an openYear the screen does not offer', async ({ page }) => {
+  await ready(page)
+
+  await page.goto('/fiscal-years?openYear=2030&focus=confirm')
+  await hydrated(page)
+
+  await expect(page.getByTestId('open-requested-year')).toHaveCount(0)
+  await expect(page.getByTestId('open-prior-year')).toHaveCount(0)
+  await expect(page.getByRole('checkbox', { name: /Ik wil boekjaar 2030/ })).toHaveCount(0)
+  await expect(page.getByTestId('fiscal-years-open-section')).toBeVisible()
+  await expect(page.getByTestId('derived-dates')).toContainText('2027')
 })
 
 test('Boekjaren names every earlier open year on the next row', async ({ page }) => {
