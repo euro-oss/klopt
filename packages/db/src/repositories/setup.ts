@@ -316,21 +316,47 @@ export class SetupRepository {
       return { code, startsOn: present.startsOn, endsOn: present.endsOn, created: false }
     }
 
-    try {
-      await this.writeFiscalYear(entityId, layout)
-      return { code, startsOn: layout.startsOn, endsOn: layout.endsOn, created: true }
-    } catch (error) {
-      if (!isPostgresUniqueViolation(error)) throw error
+    // ON CONFLICT DO NOTHING instead of catching 23505: inside a transaction a
+    // caught unique violation leaves it aborted (25P02), so the re-select would
+    // fail. A concurrent loser waits for the winner, inserts nothing, and then
+    // sees the committed year.
+    const fiscalYearId = uuidv7()
+    const inserted = await this.database
+      .insert(fiscalYears)
+      .values({
+        id: fiscalYearId,
+        entityId,
+        code: layout.code,
+        startsOn: layout.startsOn,
+        endsOn: layout.endsOn,
+      })
+      .onConflictDoNothing({ target: [fiscalYears.entityId, fiscalYears.code] })
+      .returning({ id: fiscalYears.id })
 
+    if (inserted.length === 0) {
       const [present] = await this.database
         .select({ startsOn: fiscalYears.startsOn, endsOn: fiscalYears.endsOn })
         .from(fiscalYears)
         .where(and(eq(fiscalYears.entityId, entityId), eq(fiscalYears.code, code)))
         .limit(1)
 
-      if (present === undefined) throw error
+      if (present === undefined) {
+        throw new Error(`Book year ${code} conflicted but could not be read back`)
+      }
       return { code, startsOn: present.startsOn, endsOn: present.endsOn, created: false }
     }
+
+    await this.database.insert(periods).values(
+      layout.periods.map((period) => ({
+        id: uuidv7(),
+        entityId,
+        fiscalYearId,
+        sequence: period.sequence,
+        startsOn: period.startsOn,
+        endsOn: period.endsOn,
+      })),
+    )
+    return { code, startsOn: layout.startsOn, endsOn: layout.endsOn, created: true }
   }
 
   async listFiscalYears(entityId: string): Promise<readonly FiscalYearSummary[]> {
@@ -386,14 +412,4 @@ export class SetupRepository {
         })),
     }))
   }
-}
-
-function isPostgresUniqueViolation(error: unknown): boolean {
-  let current: unknown = error
-  for (let depth = 0; depth < 6 && current !== null && typeof current === 'object'; depth += 1) {
-    const code = (current as { code?: unknown }).code
-    if (code === '23505') return true
-    current = (current as { cause?: unknown }).cause
-  }
-  return false
 }
