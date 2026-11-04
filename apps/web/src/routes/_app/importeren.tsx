@@ -496,6 +496,11 @@ function ImportWizardPage() {
     advanceQueuedRef.current = true
   }
 
+  function footerSaveErrorFromDetail(detail: string | null | undefined): string {
+    if (detail !== null && detail !== undefined && detail !== '') return detail
+    return t('importWizard.saveFailed')
+  }
+
   async function persistWizard(next: {
     step?: ImportWizardStep
     source?: ImportWizardSource | null
@@ -514,12 +519,12 @@ function ImportWizardPage() {
     try {
       const result = await saveImportWizardState({ data: body })
       if (result?.ok !== true) {
-        setFooterSaveError(result?.problem?.detail ?? t('common.unknownError'))
+        setFooterSaveError(footerSaveErrorFromDetail(result?.problem?.detail))
         return false
       }
       return true
     } catch {
-      setFooterSaveError(t('common.unknownError'))
+      setFooterSaveError(t('importWizard.saveFailed'))
       return false
     } finally {
       setBusy(false)
@@ -599,7 +604,7 @@ function ImportWizardPage() {
     if (!result.ok) {
       const message = result.problem?.detail ?? t('common.unknownError')
       setError(message)
-      setFooterSaveError(message)
+      setFooterSaveError(footerSaveErrorFromDetail(result.problem?.detail))
       const applied = applyTaxMappingSaveFailure({
         previous: previousTax,
         attempted: attemptedTax,

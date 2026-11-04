@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { Circle, LoaderCircle } from 'lucide-react'
+import { LoaderCircle } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
 import { Stepper } from '~/components/ui/stepper'
@@ -313,14 +313,13 @@ export function WizardFooter({
             </span>
             <span className="absolute inset-0 flex items-center justify-center gap-1.5 px-4">
               {showPendingIndicator ? (
-                reducedMotion ? (
-                  <Circle className="size-3.5 shrink-0 fill-current" aria-hidden />
-                ) : (
-                  <LoaderCircle
-                    className="size-3.5 shrink-0 animate-spin motion-reduce:animate-none"
-                    aria-hidden
-                  />
-                )
+                <LoaderCircle
+                  className={cn(
+                    'size-3.5 shrink-0',
+                    reducedMotion ? 'motion-reduce:animate-none' : 'animate-spin',
+                  )}
+                  aria-hidden
+                />
               ) : null}
               <span>{displayLabel}</span>
               {showKeycap ? (

@@ -251,11 +251,11 @@ test('failed wizard save shows footer error and stays on the step (#201)', async
     await expect(
       page.getByRole('heading', { name: /Wat we nog moeten oplossen|Niets houdt/ }),
     ).toBeVisible()
-    await expect(page.getByText('Onbekende fout.')).toBeVisible()
+    await expect(page.getByText('Opslaan is niet gelukt. Probeer het opnieuw.')).toBeVisible()
     await expect(next).not.toHaveAttribute('aria-busy', 'true')
     await next.click()
     await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toHaveCount(0)
-    await expect(page.getByText('Onbekende fout.')).toBeVisible()
+    await expect(page.getByText('Opslaan is niet gelukt. Probeer het opnieuw.')).toBeVisible()
     await shootFooter(page, '02-save-failed')
   } finally {
     await standIn.close()

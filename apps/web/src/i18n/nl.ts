@@ -1913,6 +1913,7 @@ export const nl = {
   'exactCallback.exactPage': 'Exact-pagina',
 
   'nav.importWizard': 'Importeren',
+  'importWizard.saveFailed': 'Opslaan is niet gelukt. Probeer het opnieuw.',
   'nav.exactAdvanced': 'Exact Online (oud)',
   'moneybird.disconnect': 'Verbinding verbreken',
   'moneybird.apiToken': 'Persoonlijk API-token',
