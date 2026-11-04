@@ -458,9 +458,16 @@ function OpenNextYear({
           onClick={() => {
             void create()
           }}
+          aria-label={
+            planned === null ? t('fiscalYears.open') : t('fiscalYears.openNow', { year: code.trim() })
+          }
           className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? t('common.busy') : t('fiscalYears.open')}
+          {busy
+            ? t('common.busy')
+            : planned === null
+              ? t('fiscalYears.open')
+              : t('fiscalYears.openNow', { year: code.trim() })}
         </button>
 
         {priorAvailable && !priorExpanded ? (
