@@ -120,7 +120,8 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   await expect(page.getByText(/geen periode die/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Toon wat er geboekt wordt' })).toBeDisabled()
 
-  await page.getByRole('button', { name: `Boekjaar ${next} openen` }).click()
+  const openSection = page.getByTestId('fiscal-years-open-section')
+  await openSection.getByRole('button', { name: `Boekjaar ${next} openen` }).click()
   await expect(page.getByText(/geen periode die/)).toBeHidden()
 
   // The result goes to an eigen-vermogenrekening, chosen by typing at the
@@ -319,5 +320,50 @@ test('a bookkeeper may open the next year and is not offered the close', async (
   } finally {
     await owner.close()
     await keeper.close()
+  }
+})
+
+test('ledger table ArrowDown moves across data rows and copy skips hint lines', async ({
+  browser,
+}) => {
+  const context = await browser.newContext()
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  const page = await context.newPage()
+
+  try {
+    await anAdministration(page, 'Drie Boekjaren BV')
+    const seeded = new Date().getUTCFullYear()
+    for (const code of [String(seeded + 1), String(seeded - 1)]) {
+      const opened = await page.request.post('/api/v1/fiscal-years', {
+        headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
+        data: { code },
+      })
+      expect(opened.ok()).toBeTruthy()
+    }
+
+    await page.goto('/fiscal-years')
+    await hydrated(page)
+
+    const dataRows = page.locator('tr[data-ledger-data-row]')
+    await expect(dataRows).toHaveCount(3)
+
+    await dataRows.first().focus()
+    const firstYear = await page.locator('tr[aria-current="true"] td').first().textContent()
+    await page.keyboard.press('ControlOrMeta+c')
+    await expect(page.getByRole('status')).toContainText(/gekopieerd/)
+    let tsv = await page.evaluate(() => navigator.clipboard.readText())
+    expect(tsv).toContain(firstYear?.trim() ?? '')
+    expect(tsv).not.toContain('beginbalans')
+    expect(tsv.split('\n')).toHaveLength(2)
+
+    await page.keyboard.press('ArrowDown')
+    const secondYear = await page.locator('tr[aria-current="true"] td').first().textContent()
+    expect(secondYear).not.toBe(firstYear)
+    await page.keyboard.press('ControlOrMeta+c')
+    tsv = await page.evaluate(() => navigator.clipboard.readText())
+    expect(tsv).toContain(secondYear?.trim() ?? '')
+    expect(tsv).not.toContain('beginbalans')
+  } finally {
+    await context.close()
   }
 })

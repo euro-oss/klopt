@@ -305,18 +305,32 @@ export class SetupRepository {
 
     const layout = planFiscalYear(code, entity?.startMonth ?? 1)
 
-    const [present] = await this.database
+    const existing = await this.database
       .select({ startsOn: fiscalYears.startsOn, endsOn: fiscalYears.endsOn })
       .from(fiscalYears)
       .where(and(eq(fiscalYears.entityId, entityId), eq(fiscalYears.code, code)))
       .limit(1)
 
-    if (present !== undefined) {
+    if (existing[0] !== undefined) {
+      const present = existing[0]
       return { code, startsOn: present.startsOn, endsOn: present.endsOn, created: false }
     }
 
-    await this.writeFiscalYear(entityId, layout)
-    return { code, startsOn: layout.startsOn, endsOn: layout.endsOn, created: true }
+    try {
+      await this.writeFiscalYear(entityId, layout)
+      return { code, startsOn: layout.startsOn, endsOn: layout.endsOn, created: true }
+    } catch (error) {
+      if (!isPostgresUniqueViolation(error)) throw error
+
+      const [present] = await this.database
+        .select({ startsOn: fiscalYears.startsOn, endsOn: fiscalYears.endsOn })
+        .from(fiscalYears)
+        .where(and(eq(fiscalYears.entityId, entityId), eq(fiscalYears.code, code)))
+        .limit(1)
+
+      if (present === undefined) throw error
+      return { code, startsOn: present.startsOn, endsOn: present.endsOn, created: false }
+    }
   }
 
   async listFiscalYears(entityId: string): Promise<readonly FiscalYearSummary[]> {
@@ -372,4 +386,14 @@ export class SetupRepository {
         })),
     }))
   }
+}
+
+function isPostgresUniqueViolation(error: unknown): boolean {
+  let current: unknown = error
+  for (let depth = 0; depth < 6 && current !== null && typeof current === 'object'; depth += 1) {
+    const code = (current as { code?: unknown }).code
+    if (code === '23505') return true
+    current = (current as { cause?: unknown }).cause
+  }
+  return false
 }

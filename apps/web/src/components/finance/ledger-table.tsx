@@ -130,7 +130,10 @@ export function LedgerTable<TRow>({
   const bodyRef = useRef<HTMLTableSectionElement>(null)
   const typed = useRef<TypeAhead>({ buffer: '', at: 0 })
 
-  const rowElements = (): readonly HTMLTableRowElement[] => [...(bodyRef.current?.rows ?? [])]
+  const rowElements = (): readonly HTMLTableRowElement[] =>
+    [
+      ...(bodyRef.current?.querySelectorAll('tr[data-ledger-data-row]') ?? []),
+    ] as HTMLTableRowElement[]
 
   const focusRow = (index: number): void => {
     const key = keys[index]
@@ -319,6 +322,7 @@ export function LedgerTable<TRow>({
               return (
                 <Fragment key={key}>
                   <tr
+                    data-ledger-data-row=""
                     tabIndex={index === cursor ? 0 : -1}
                     aria-current={index === cursor ? true : undefined}
                     data-selected={selected}

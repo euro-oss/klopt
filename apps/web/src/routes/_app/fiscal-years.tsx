@@ -483,6 +483,7 @@ function OpenNextYear({
 
       {priorExpanded && priorCode !== null && latest !== undefined ? (
         <PriorYearConfirmPanel
+          key={priorCode}
           code={priorCode}
           startMonth={startingMonth(latest)}
           search={search}
