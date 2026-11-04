@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { requestHandler } from '@tanstack/react-start/server'
 import { bindE2eAsOfHeaderReader } from '../../src/lib/e2e-as-of-request.js'
-import { ensureE2eAsOfServerBridge } from '../../src/lib/e2e-as-of-server-bridge.ts'
+import { ensureE2eAsOfServerBridge } from '../../src/lib/e2e-as-of-server-bridge.js'
 import { localTodayIso } from '../../src/lib/local-clock.js'
 
 describe('localTodayIso', () => {
@@ -35,6 +35,7 @@ describe('localTodayIso', () => {
     const handler = requestHandler(() => new Response(localTodayIso()))
     const response = await handler(
       new Request('http://localhost/', { headers: { 'X-Klopt-E2e-As-Of': '2026-01-01' } }),
+      {},
     )
     expect(await response.text()).toBe('2026-03-15')
   })
@@ -44,6 +45,7 @@ describe('localTodayIso', () => {
     const handler = requestHandler(() => new Response(localTodayIso()))
     const response = await handler(
       new Request('http://localhost/', { headers: { 'X-Klopt-E2e-As-Of': '2026-01-01' } }),
+      {},
     )
     expect(await response.text()).toBe('2026-03-15')
   })
@@ -52,10 +54,11 @@ describe('localTodayIso', () => {
     const handler = requestHandler(() => new Response(localTodayIso()))
     const withHeader = await handler(
       new Request('http://localhost/', { headers: { 'X-Klopt-E2e-As-Of': '2026-01-15' } }),
+      {},
     )
     expect(await withHeader.text()).toBe('2026-01-15')
 
-    const withoutHeader = await handler(new Request('http://localhost/'))
+    const withoutHeader = await handler(new Request('http://localhost/'), {})
     expect(await withoutHeader.text()).toBe('2026-03-15')
   })
 })

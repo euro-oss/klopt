@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { requestHandler } from '@tanstack/react-start/server'
-import { ensureE2eAsOfServerBridge } from '../src/lib/e2e-as-of-server-bridge.ts'
+import { ensureE2eAsOfServerBridge } from '../src/lib/e2e-as-of-server-bridge.js'
 import { localTodayIso } from '../src/lib/local-clock.js'
 
 /**
@@ -30,7 +30,7 @@ describe('localTodayIso e2e as-of under concurrent requests', () => {
     const results = await Promise.all(
       cases.map(async ({ header, expected }) => {
         const headers = header === undefined ? {} : { 'X-Klopt-E2e-As-Of': header }
-        const response = await handler(new Request('http://localhost/contacts', { headers }))
+        const response = await handler(new Request('http://localhost/contacts', { headers }), {})
         const body = await response.text()
         return { expected, body }
       }),
