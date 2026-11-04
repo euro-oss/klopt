@@ -241,7 +241,9 @@ async function shootPurchaseVatHidden(page: Page): Promise<void> {
           const clipTop = Math.max(0, labelEl.getBoundingClientRect().top - pad)
           const lineBottom = lineEl.getBoundingClientRect().bottom
           const vatBottom =
-            vatTrigger instanceof HTMLElement ? vatTrigger.getBoundingClientRect().bottom : lineBottom
+            vatTrigger instanceof HTMLElement
+              ? vatTrigger.getBoundingClientRect().bottom
+              : lineBottom
           const clipBottom = Math.max(lineBottom, vatBottom) + pad
           return {
             x: 0,
