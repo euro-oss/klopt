@@ -49,7 +49,7 @@ export function DocumentFiscalYearHint({
   const showLink = canOpenYear && gate.reason === 'missing'
 
   return (
-    <p id={id} role="alert" className="text-destructive mt-1 text-xs">
+    <p id={id} role="status" className="text-muted-foreground mt-1 text-xs">
       {message}{' '}
       {showLink ? (
         <Link
@@ -57,7 +57,7 @@ export function DocumentFiscalYearHint({
           search={{ openYear: gate.code, returnTo, focus: 'confirm' }}
           onClick={onNavigate}
           className={cn(
-            'text-destructive inline-flex min-h-11 items-center font-semibold underline underline-offset-2',
+            'text-foreground inline-flex min-h-11 items-center font-medium underline underline-offset-2',
             'focus-visible:ring-ring rounded-sm focus-visible:ring-2 focus-visible:outline-none',
           )}
         >
@@ -65,7 +65,7 @@ export function DocumentFiscalYearHint({
         </Link>
       ) : null}
       {!canOpenYear && gate.reason === 'missing' ? (
-        <span className="text-destructive mt-1 block">{t('booking.fiscalYearAskOwner')}</span>
+        <span className="text-muted-foreground mt-1 block">{t('booking.fiscalYearAskOwner')}</span>
       ) : null}
     </p>
   )

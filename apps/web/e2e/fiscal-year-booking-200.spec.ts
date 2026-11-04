@@ -287,7 +287,8 @@ test('Boekjaren names every earlier open year on the next row', async ({ page })
 
   await expect(
     page.getByTestId('fiscal-year-prior-not-closed-hint').filter({
-      hasText: /Boekjaren 2024 en 2025 zijn nog niet afgesloten.*beginbalans van 2026/,
+      hasText:
+        'Boekjaren 2024 en 2025 zijn nog niet afgesloten; de resultaten staan nog niet in de beginbalans van 2026.',
     }),
   ).toBeVisible()
 })
