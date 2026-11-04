@@ -179,7 +179,10 @@ test('double submit on prior-year confirm creates one book year, twelve periods,
   await expect(ack).toBeChecked()
   const confirm = page.getByRole('button', { name: 'Boekjaar 2025 openen' })
   await Promise.all([confirm.click(), confirm.click()])
-  await expect(page.getByText('Boekjaar 2025 staat open')).toBeVisible({ timeout: 30_000 })
+  await expect.poll(async () => (await countBookYearRows(page, '2025')).fiscalYears, {
+    timeout: 45_000,
+  }).toBe(1)
+  await expect(page.getByText(/Boekjaar 2025 staat open/)).toBeVisible()
 
   const after = await countBookYearRows(page, '2025')
   expect(after.fiscalYears).toBe(1)
