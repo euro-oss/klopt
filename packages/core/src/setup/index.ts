@@ -20,8 +20,17 @@ export {
 } from './plan.js'
 
 export {
+  FISCAL_YEAR_CODE_MAX,
+  FISCAL_YEAR_CODE_MIN,
+  type DocumentFiscalYearGate,
+  type FiscalYearGateInput,
   type FiscalYearLayout,
   type FiscalYearPeriod,
+  assessDocumentFiscalYear,
+  earliestOpenFiscalYear,
+  fiscalYearCodeForDate,
+  isFiscalYearCodeInRange,
   nextFiscalYearCode,
   planFiscalYear,
+  priorFiscalYearCodeToOpen,
 } from './fiscal-year.js'

@@ -1,7 +1,9 @@
 import { Link, useNavigate } from '@tanstack/react-router'
+import { assessDocumentFiscalYear } from '@klopt/core'
 import { Plus, ChevronLeft, Check, Info, Search, Send } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
+import { DocumentFiscalYearHint } from '~/components/finance/document-fiscal-year-hint'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Keycap } from '~/components/ui/keycap'
@@ -37,6 +39,7 @@ import {
 import { periodLabel, type PeriodLabelYear } from '~/lib/period-label'
 import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { clearedTaxCodeLineNumbers } from '~/lib/booking-tax-codes'
+import { saveBookingDraft } from '~/lib/booking-draft-return'
 import { multiplyByDecimal, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
@@ -120,6 +123,9 @@ export function GuidedInvoiceFlow({
   accounts,
   entity,
   fiscalYears = [],
+  fiscalStartMonth = 1,
+  canOpenYear = false,
+  bookingReturnTo = '/invoices/new',
   contactsError,
   initialPhase = 'form',
 }: {
@@ -129,6 +135,9 @@ export function GuidedInvoiceFlow({
   entity: GuidedEntity | null
   /** Book years with periods — for shared `periodLabel` copy on period locks. */
   fiscalYears?: readonly PeriodLabelYear[]
+  fiscalStartMonth?: number
+  canOpenYear?: boolean
+  bookingReturnTo?: string
   contactsError?: string | null
   /** Lab / screenshot hook for empty / loading / error chrome. */
   initialPhase?: FlowPhase
@@ -185,6 +194,19 @@ export function GuidedInvoiceFlow({
   )
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
   const [dateNotice, setDateNotice] = useState<string | null>(null)
+  const fiscalGate = useMemo(
+    () => assessDocumentFiscalYear(fiscalYears, issueDate, fiscalStartMonth),
+    [fiscalYears, issueDate, fiscalStartMonth],
+  )
+  const fiscalYearBlocked = fiscalGate.kind === 'blocked'
+
+  function persistDraftForReturn(): void {
+    saveBookingDraft(bookingReturnTo, {
+      contactNumber,
+      issueDate,
+      lines,
+    })
+  }
   const [done, setDone] = useState<DoneState | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [serverDraft, setServerDraft] = useState<ServerDraft | null>(null)
@@ -859,8 +881,19 @@ export function GuidedInvoiceFlow({
             vatLabels={vatLabels}
             hydrated={hydrated}
             dateNotice={dateNotice}
+            fiscalYearBlocked={fiscalYearBlocked}
+            fiscalYears={fiscalYears}
+            fiscalStartMonth={fiscalStartMonth}
+            canOpenYear={canOpenYear}
+            bookingReturnTo={bookingReturnTo}
+            onPersistDraft={persistDraftForReturn}
             onIssueDate={(next) => {
               setIssueDate(next)
+              const gate = assessDocumentFiscalYear(fiscalYears, next, fiscalStartMonth)
+              if (gate.kind === 'blocked') {
+                setDateNotice(null)
+                return
+              }
               const allowed = new Set(salesPickerTaxCodes(taxCodes, next).map((code) => code.code))
               const cleared = clearedTaxCodeLineNumbers(lines, allowed)
               setDateNotice(
@@ -1232,6 +1265,12 @@ function LinesStep({
   vatLabels,
   hydrated,
   dateNotice,
+  fiscalYearBlocked,
+  fiscalYears,
+  fiscalStartMonth,
+  canOpenYear,
+  bookingReturnTo,
+  onPersistDraft,
   onIssueDate,
   onUpdate,
   onAdd,
@@ -1245,6 +1284,12 @@ function LinesStep({
   vatLabels: VatLabelBag
   hydrated: boolean
   dateNotice: string | null
+  fiscalYearBlocked: boolean
+  fiscalYears: readonly PeriodLabelYear[]
+  fiscalStartMonth: number
+  canOpenYear: boolean
+  bookingReturnTo: string
+  onPersistDraft: () => void
   onIssueDate: (value: string) => void
   onUpdate: (index: number, patch: Partial<GuidedLineDraft>) => void
   onAdd: () => void
@@ -1268,6 +1313,7 @@ function LinesStep({
             placeholder="DD-MM-YYYY"
             className="mt-1.5 tabular"
             value={issueDisplay}
+            aria-describedby={fiscalYearBlocked ? 'guided-invoice-date-hint' : undefined}
             onChange={(event) => {
               const next = event.target.value
               setIssueDraft(next)
@@ -1277,6 +1323,15 @@ function LinesStep({
                 setIssueDraft(null)
               }
             }}
+          />
+          <DocumentFiscalYearHint
+            id="guided-invoice-date-hint"
+            years={fiscalYears}
+            documentDate={issueDate}
+            startMonth={fiscalStartMonth}
+            canOpenYear={canOpenYear}
+            returnTo={bookingReturnTo}
+            onNavigate={onPersistDraft}
           />
         </div>
         <div>
@@ -1300,9 +1355,13 @@ function LinesStep({
       <p
         role="status"
         aria-live="polite"
-        className={dateNotice === null ? 'sr-only' : 'text-muted-foreground mb-4 text-sm'}
+        className={
+          dateNotice === null || fiscalYearBlocked
+            ? 'sr-only'
+            : 'text-muted-foreground mb-4 text-sm'
+        }
       >
-        {dateNotice ?? ''}
+        {fiscalYearBlocked ? '' : (dateNotice ?? '')}
       </p>
 
       <p className="mb-2 text-sm font-medium">{t('invoiceGuided.what')}</p>

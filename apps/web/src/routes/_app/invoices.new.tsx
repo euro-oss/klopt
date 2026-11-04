@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { assessDocumentFiscalYear } from '@klopt/core'
 import { violationMessage } from '~/i18n/labels'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
 import { GuidedInvoiceFlow } from '~/components/invoices/guided-invoice-flow'
+import { DocumentFiscalYearHint } from '~/components/finance/document-fiscal-year-hint'
 import { Money } from '~/components/finance/money'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
@@ -23,6 +25,11 @@ import { listAccounts } from '~/server/ledger'
 import { getEntity } from '~/server/entity'
 import { listFiscalYears } from '~/server/setup'
 import type { PeriodLabelYear } from '~/lib/period-label'
+import { latestFiscalYear, startingMonth } from '~/lib/fiscal-year'
+import { may, MAY_OPEN_YEAR } from '~/lib/roles'
+import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from '~/lib/booking-draft-return'
+
+const BOOKING_RETURN_TO = '/invoices/new'
 
 /**
  * A new sales invoice.
@@ -35,7 +42,7 @@ import type { PeriodLabelYear } from '~/lib/period-label'
  * own screen in advanced mode, or as the last guided step when simple.
  */
 export const Route = createFileRoute('/_app/invoices/new')({
-  loader: async () => {
+  loader: async ({ context }) => {
     const contacts = await listContacts({ data: { customersOnly: true } })
     const contactsWithCity = contacts.ok
       ? {
@@ -57,6 +64,7 @@ export const Route = createFileRoute('/_app/invoices/new')({
       accounts: await listAccounts(),
       entity: await getEntity(),
       fiscalYears: await listFiscalYears(),
+      role: context.session.memberships[0]?.role ?? '',
     }
   },
   component: NewInvoice,
@@ -93,7 +101,7 @@ function NewInvoice() {
 }
 
 function GuidedFromLoader() {
-  const { contacts, taxCodes, accounts, entity, fiscalYears } = Route.useLoaderData()
+  const { contacts, taxCodes, accounts, entity, fiscalYears, role } = Route.useLoaderData()
 
   const customers = contacts.ok
     ? contacts.data.contacts.map((row) => ({
@@ -141,6 +149,10 @@ function GuidedFromLoader() {
     : null
 
   const years: readonly PeriodLabelYear[] = fiscalYears.ok ? fiscalYears.data.fiscalYears : []
+  const fiscalStartMonth = useMemo(() => {
+    const latest = latestFiscalYear(years)
+    return latest === undefined ? 1 : startingMonth(latest)
+  }, [years])
 
   return (
     <GuidedInvoiceFlow
@@ -149,14 +161,18 @@ function GuidedFromLoader() {
       accounts={revenueAccounts}
       entity={entityRow}
       fiscalYears={years}
+      fiscalStartMonth={fiscalStartMonth}
+      canOpenYear={may(MAY_OPEN_YEAR, role)}
+      bookingReturnTo={BOOKING_RETURN_TO}
       contactsError={contacts.ok ? null : contacts.problem.detail}
     />
   )
 }
 
 function AdvancedInvoiceForm() {
-  const { contacts, taxCodes, accounts } = Route.useLoaderData()
+  const { contacts, taxCodes, accounts, fiscalYears, role } = Route.useLoaderData()
   const navigate = useNavigate()
+  const { t } = useT()
   /**
    * Every control on this form is React-controlled, so before hydration the
    * fields accept typing that is then discarded and the submit falls back to a
@@ -196,9 +212,38 @@ function AdvancedInvoiceForm() {
   const [leaving, setLeaving] = useState(false)
   const confirmRef = useRef<HTMLButtonElement>(null)
 
+  const fiscalYearRows = fiscalYears.ok ? fiscalYears.data.fiscalYears : []
+  const fiscalStartMonth = useMemo(() => {
+    const latest = latestFiscalYear(fiscalYearRows)
+    return latest === undefined ? 1 : startingMonth(latest)
+  }, [fiscalYearRows])
+  const canOpenYear = may(MAY_OPEN_YEAR, role)
+
+  const fiscalGate = useMemo(
+    () => assessDocumentFiscalYear(fiscalYearRows, issueDate, fiscalStartMonth),
+    [fiscalYearRows, issueDate, fiscalStartMonth],
+  )
+  const fiscalYearBlocked = fiscalGate.kind === 'blocked'
+
+  function persistDraftForReturn(): void {
+    saveBookingDraft(BOOKING_RETURN_TO, {
+      contactNumber,
+      kind,
+      issueDate,
+      reference,
+      buyerReference,
+      lines,
+    })
+  }
+
   /** Move the issue date and drop any line tax code that falls outside its window. */
   function changeIssueDate(next: string): void {
     setIssueDate(next)
+    const gate = assessDocumentFiscalYear(fiscalYearRows, next, fiscalStartMonth)
+    if (gate.kind === 'blocked') {
+      setDateNotice(null)
+      return
+    }
     const allowed = new Set(
       (taxCodes.ok ? salesBookingTaxCodes(taxCodes.data.taxCodes, next) : []).map(
         (code) => code.code,
@@ -309,8 +354,6 @@ function AdvancedInvoiceForm() {
     if (confirming) confirmRef.current?.focus()
   }, [confirming])
 
-  const { t } = useT()
-
   return (
     <form
       className="xl:pr-72"
@@ -407,10 +450,20 @@ function AdvancedInvoiceForm() {
           <input
             type="date"
             value={issueDate}
+            aria-describedby={fiscalYearBlocked ? 'sales-invoice-date-hint' : undefined}
             onChange={(event) => {
               changeIssueDate(event.target.value)
             }}
             className="field-control tabular"
+          />
+          <DocumentFiscalYearHint
+            id="sales-invoice-date-hint"
+            years={fiscalYearRows}
+            documentDate={issueDate}
+            startMonth={fiscalStartMonth}
+            canOpenYear={canOpenYear}
+            returnTo={BOOKING_RETURN_TO}
+            onNavigate={persistDraftForReturn}
           />
         </label>
 
@@ -558,9 +611,13 @@ function AdvancedInvoiceForm() {
       <p
         role="status"
         aria-live="polite"
-        className={dateNotice === null ? 'sr-only' : 'text-muted-foreground mb-4 text-sm'}
+        className={
+          dateNotice === null || fiscalYearBlocked
+            ? 'sr-only'
+            : 'text-muted-foreground mb-4 text-sm'
+        }
       >
-        {dateNotice ?? ''}
+        {fiscalYearBlocked ? '' : (dateNotice ?? '')}
       </p>
 
       {problems.length > 0 && (

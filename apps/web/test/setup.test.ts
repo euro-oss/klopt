@@ -417,6 +417,19 @@ describe('opening the next book year', () => {
     expect(years.every((year) => year.periods.length === 12)).toBe(true)
   })
 
+  it('refuses book years outside the sane range', async () => {
+    const { cookie } = await signUp()
+    const entityId = uuidv7()
+    await handleCreateEntity(
+      await resolveSetupContext({ database, request: request({ cookie }) }),
+      entityId,
+      body(),
+    )
+    const context = await resolveRequestContext({ database, request: request({ cookie }) })
+    await expect(handleCreateFiscalYear(context, { code: '1925' })).rejects.toThrow()
+    await expect(handleCreateFiscalYear(context, { code: '2205' })).rejects.toThrow()
+  })
+
   it('follows a non-calendar book year (spec 6.4)', async () => {
     const { cookie } = await signUp()
     const entityId = uuidv7()
