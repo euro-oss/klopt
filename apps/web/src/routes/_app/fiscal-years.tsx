@@ -4,6 +4,7 @@ import { PageHeader, Stat } from '~/components/app-shell'
 import { AccountPicker } from '~/components/finance/account-picker'
 import { LedgerTable, type Column } from '~/components/finance/ledger-table'
 import { Money } from '~/components/finance/money'
+import { Button } from '~/components/ui/button'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { violationMessage } from '~/i18n/labels'
 import type { MessageKey } from '~/i18n/nl'
@@ -612,17 +613,17 @@ function PriorYearConfirmPanel({
         </label>
       </div>
 
-      <button
+      <Button
         ref={confirmRef}
         type="button"
         disabled={!hydrated || busy || !ack}
         onClick={() => {
           void create()
         }}
-        className="bg-primary text-primary-foreground mt-4 inline-flex min-h-11 items-center whitespace-nowrap px-3 py-2 text-sm font-medium disabled:opacity-50 sm:px-4"
+        className="mt-4 whitespace-nowrap"
       >
         {busy ? t('common.busy') : t('fiscalYears.openNow', { year: code })}
-      </button>
+      </Button>
 
       {problems !== null && (
         <ul role="alert" className="text-destructive mt-3 space-y-1 text-sm">

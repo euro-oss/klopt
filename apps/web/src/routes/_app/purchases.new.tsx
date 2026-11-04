@@ -682,15 +682,13 @@ function NewPurchaseInvoice() {
               {fiscalYearBlocked ? '' : (dateNotice ?? '')}
             </p>
 
-            {!fiscalYearBlocked &&
-              (!netMatches || !taxMatches || !totalMatches) &&
-              filled.length > 0 && (
-                <ul className="text-unreconciled space-y-1 text-sm">
-                  {!netMatches && <li>{t('purchaseNew.netDoesNotMatch')}</li>}
-                  {!taxMatches && <li>{t('purchaseNew.taxDoesNotMatch')}</li>}
-                  {!totalMatches && <li>{t('purchaseNew.totalDoesNotMatch')}</li>}
-                </ul>
-              )}
+            {(!netMatches || !taxMatches || !totalMatches) && filled.length > 0 && (
+              <ul className="text-unreconciled space-y-1 text-sm">
+                {!netMatches && <li>{t('purchaseNew.netDoesNotMatch')}</li>}
+                {!taxMatches && <li>{t('purchaseNew.taxDoesNotMatch')}</li>}
+                {!totalMatches && <li>{t('purchaseNew.totalDoesNotMatch')}</li>}
+              </ul>
+            )}
 
             {problems.length > 0 && (
               <ul role="alert" className="text-destructive space-y-1 text-sm">

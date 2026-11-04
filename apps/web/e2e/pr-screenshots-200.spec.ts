@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { runMigrations } from '@klopt/db'
+import { closeDatabase, createDatabase, runMigrations } from '@klopt/db'
 import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
 import { installFiscalYearBookingFakeClock } from './support/fiscal-year-booking-fake-clock'
 import { withPngSourceChunk } from './support/png-source-chunk.js'
@@ -9,6 +9,32 @@ import { withPngSourceChunk } from './support/png-source-chunk.js'
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', '200')
 const CAPTURE = process.env['CAPTURE_PR_SCREENSHOTS'] === '1'
 const SCREENSHOT_SOURCE = 'apps/web/e2e/pr-screenshots-200.spec.ts'
+
+type SqlTag = {
+  (strings: TemplateStringsArray, ...values: readonly unknown[]): Promise<unknown>
+}
+
+async function entityId(page: Page): Promise<string> {
+  const response = await page.request.get('/api/v1/entity')
+  expect(response.ok()).toBeTruthy()
+  const body = (await response.json()) as { id: string }
+  return body.id
+}
+
+async function setTaxCodeValidFrom(id: string, code: string, validFrom: string): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await sql`
+      update klopt.tax_codes
+      set valid_from = ${validFrom}::date
+      where entity_id = ${id}::uuid
+        and code = ${code}
+    `
+  } finally {
+    await closeDatabase(database)
+  }
+}
 
 const SIZES = [
   { label: 'desktop-1440', width: 1440, height: 900 },
@@ -173,6 +199,7 @@ async function openBookYear(page: Page, code: string): Promise<void> {
 test('capture #200 fiscal year booking gate screenshots', async ({ page, browser }) => {
   test.setTimeout(900_000)
   await ready(page)
+  await setTaxCodeValidFrom(await entityId(page), 'VL9', '2026-01-01')
 
   await page.goto('/purchases/new')
   await hydrated(page)
@@ -181,14 +208,34 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await expect(page.getByText('Kies een andere')).toHaveCount(0)
   await shoot(page, 'purchase-blocked')
 
+  await page.getByLabel('Hun nummer', { exact: true }).fill('DEC-2025-VAT')
+  await chooseOption(page, 'Leverancier', /Leverancier B\.V\./)
+  await setBillDate(page, '2026-01-15')
   await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
-  await page.getByLabel('Btw', { exact: true }).fill('50,00')
-  await page.getByLabel('Totaal', { exact: true }).fill('100,00')
-  await expect(page.getByText('De btw op de regels is niet de btw op het document.')).toHaveCount(0)
-  const purchaseBlockedForm = page.locator('main form').filter({
+  await page.getByLabel('Btw', { exact: true }).fill('9,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('109,00')
+  await page.getByLabel('Omschrijving regel 1').fill('Kantoor')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await chooseOption(page, 'Btw-code regel 1', /^VL9/)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await setBillDate(page, '2025-12-15')
+  await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
+  await expect(page.getByText('geldt niet op deze datum')).toHaveCount(0)
+  await expect(page.getByText('Kies een andere')).toHaveCount(0)
+  await expect(page.getByLabel('Exclusief btw', { exact: true })).not.toHaveAttribute(
+    'aria-invalid',
+    'true',
+  )
+  await expect(page.getByLabel('Btw', { exact: true })).not.toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByLabel('Totaal', { exact: true })).not.toHaveAttribute(
+    'aria-invalid',
+    'true',
+  )
+  const purchaseVatHiddenClip = page.locator('main form').filter({
     has: page.locator('#purchase-invoice-date-hint'),
   })
-  await shoot(page, 'purchase-vat-hidden', purchaseBlockedForm)
+  await shoot(page, 'purchase-vat-hidden', purchaseVatHiddenClip)
 
   await shoot(page, 'purchase-date-hint', page.locator('#purchase-invoice-date-hint'))
 
@@ -262,7 +309,8 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   const deeplinkPanel = page.getByTestId('open-prior-year')
   const confirmOpen = deeplinkPanel.getByRole('button', { name: 'Boekjaar 2025 openen' })
   await expect(confirmOpen).toBeEnabled()
-  await confirmOpen.focus()
+  await page.getByRole('checkbox', { name: /Ik wil boekjaar 2025 openen/ }).focus()
+  await page.keyboard.press('Tab')
   await expect(confirmOpen).toBeFocused()
   await shoot(page, 'fiscal-years-deeplink-confirm', deeplinkPanel)
 

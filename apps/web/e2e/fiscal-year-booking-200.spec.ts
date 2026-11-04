@@ -15,6 +15,32 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
+async function setTaxCodeValidFrom(
+  entityId: string,
+  code: string,
+  validFrom: string,
+): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await sql`
+      update klopt.tax_codes
+      set valid_from = ${validFrom}::date
+      where entity_id = ${entityId}::uuid
+        and code = ${code}
+    `
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
+async function entityId(page: Page): Promise<string> {
+  const response = await page.request.get('/api/v1/entity')
+  expect(response.ok()).toBeTruthy()
+  const body = (await response.json()) as { id: string }
+  return body.id
+}
+
 async function setBillDate(page: Page, isoDate: string): Promise<void> {
   const field = page.getByLabel('Factuurdatum', { exact: true })
   await field.click()
@@ -49,13 +75,6 @@ async function ready(page: Page): Promise<void> {
   ).toBeVisible()
   await hydrated(page)
   await aSupplier(page)
-}
-
-async function entityId(page: Page): Promise<string> {
-  const response = await page.request.get('/api/v1/entity')
-  expect(response.ok()).toBeTruthy()
-  const body = (await response.json()) as { id: string }
-  return body.id
 }
 
 async function countBookYearRows(
@@ -112,6 +131,40 @@ test('prior-year bill shows book-year message, not VAT date hint', async ({ page
   await expect(page.getByRole('link', { name: 'Boekjaar 2025 openen' })).toBeVisible()
   await expect(page.getByText('Kies een andere')).toHaveCount(0)
   await expect(page.getByText('geldt niet op deze datum')).toHaveCount(0)
+})
+
+test('blocked year shows document mismatch lines and hides only the VAT-on-date hint', async ({
+  page,
+}) => {
+  await ready(page)
+  await setTaxCodeValidFrom(await entityId(page), 'VL9', '2026-01-01')
+
+  await page.goto('/purchases/new')
+  await hydrated(page)
+  await page.getByLabel('Hun nummer', { exact: true }).fill('DEC-2025-QA')
+  await chooseOption(page, 'Leverancier', /Leverancier B\.V\./)
+  await setBillDate(page, '2026-01-15')
+  await page.getByLabel('Omschrijving regel 1').fill('Kantoor')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await chooseOption(page, 'Btw-code regel 1', /^VL9/)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('90,00')
+  await page.getByLabel('Btw', { exact: true }).fill('50,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('200,00')
+
+  await setBillDate(page, '2025-12-15')
+
+  await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
+  await expect(page.getByText('geldt niet op deze datum')).toHaveCount(0)
+  await expect(page.getByText('Kies een andere')).toHaveCount(0)
+  await expect(
+    page.getByText(
+      'De regels tellen op tot een ander bedrag dan het document zegt. Er mist een regel, of er staat een typefout in.',
+    ),
+  ).toBeVisible()
+  await expect(page.getByText('De btw op de regels is niet de btw op het document.')).toBeVisible()
+  await expect(page.getByText('Excl. btw plus btw is niet het totaal.')).toBeVisible()
 })
 
 test('opening the year returns to the draft with the date intact', async ({ page }) => {
