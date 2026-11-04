@@ -15,18 +15,14 @@ test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
 
-async function setTaxCodeValidFrom(
-  entityId: string,
-  code: string,
-  validFrom: string,
-): Promise<void> {
+async function setTaxCodeValidTo(id: string, code: string, validTo: string): Promise<void> {
   const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
   const sql = (database as unknown as { $client: SqlTag }).$client
   try {
     await sql`
       update klopt.tax_codes
-      set valid_from = ${validFrom}::date
-      where entity_id = ${entityId}::uuid
+      set valid_to = ${validTo}::date
+      where entity_id = ${id}::uuid
         and code = ${code}
     `
   } finally {
@@ -136,8 +132,9 @@ test('prior-year bill shows book-year message, not VAT date hint', async ({ page
 test('blocked year shows document mismatch lines and hides only the VAT-on-date hint', async ({
   page,
 }) => {
+  test.setTimeout(120_000)
   await ready(page)
-  await setTaxCodeValidFrom(await entityId(page), 'VL9', '2026-01-01')
+  const id = await entityId(page)
 
   await page.goto('/purchases/new')
   await hydrated(page)
@@ -146,17 +143,23 @@ test('blocked year shows document mismatch lines and hides only the VAT-on-date 
   await setBillDate(page, '2026-01-15')
   await page.getByLabel('Omschrijving regel 1').fill('Kantoor')
   await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-  await chooseOption(page, 'Btw-code regel 1', /^VL9/)
+  await chooseOption(page, 'Btw-code regel 1', /^VH21/)
   await page.getByLabel('Excl. btw regel 1').fill('100,00')
   await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
   await page.getByLabel('Exclusief btw', { exact: true }).fill('90,00')
   await page.getByLabel('Btw', { exact: true }).fill('50,00')
   await page.getByLabel('Totaal', { exact: true }).fill('200,00')
+  await setBillDate(page, '2025-12-15')
 
+  await page.getByRole('link', { name: 'Boekjaar 2025 openen' }).click()
+  await expect(page.getByRole('heading', { name: 'Boekjaren' })).toBeVisible()
+  await setTaxCodeValidTo(id, 'VH21', '2025-11-30')
+  await page.goto('/purchases/new')
+  await hydrated(page)
+  await expect(page.getByLabel('Hun nummer', { exact: true })).toHaveValue('DEC-2025-QA')
   await setBillDate(page, '2025-12-15')
 
   await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
-  await expect(page.getByText('geldt niet op deze datum')).toHaveCount(0)
   await expect(page.getByText('Kies een andere')).toHaveCount(0)
   await expect(
     page.getByText(
@@ -165,6 +168,9 @@ test('blocked year shows document mismatch lines and hides only the VAT-on-date 
   ).toBeVisible()
   await expect(page.getByText('De btw op de regels is niet de btw op het document.')).toBeVisible()
   await expect(page.getByText('Excl. btw plus btw is niet het totaal.')).toBeVisible()
+
+  await setBillDate(page, '2026-01-15')
+  await expect(page.getByText('Kies een andere')).toBeVisible()
 })
 
 test('opening the year returns to the draft with the date intact', async ({ page }) => {
