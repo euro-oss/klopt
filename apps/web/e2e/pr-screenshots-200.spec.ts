@@ -216,37 +216,48 @@ async function shootPurchaseVatHidden(page: Page): Promise<void> {
       await page.setViewportSize({ width: size.width, height: size.height })
       await expect(page.locator('body')).toBeVisible()
       const inset = size.width === 390 ? await mobileTabBarInset(page) : 0
-      await line.scrollIntoViewIfNeeded()
-      const clip = await page.evaluate(
+      if (size.width !== 390) {
+        await line.scrollIntoViewIfNeeded()
+      }
+      const clipSpec = await page.evaluate(
         ({ inset, pad }) => {
           const hintEl = document.querySelector('#purchase-invoice-date-hint')
           const lineEl = document.querySelector('[data-testid="billnew-line-1"]')
-          if (!(hintEl instanceof HTMLElement) || !(lineEl instanceof HTMLElement)) {
+          const dateEl = document.querySelector('input[aria-label="Factuurdatum"]')
+          if (
+            !(hintEl instanceof HTMLElement) ||
+            !(lineEl instanceof HTMLElement) ||
+            !(dateEl instanceof HTMLElement)
+          ) {
             throw new Error('purchase-vat-hidden clip targets missing')
           }
           const docTop = (element: HTMLElement): number =>
             element.getBoundingClientRect().top + window.scrollY
           const docBottom = (element: HTMLElement): number => docTop(element) + element.offsetHeight
           const hintTop = docTop(hintEl) - pad
+          const dateTop = docTop(dateEl) - pad
           const lineBottom = docBottom(lineEl) + pad
           const view = window.innerHeight - inset
           const limit = view
+          if (window.innerWidth <= 390) {
+            const clipTop = Math.min(dateTop, hintTop)
+            window.scrollTo(0, Math.max(0, clipTop))
+            return {
+              fullPage: true,
+              clip: {
+                x: 0,
+                y: Math.max(0, clipTop),
+                width: window.innerWidth,
+                height: Math.max(1, lineBottom - Math.max(0, clipTop)),
+              },
+            }
+          }
           const fitBottom = Math.max(0, lineBottom - view)
           let scrollY = hintTop >= fitBottom ? fitBottom : hintTop
           window.scrollTo(0, scrollY)
           if (hintEl.getBoundingClientRect().top < pad) {
             scrollY = hintTop
             window.scrollTo(0, scrollY)
-          }
-          if (window.innerWidth <= 390) {
-            const hintBox = hintEl.getBoundingClientRect()
-            const clipY = Math.max(0, hintBox.top - pad)
-            return {
-              x: 0,
-              y: clipY,
-              width: window.innerWidth,
-              height: Math.max(1, limit - clipY),
-            }
           }
           const merge = (): DOMRect => {
             const a = hintEl.getBoundingClientRect()
@@ -270,15 +281,25 @@ async function shootPurchaseVatHidden(page: Page): Promise<void> {
           const maxHeight = limit - clipY
           const clipHeight = Math.min(rect.height + pad * 2, maxHeight)
           return {
-            x: Math.max(0, rect.left - pad),
-            y: clipY,
-            width: Math.min(rect.width + pad * 2, window.innerWidth - Math.max(0, rect.left - pad)),
-            height: Math.max(1, clipHeight),
+            fullPage: false,
+            clip: {
+              x: Math.max(0, rect.left - pad),
+              y: clipY,
+              width: Math.min(
+                rect.width + pad * 2,
+                window.innerWidth - Math.max(0, rect.left - pad),
+              ),
+              height: Math.max(1, clipHeight),
+            },
           }
         },
         { inset, pad: 12 },
       )
-      const png = await page.screenshot({ animations: 'disabled', clip })
+      const png = await page.screenshot({
+        animations: 'disabled',
+        fullPage: clipSpec.fullPage,
+        clip: clipSpec.clip,
+      })
       writeFileSync(
         join(OUT, `purchase-vat-hidden-${theme}-${size.label}.png`),
         withPngSourceChunk(png, SCREENSHOT_SOURCE),
