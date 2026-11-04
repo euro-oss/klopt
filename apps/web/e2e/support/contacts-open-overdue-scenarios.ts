@@ -3,7 +3,6 @@ import {
   contactsOverdueBooksInPriorFiscalYear,
   customerNotYetDueIssueDate,
   ensureContactsFixtureFiscalYears,
-  ensureFiscalYearOpen,
   OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
   type ContactsOverdueFixtureDates,
 } from './contacts-overdue-fixture-dates.js'
@@ -28,28 +27,10 @@ export async function openAdmin(page: Page): Promise<void> {
   await hydrated(page)
 }
 
-async function bookOverdueInPriorFiscalYearWhenNeeded(
-  page: Page,
-  dates: ContactsOverdueFixtureDates,
-  run: () => Promise<void>,
-): Promise<void> {
-  if (!contactsOverdueBooksInPriorFiscalYear(dates)) {
-    await run()
-    return
-  }
-  const currentYear = dates.asOf.slice(0, 4)
-  const prior = String(Number(currentYear) - 1)
-  await ensureFiscalYearOpen(page, prior)
+async function selectShellBookYear(page: Page, year: string): Promise<void> {
   await page.goto('/')
   await hydrated(page)
-  await chooseOption(page, 'Boekjaar', new RegExp(`^${prior}`))
-  try {
-    await run()
-  } finally {
-    await page.goto('/')
-    await hydrated(page)
-    await chooseOption(page, 'Boekjaar', new RegExp(`^${currentYear}`))
-  }
+  await chooseOption(page, 'Boekjaar', new RegExp(`^${year}`))
 }
 
 async function seedEntityForSales(page: Page): Promise<void> {
@@ -147,8 +128,19 @@ export async function runCustomerOpenOverdueScenario(
   await openAdmin(page)
   await ensureContactsFixtureFiscalYears(page, dates.asOf)
   await seedEntityForSales(page)
+
+  const year = dates.asOf.slice(0, 4)
+  const prior = String(Number(year) - 1)
+
+  if (contactsOverdueBooksInPriorFiscalYear(dates)) {
+    await selectShellBookYear(page, prior)
+    await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo', OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS)
+    await issueInvoice(page, /Klif Te Laat Demo/, dates.customerOverdueIssueDate())
+    await selectShellBookYear(page, year)
+  }
+
   await seedCustomer(page, 'DEB-1950', 'Stilte Niets Open')
-  await seedCustomer(page, 'DEB-1952', 'Windvaan Open Kleur')
+  await seedCustomer(page, 'DEB-1952', 'Windvaan Open Kleur', 30)
   await issueInvoice(page, /Windvaan Open Kleur/, customerNotYetDueIssueDate(dates))
 
   await page.setViewportSize({ width: 1440, height: 1040 })
@@ -174,10 +166,10 @@ export async function runCustomerOpenOverdueScenario(
   await expectOpenInk(listOpen)
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
-  await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo', OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS)
-  await bookOverdueInPriorFiscalYearWhenNeeded(page, dates, async () => {
+  if (!contactsOverdueBooksInPriorFiscalYear(dates)) {
+    await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo', OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS)
     await issueInvoice(page, /Klif Te Laat Demo/, dates.customerOverdueIssueDate())
-  })
+  }
 
   await page.goto('/contacts')
   await hydrated(page)
@@ -219,7 +211,22 @@ export async function runSupplierOpenOverdueScenario(
   await ensureContactsFixtureFiscalYears(page, dates.asOf)
   await seedEntityForSales(page)
   await seedSupplier(page, 'LEV-1954', 'Leverancier Kleur Proef')
+
+  const year = dates.asOf.slice(0, 4)
+  const prior = String(Number(year) - 1)
+  const overdue = dates.overduePurchaseBill()
   const notYetDue = dates.notYetDuePurchaseBill()
+
+  if (contactsOverdueBooksInPriorFiscalYear(dates)) {
+    await selectShellBookYear(page, prior)
+    await bookSupplierBill(page, {
+      number: 'F-1954-late',
+      invoiceDate: overdue.invoiceDate,
+      dueDate: overdue.dueDate,
+    })
+    await selectShellBookYear(page, year)
+  }
+
   await bookSupplierBill(page, {
     number: 'F-1954-future',
     invoiceDate: notYetDue.invoiceDate,
@@ -240,14 +247,13 @@ export async function runSupplierOpenOverdueScenario(
   const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
   await expectOpenInk(listOpen)
 
-  const overdue = dates.overduePurchaseBill()
-  await bookOverdueInPriorFiscalYearWhenNeeded(page, dates, async () => {
+  if (!contactsOverdueBooksInPriorFiscalYear(dates)) {
     await bookSupplierBill(page, {
       number: 'F-1954-late',
       invoiceDate: overdue.invoiceDate,
       dueDate: overdue.dueDate,
     })
-  })
+  }
 
   await page.goto('/contacts')
   await hydrated(page)

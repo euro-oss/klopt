@@ -29,7 +29,7 @@ test.describe('calendar proof', () => {
     asOf === undefined || asOf === '',
     'requires KLOPT_E2E_TODAY_ISO from calendar proof script',
   )
-  test.setTimeout(120_000)
+  test.setTimeout(240_000)
 
   test('customer styling', async ({ page }) => {
     await installWallClock(page, asOf!)

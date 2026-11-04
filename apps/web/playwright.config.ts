@@ -46,7 +46,6 @@ export { OUTBOX }
  */
 
 const pointingAtExternalServer = process.env['KLOPT_E2E_BASE_URL'] !== undefined
-const fixedE2eToday = process.env['KLOPT_E2E_TODAY_ISO']
 
 export default defineConfig({
   testDir: './e2e',
@@ -84,8 +83,8 @@ export default defineConfig({
           stdout: 'pipe',
           stderr: 'pipe',
           port: 3399,
-          // Calendar proof runs one fresh dev server per date (see e2e/scripts/contacts-calendar-proof.sh).
-          reuseExistingServer: fixedE2eToday === undefined,
+          // Never reuse: a prior calendar-proof run leaves KLOPT_E2E_TODAY_ISO on the dev server.
+          reuseExistingServer: false,
           timeout: 120_000,
           env: e2eWebServerEnv(),
         },

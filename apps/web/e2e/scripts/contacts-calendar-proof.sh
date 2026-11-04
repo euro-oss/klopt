@@ -22,6 +22,17 @@ fail=0
 echo '| Date | Customer | Supplier |'
 echo '|------|----------|----------|'
 
+stop_web_server() {
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -k 3399/tcp 2>/dev/null || true
+  else
+    pkill -f 'vite dev --port 3399' 2>/dev/null || true
+  fi
+  sleep 2
+}
+
+stop_web_server
+
 for date in "${DATES[@]}"; do
   customer=FAIL
   supplier=FAIL
@@ -30,11 +41,13 @@ for date in "${DATES[@]}"; do
   else
     fail=1
   fi
+  stop_web_server
   if KLOPT_E2E_TODAY_ISO="$date" pnpm exec playwright test "$SPEC" -g 'supplier styling' --reporter=line; then
     supplier=PASS
   else
     fail=1
   fi
+  stop_web_server
   echo "| $date | $customer | $supplier |"
 done
 
