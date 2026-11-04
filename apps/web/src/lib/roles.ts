@@ -44,8 +44,11 @@ export const MAY_POST_CLOSED: readonly string[] = ['owner', 'accountant']
  */
 export const MAY_OPEN_YEAR: readonly string[] = ['owner', 'accountant', 'bookkeeper']
 
-/** `ledger:import`. Reading an auditfile in writes journal entries. */
-export const MAY_IMPORT_AUDIT_FILE: readonly string[] = ['owner', 'accountant']
+/** `ledger:import`. Moneybird import, Exact import hooks, and audit-file import. */
+export const MAY_LEDGER_IMPORT: readonly string[] = ['owner', 'accountant']
+
+/** Same holders as {@link MAY_LEDGER_IMPORT} — audit-file import UI gate. */
+export const MAY_IMPORT_AUDIT_FILE: readonly string[] = MAY_LEDGER_IMPORT
 
 /** `ledger:export`. Everybody who may read the books may take them with them. */
 export const MAY_EXPORT_AUDIT_FILE: readonly string[] = [

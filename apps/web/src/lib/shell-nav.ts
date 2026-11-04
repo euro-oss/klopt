@@ -383,9 +383,14 @@ export function pageTitleKey(
   advanced: boolean,
   currentSearch?: NavSearch,
 ): MessageKey | null {
+  // No ?bron= yet: the shell title is Import / Importeren, not Moneybird.
+  // Source-specific items stay active for the palette default; only the title
+  // waits until a source is actually selected (#134 / #180).
+  const bron = searchBron(currentSearch)
   let best: { to: string; key: MessageKey; specific: number } | null = null
   for (const item of SHELL_NAV) {
     if (item.openShortcuts === true) continue
+    if (bron === undefined && item.search?.['bron'] !== undefined) continue
     if (!isNavActive(path, item.to, currentSearch, item.search, item.alsoActiveFor)) continue
     const specific = item.search === undefined ? 0 : Object.keys(item.search).length
     if (

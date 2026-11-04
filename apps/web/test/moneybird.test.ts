@@ -361,7 +361,7 @@ describe('choosing an administration', () => {
 
 describe('the dry run', () => {
   it('reconciles booked history and writes nothing', async () => {
-    const { token } = await newEntity()
+    const { token, entityId } = await newEntity()
     fakeMoneybird()
     await connect(token)
     await choose(token)
@@ -371,6 +371,8 @@ describe('the dry run', () => {
       saveMoneybirdMappingsBody.parse(MAPPINGS),
     )
     const preview = (await handlePreviewMoneybirdImport(await context(token))).body
+    // Connect, choose, mappings and the dry run post nothing (#180 Legal).
+    expect(await countRows('journal_entries', entityId)).toBe(0)
     expect(preview.dryRun).toBe(true)
     expect(preview.problems).toEqual([])
     expect(preview.counts.salesInvoices).toBe(1)
@@ -635,6 +637,8 @@ describe('the import job', () => {
     const queued = await handleRunMoneybirdImport(await context(token, crypto.randomUUID()))
     expect(queued.status).toBe(202)
     expect(queued.body.state).toBe('pending')
+    // Confirming only queues the run. The worker is what posts to the ledger.
+    expect(await countRows('journal_entries', entityId)).toBe(0)
 
     const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
     const { createFilesystemDocumentStore } = await import('@klopt/adapters')

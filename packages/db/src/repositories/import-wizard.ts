@@ -9,7 +9,7 @@ import { importAdministrationMappings, importWizardStates } from '../schema/docu
  * Mappings survive disconnect. Wizard state is one row per entity.
  */
 
-export type ImportSource = 'moneybird' | 'exact'
+export type ImportSource = 'moneybird' | 'exact' | 'xaf'
 
 export type ImportWizardStep =
   | 'bron'
@@ -140,7 +140,7 @@ function asWizardStep(value: string): ImportWizardStep {
 }
 
 function asSource(value: string | null): ImportSource | null {
-  if (value === 'moneybird' || value === 'exact') return value
+  if (value === 'moneybird' || value === 'exact' || value === 'xaf') return value
   return null
 }
 
