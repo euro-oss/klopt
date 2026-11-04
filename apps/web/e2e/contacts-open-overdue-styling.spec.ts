@@ -49,12 +49,12 @@ async function openAdmin(page: Page): Promise<void> {
   await hydrated(page)
 }
 
-async function bookOverduePurchaseInPriorYearWhenNeeded(
+async function bookOverdueInPriorFiscalYearWhenNeeded(
   page: Page,
   dates: ContactsOverdueFixtureDates,
   run: () => Promise<void>,
 ): Promise<void> {
-  if (!contactsOverdueNeedsPriorFiscalYear(dates.asOf)) {
+  if (!contactsOverdueNeedsPriorFiscalYear(dates)) {
     await run()
     return
   }
@@ -195,11 +195,9 @@ async function runCustomerOpenOverdueScenario(
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
   await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo', OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS)
-  if (dates.asOf === dates.fiscalYearStart) {
-    // No in-year sales invoice can be overdue on the first calendar day of the book year.
-    return
-  }
-  await issueInvoice(page, /Klif Te Laat Demo/, dates.customerOverdueIssueDate())
+  await bookOverdueInPriorFiscalYearWhenNeeded(page, dates, async () => {
+    await issueInvoice(page, /Klif Te Laat Demo/, dates.customerOverdueIssueDate())
+  })
 
   await page.goto('/contacts')
   await hydrated(page)
@@ -261,12 +259,8 @@ async function runSupplierOpenOverdueScenario(
   const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
   await expectOpenInk(listOpen)
 
-  if (contactsOverdueNeedsPriorFiscalYear(dates.asOf)) {
-    return
-  }
-
   const overdue = dates.overduePurchaseBill()
-  await bookOverduePurchaseInPriorYearWhenNeeded(page, dates, async () => {
+  await bookOverdueInPriorFiscalYearWhenNeeded(page, dates, async () => {
     await bookSupplierBill(page, {
       number: 'F-1954-late',
       invoiceDate: overdue.invoiceDate,
@@ -301,7 +295,7 @@ test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purcha
 })
 
 test.describe('fake wall clock — calendar-stable fixture dates', () => {
-  test.describe.configure({ mode: 'serial' })
+  test.setTimeout(120_000)
 
   for (const asOf of CONTACTS_OVERDUE_CALENDAR_PROOF_DATES) {
     test.describe(`as-of ${asOf}`, () => {

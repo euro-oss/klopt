@@ -1,17 +1,20 @@
 /**
- * Client-safe indirection for request-scoped e2e as-of dates.
- * The Nitro middleware binds AsyncLocalStorage in `e2e-as-of-store.ts` on the server.
+ * Client-safe indirection for reading e2e as-of from the active HTTP request.
+ * Wired on the server in `e2e-as-of-server-bridge.ts`.
  */
 
-type E2eAsOfReader = () => string | null
+type HeaderReader = (name: string) => string | undefined
 
-let reader: E2eAsOfReader | null = null
+let reader: HeaderReader | null = null
 
-/** Server-only: wires ALS into `readE2eAsOfFromRequestScope`. */
-export function bindE2eAsOfReader(next: E2eAsOfReader): void {
+export function bindE2eAsOfHeaderReader(next: HeaderReader | null): void {
   reader = next
 }
 
-export function readE2eAsOfFromRequestScope(): string | null {
-  return reader?.() ?? null
+export function hasE2eAsOfHeaderReader(): boolean {
+  return reader !== null
+}
+
+export function readE2eAsOfRequestHeader(name: string): string | undefined {
+  return reader?.(name)
 }

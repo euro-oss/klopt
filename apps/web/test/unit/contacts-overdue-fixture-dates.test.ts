@@ -3,6 +3,7 @@ import { addCalendarDays } from '../../src/lib/amsterdam-date.js'
 import {
   CONTACTS_OVERDUE_CALENDAR_PROOF_DATES,
   contactsOverdueFixtureDates,
+  contactsOverdueNeedsPriorFiscalYear,
   OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
 } from '../../e2e/support/contacts-overdue-fixture-dates.js'
 
@@ -21,10 +22,16 @@ describe('contactsOverdueFixtureDates', () => {
 
     it(`customer overdue issue yields due before asOf on ${asOf}`, () => {
       const dates = contactsOverdueFixtureDates(asOf)
-      if (asOf === dates.fiscalYearStart) return
       const issue = dates.customerOverdueIssueDate()
       expect(addCalendarDays(issue, OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS) < asOf).toBe(true)
-      expect(issue >= dates.fiscalYearStart).toBe(true)
+    })
+
+    it(`flags prior book year when overdue legs need it on ${asOf}`, () => {
+      const dates = contactsOverdueFixtureDates(asOf)
+      const needsPrior =
+        dates.customerOverdueIssueDate() < dates.fiscalYearStart ||
+        dates.overduePurchaseBill().dueDate < dates.fiscalYearStart
+      expect(contactsOverdueNeedsPriorFiscalYear(dates)).toBe(needsPrior)
     })
   }
 })

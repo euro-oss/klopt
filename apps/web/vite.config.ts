@@ -4,7 +4,7 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
   // pdfkit loads its AFM fonts at runtime (createRequire + package imports);
@@ -26,8 +26,11 @@ export default defineConfig({
      * ADR 0056.
      */
     nitro({
-      plugins: ['./src/server-plugins/headless.ts', './src/server-plugins/e2e-as-of.ts'],
+      plugins: [
+        './src/server-plugins/headless.ts',
+        ...(mode === 'production' ? [] : ['./src/server-plugins/e2e-as-of.ts']),
+      ],
       traceDeps: ['pdfkit*'],
     }),
   ],
-})
+}))

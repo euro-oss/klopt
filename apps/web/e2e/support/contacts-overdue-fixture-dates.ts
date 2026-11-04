@@ -2,13 +2,15 @@ import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { addCalendarDays } from '../../src/lib/amsterdam-date.js'
 
-/** Calendar dates exercised in the fake-clock proof (same year as VAT defaults in e2e). */
+/** Calendar dates exercised in the fake-clock proof. */
 export const CONTACTS_OVERDUE_CALENDAR_PROOF_DATES = [
-  '2026-01-01',
-  '2026-01-15',
-  '2026-02-20',
-  '2026-03-05',
-  '2026-12-31',
+  '2026-11-04',
+  '2027-01-01',
+  '2027-01-02',
+  '2027-01-15',
+  '2027-02-20',
+  '2027-03-05',
+  '2027-12-31',
 ] as const
 
 export type ContactsOverdueFixtureDates = {
@@ -28,14 +30,8 @@ export const OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS = 1
 /**
  * Shared invoice/bill dates for contacts open-overdue styling e2e.
  *
- * Issue dates stay inside the current calendar fiscal year (1 Jan … asOf).
- * Due dates are relative to `asOf`; overdue means dueDate &lt; asOf (exclusive).
- *
- * On the first day of a book year there is no VAT-valid overdue *sales* invoice
- * entirely inside that year (issue and due both on 1 Jan is not overdue). Calendar
- * tests on that day still prove not-yet-due styling and supplier overdue via an
- * explicit purchase due date on the last day of the previous calendar year, with
- * the prior book year opened first (see spec).
+ * Issue dates stay inside the current calendar fiscal year (1 Jan … asOf) unless
+ * the overdue case must sit in the prior book year (early January as-of).
  */
 export function contactsOverdueFixtureDates(asOf: string): ContactsOverdueFixtureDates {
   const year = asOf.slice(0, 4)
@@ -52,7 +48,9 @@ export function contactsOverdueFixtureDates(asOf: string): ContactsOverdueFixtur
 
   function customerOverdueIssueDate(): string {
     const target = addCalendarDays(asOf, -(OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS + 1))
-    return target >= fiscalYearStart ? target : fiscalYearStart
+    if (target >= fiscalYearStart) return target
+    const priorYear = String(Number(year) - 1)
+    return `${priorYear}-12-28`
   }
 
   function notYetDuePurchaseBill(): { readonly invoiceDate: string; readonly dueDate: string } {
@@ -63,7 +61,7 @@ export function contactsOverdueFixtureDates(asOf: string): ContactsOverdueFixtur
   }
 
   function overduePurchaseBill(): { readonly invoiceDate: string; readonly dueDate: string } {
-    if (asOf === fiscalYearStart) {
+    if (asOf <= addCalendarDays(fiscalYearStart, 1)) {
       const priorYear = String(Number(year) - 1)
       return {
         invoiceDate: `${priorYear}-12-15`,
@@ -99,14 +97,6 @@ export function wallClockInstantForIsoDate(isoDate: string): Date {
 
 export async function installWallClock(page: Page, isoDate: string): Promise<void> {
   const instant = wallClockInstantForIsoDate(isoDate)
-  await page.context().addCookies([
-    {
-      name: 'klopt-e2e-as-of',
-      value: isoDate,
-      domain: 'localhost',
-      path: '/',
-    },
-  ])
   await page.setExtraHTTPHeaders({
     'X-Klopt-E2e-As-Of': isoDate,
   })
@@ -130,6 +120,10 @@ export function customerNotYetDueIssueDate(dates: ContactsOverdueFixtureDates): 
   return dates.asOf
 }
 
-export function contactsOverdueNeedsPriorFiscalYear(asOf: string): boolean {
-  return asOf === `${asOf.slice(0, 4)}-01-01`
+/** Overdue sales or purchase legs that book in the prior book year need it opened first. */
+export function contactsOverdueNeedsPriorFiscalYear(dates: ContactsOverdueFixtureDates): boolean {
+  return (
+    dates.customerOverdueIssueDate() < dates.fiscalYearStart ||
+    dates.overduePurchaseBill().dueDate < dates.fiscalYearStart
+  )
 }

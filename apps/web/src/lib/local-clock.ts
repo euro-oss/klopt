@@ -5,9 +5,22 @@
  * `getFullYear` on boekjaar screens without also forbidding the greeting.
  */
 
+import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 import { dayPartAt, type DayPart } from './dashboard'
 import { parseE2eAsOfHeader } from './e2e-as-of-header'
-import { readE2eAsOfFromRequestScope } from './e2e-as-of-request'
+import { readE2eAsOfRequestHeader } from './e2e-as-of-request'
+
+const serverRequire = typeof window === 'undefined' ? createRequire(import.meta.url) : null
+const serverBridgePath =
+  typeof window === 'undefined'
+    ? fileURLToPath(new URL('./e2e-as-of-server-bridge.ts', import.meta.url))
+    : null
+
+function ensureServerBridgeLoaded(): void {
+  if (serverRequire === null || serverBridgePath === null) return
+  serverRequire(serverBridgePath).ensureE2eAsOfServerBridge()
+}
 
 function readE2eAsOfOverrideSafe(): string | null {
   if (typeof window !== 'undefined') return null
@@ -15,10 +28,16 @@ function readE2eAsOfOverrideSafe(): string | null {
   if (process.env['KLOPT_E2E_LEGAL_TOGGLE'] !== '1') return null
   if (process.env['NODE_ENV'] === 'production') return null
 
-  const fromScope = readE2eAsOfFromRequestScope()
-  if (fromScope !== null) return fromScope
+  const fromReader = parseE2eAsOfHeader(readE2eAsOfRequestHeader('x-klopt-e2e-as-of'))
+  if (fromReader !== undefined) return fromReader
 
-  const parsed = parseE2eAsOfHeader(process.env['KLOPT_E2E_TODAY_ISO'])
+  try {
+    ensureServerBridgeLoaded()
+  } catch {
+    return null
+  }
+
+  const parsed = parseE2eAsOfHeader(readE2eAsOfRequestHeader('x-klopt-e2e-as-of'))
   return parsed ?? null
 }
 
