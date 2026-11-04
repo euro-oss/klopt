@@ -86,24 +86,58 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
   })
 }
 
+async function mobileTabBarInset(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const bar = document.querySelector('[data-phone-tab-bar]')
+    if (!(bar instanceof HTMLElement)) return 80
+    return Math.ceil(bar.getBoundingClientRect().height) + 8
+  })
+}
+
+async function scrollClipTargetIntoView(
+  page: Page,
+  scrollTarget: Locator,
+  mobile: boolean,
+): Promise<void> {
+  await scrollTarget.scrollIntoViewIfNeeded()
+  if (!mobile) return
+  const inset = await mobileTabBarInset(page)
+  await scrollTarget.evaluate((el, bottomInset) => {
+    const rect = el.getBoundingClientRect()
+    const limit = window.innerHeight - bottomInset
+    if (rect.bottom > limit) {
+      window.scrollBy(0, rect.bottom - limit)
+    }
+    if (rect.top < 8) {
+      window.scrollBy(0, rect.top - 8)
+    }
+  }, inset)
+}
+
 async function shoot(page: Page, name: string, scrollTarget?: Locator): Promise<void> {
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
     for (const size of SIZES) {
       await page.setViewportSize({ width: size.width, height: size.height })
       await expect(page.locator('body')).toBeVisible()
+      const mobile = size.width === 390
       if (scrollTarget !== undefined) {
-        await scrollTarget.scrollIntoViewIfNeeded()
+        await scrollClipTargetIntoView(page, scrollTarget, mobile)
         await expect(scrollTarget).toBeVisible()
         const box = await scrollTarget.boundingBox()
         if (box !== null) {
+          const inset = mobile ? await mobileTabBarInset(page) : 0
+          const viewportHeight = size.height
+          const clipY = Math.max(0, box.y - 12)
+          const maxHeight = viewportHeight - inset - clipY
+          const clipHeight = Math.min(box.height + 24, maxHeight)
           const png = await page.screenshot({
             animations: 'disabled',
             clip: {
               x: Math.max(0, box.x - 12),
-              y: Math.max(0, box.y - 12),
-              width: box.width + 24,
-              height: box.height + 24,
+              y: clipY,
+              width: Math.min(box.width + 24, size.width - Math.max(0, box.x - 12)),
+              height: Math.max(1, clipHeight),
             },
           })
           writeFileSync(
@@ -146,6 +180,15 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
   await expect(page.getByText('Kies een andere')).toHaveCount(0)
   await shoot(page, 'purchase-blocked')
+
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
+  await page.getByLabel('Btw', { exact: true }).fill('50,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('100,00')
+  await expect(page.getByText('De btw op de regels is niet de btw op het document.')).toHaveCount(0)
+  const purchaseBlockedForm = page.locator('main form').filter({
+    has: page.locator('#purchase-invoice-date-hint'),
+  })
+  await shoot(page, 'purchase-vat-hidden', purchaseBlockedForm)
 
   await shoot(page, 'purchase-date-hint', page.locator('#purchase-invoice-date-hint'))
 
@@ -215,15 +258,20 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await page.getByRole('link', { name: 'Boekjaar 2025 openen' }).click()
   await expect(page.getByTestId('open-prior-year')).toBeVisible()
   await expect(page.getByTestId('fixed-year-open-code')).toHaveText('2025')
+  await page.getByRole('checkbox', { name: /Ik wil boekjaar 2025 openen/ }).check()
+  const deeplinkPanel = page.getByTestId('open-prior-year')
+  const confirmOpen = deeplinkPanel.getByRole('button', { name: 'Boekjaar 2025 openen' })
+  await expect(confirmOpen).toBeEnabled()
+  await confirmOpen.focus()
+  await expect(confirmOpen).toBeFocused()
+  await shoot(page, 'fiscal-years-deeplink-confirm', deeplinkPanel)
+
+  await confirmOpen.blur()
   await shoot(
     page,
-    'fiscal-years-deeplink-confirm',
-    page.getByRole('button', { name: 'Boekjaar 2025 openen' }),
+    'fiscal-years-prior-confirm',
+    deeplinkPanel.getByRole('button', { name: 'Boekjaar 2025 openen' }),
   )
-
-  await page.getByRole('checkbox', { name: /Ik wil boekjaar 2025 openen/ }).check()
-  await expect(page.getByRole('checkbox', { name: /Ik wil boekjaar 2025 openen/ })).toBeChecked()
-  await shoot(page, 'fiscal-years-prior-confirm', page.getByTestId('open-prior-year'))
 
   await page.getByRole('button', { name: 'Boekjaar 2025 openen' }).click()
   await expect(page).toHaveURL(/\/purchases\/new/, { timeout: 30_000 })
@@ -240,5 +288,5 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await expect(pluralHint).toBeVisible()
   await shoot(page, 'fiscal-years-list', pluralHint)
 
-  await shoot(page, 'fiscal-years-next-card', page.getByTestId('derived-dates'))
+  await shoot(page, 'fiscal-years-next-card', page.getByTestId('fiscal-years-open-section'))
 })
