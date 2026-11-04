@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { assessDocumentFiscalYear } from '@klopt/core'
+import { assessDocumentFiscalYear } from '~/lib/booking-fiscal-year-gate'
 import { Plus, ChevronLeft, Check, Info, Search, Send } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
@@ -39,7 +39,7 @@ import {
 import { periodLabel, type PeriodLabelYear } from '~/lib/period-label'
 import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { clearedTaxCodeLineNumbers } from '~/lib/booking-tax-codes'
-import { saveBookingDraft } from '~/lib/booking-draft-return'
+import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from '~/lib/booking-draft-return'
 import { multiplyByDecimal, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { cn } from '~/lib/utils'
@@ -111,6 +111,12 @@ interface ServerDraft {
   taxByLabel: ReadonlyArray<{ label: string; amount: bigint }>
 }
 
+interface SavedGuidedBookingDraft {
+  contactNumber: string
+  issueDate: string
+  lines: GuidedLineDraft[]
+}
+
 /**
  * Guided new-invoice flow for Eigenaar with Geavanceerd off (#45 / #61 slice 5).
  *
@@ -155,10 +161,15 @@ export function GuidedInvoiceFlow({
 
   const today = (): string => todayInAmsterdam()
 
+  const savedBookingDraft = useMemo(
+    () => loadBookingDraft<SavedGuidedBookingDraft>(bookingReturnTo),
+    [bookingReturnTo],
+  )
+
   const [step, setStep] = useState<GuidedStep>(1)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const [contactNumber, setContactNumber] = useState('')
+  const [contactNumber, setContactNumber] = useState(savedBookingDraft?.contactNumber ?? '')
   const [contactDetail, setContactDetail] = useState<{
     email: string | null
     paymentTermsDays: number
@@ -169,20 +180,23 @@ export function GuidedInvoiceFlow({
       city: string | null
     } | null
   } | null>(null)
-  const [issueDate, setIssueDate] = useState(today)
+  const [issueDate, setIssueDate] = useState(() => savedBookingDraft?.issueDate ?? today())
   // Filter by issue date so an ended H21 is not still selectable, and never
   // silently fall back to another rate when the usual default is gone.
   const codes = useMemo(() => salesPickerTaxCodes(taxCodes, issueDate), [taxCodes, issueDate])
   const defaultTax = defaultOutputTaxCode(taxCodes, issueDate)
-  const [lines, setLines] = useState<GuidedLineDraft[]>([
-    {
-      description: '',
-      quantity: '1',
-      unitPrice: '',
-      taxCode: defaultTax,
-      revenueAccountNumber: defaultRevenue,
-    },
-  ])
+  const [lines, setLines] = useState<GuidedLineDraft[]>(
+    () =>
+      savedBookingDraft?.lines ?? [
+        {
+          description: '',
+          quantity: '1',
+          unitPrice: '',
+          taxCode: defaultTax,
+          revenueAccountNumber: defaultRevenue,
+        },
+      ],
+  )
   const [sendMethod, setSendMethod] = useState<GuidedSendMethod>('email')
   const [confirming, setConfirming] = useState(false)
   const [phase, setPhase] = useState<FlowPhase>(
@@ -199,6 +213,10 @@ export function GuidedInvoiceFlow({
     [fiscalYears, issueDate, fiscalStartMonth],
   )
   const fiscalYearBlocked = fiscalGate.kind === 'blocked'
+
+  useEffect(() => {
+    if (savedBookingDraft !== null) clearBookingDraft(bookingReturnTo)
+  }, [savedBookingDraft, bookingReturnTo])
 
   function persistDraftForReturn(): void {
     saveBookingDraft(bookingReturnTo, {

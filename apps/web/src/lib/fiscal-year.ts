@@ -250,3 +250,34 @@ export function hasYearAfter(years: readonly FiscalYearOption[], year: FiscalYea
   const opening = dayAfter(year.endsOn)
   return years.some((other) => other.startsOn <= opening && opening <= other.endsOn)
 }
+
+/**
+ * Book-year labels before `year` that exist on the administration and are not
+ * closed yet, oldest first. Used for the muted row on Boekjaren (#200 / #209).
+ */
+export function earlierUnclosedBookYearCodes(
+  years: readonly FiscalYearOption[],
+  year: FiscalYearOption,
+): readonly string[] {
+  const yearNum = Number(year.code)
+  if (!Number.isFinite(yearNum)) return []
+
+  return years
+    .filter((candidate) => {
+      const candidateNum = Number(candidate.code)
+      return (
+        Number.isFinite(candidateNum) && candidateNum < yearNum && candidate.status !== 'closed'
+      )
+    })
+    .sort((left, right) => left.code.localeCompare(right.code))
+    .map((candidate) => candidate.code)
+}
+
+/** Dutch/English list: `2024 en 2025` or `2023, 2024 en 2025`. */
+export function formatBookYearCodeList(codes: readonly string[], language: 'nl' | 'en'): string {
+  if (codes.length <= 1) return codes[0] ?? ''
+  const last = codes.at(-1)!
+  const conj = language === 'nl' ? ' en ' : ' and '
+  if (codes.length === 2) return `${codes[0]}${conj}${last}`
+  return `${codes.slice(0, -1).join(', ')}${conj}${last}`
+}

@@ -3,7 +3,7 @@ import {
   assessDocumentFiscalYear,
   type DocumentFiscalYearGate,
   type FiscalYearGateInput,
-} from '@klopt/core'
+} from '~/lib/booking-fiscal-year-gate'
 import { useMemo } from 'react'
 import { useT } from '~/i18n/provider'
 import { cn } from '~/lib/utils'
@@ -54,7 +54,7 @@ export function DocumentFiscalYearHint({
       {showLink ? (
         <Link
           to="/fiscal-years"
-          search={{ openYear: Number(gate.code), returnTo, focus: 'confirm' }}
+          search={{ openYear: gate.code, returnTo, focus: 'confirm' }}
           onClick={onNavigate}
           className={cn(
             'text-destructive inline-flex min-h-11 items-center font-semibold underline underline-offset-2',

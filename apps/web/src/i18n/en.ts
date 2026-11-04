@@ -716,6 +716,10 @@ export const en: Record<MessageKey, string> = {
     'No opening balance is created; only the twelve periods of that book year.',
   'fiscalYears.openPriorAck': 'I want to open book year {year}.',
   'fiscalYears.openSpecificTitle': 'Open book year {year}',
+  'fiscalYears.earlierOneNotClosed':
+    'Book year {earlier} is not closed yet; its result is not yet in the opening balance of {year}.',
+  'fiscalYears.earlierManyNotClosed':
+    'Book years {earlierList} are not closed yet; their results are not yet in the opening balance of {year}.',
 
   // VAT codes: view standard codes and add missing ones (#87 PR B / #88).
   'taxCodes.title': 'VAT codes',

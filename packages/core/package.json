@@ -37,6 +37,10 @@
     "./moneybird-account-ranker": {
       "types": "./dist/moneybird/account-ranker.d.ts",
       "default": "./dist/moneybird/account-ranker.js"
+    },
+    "./setup/fiscal-year": {
+      "types": "./dist/setup/fiscal-year.d.ts",
+      "default": "./dist/setup/fiscal-year.js"
     }
   },
   "files": [

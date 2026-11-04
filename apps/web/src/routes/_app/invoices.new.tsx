@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { assessDocumentFiscalYear } from '@klopt/core'
+import { assessDocumentFiscalYear } from '~/lib/booking-fiscal-year-gate'
 import { violationMessage } from '~/i18n/labels'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '~/components/app-shell'
@@ -30,6 +30,15 @@ import { may, MAY_OPEN_YEAR } from '~/lib/roles'
 import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from '~/lib/booking-draft-return'
 
 const BOOKING_RETURN_TO = '/invoices/new'
+
+interface SavedAdvancedInvoiceDraft {
+  contactNumber: string
+  kind: 'invoice' | 'credit_note'
+  issueDate: string
+  reference: string
+  buyerReference: string
+  lines: DraftLine[]
+}
 
 /**
  * A new sales invoice.
@@ -148,7 +157,10 @@ function GuidedFromLoader() {
       }
     : null
 
-  const years: readonly PeriodLabelYear[] = fiscalYears.ok ? fiscalYears.data.fiscalYears : []
+  const years = useMemo<readonly PeriodLabelYear[]>(
+    () => (fiscalYears.ok ? fiscalYears.data.fiscalYears : []),
+    [fiscalYears],
+  )
   const fiscalStartMonth = useMemo(() => {
     const latest = latestFiscalYear(years)
     return latest === undefined ? 1 : startingMonth(latest)
@@ -187,13 +199,19 @@ function AdvancedInvoiceForm() {
     : []
 
   const defaultRevenue = revenueAccounts[0]?.number ?? ''
+  const savedDraft = useMemo(
+    () => loadBookingDraft<SavedAdvancedInvoiceDraft>(BOOKING_RETURN_TO),
+    [],
+  )
   /**
    * Usual default is H21. When that code has ended for the issue date we
    * preselect nothing — never silently fall back to L9.
    */
-  const [contactNumber, setContactNumber] = useState(customers[0]?.number ?? '')
-  const [kind, setKind] = useState<'invoice' | 'credit_note'>('invoice')
-  const [issueDate, setIssueDate] = useState(today())
+  const [contactNumber, setContactNumber] = useState(
+    savedDraft?.contactNumber ?? customers[0]?.number ?? '',
+  )
+  const [kind, setKind] = useState<'invoice' | 'credit_note'>(savedDraft?.kind ?? 'invoice')
+  const [issueDate, setIssueDate] = useState(savedDraft?.issueDate ?? today())
   // Historical L6/H19 stay on the chart for import/corrections only; filter by
   // the issue date so an ended H21 is not still selectable.
   const codes = useMemo(
@@ -201,9 +219,11 @@ function AdvancedInvoiceForm() {
     [taxCodes, issueDate],
   )
   const defaultTax = defaultSalesBookingTaxCode(codes)
-  const [reference, setReference] = useState('')
-  const [buyerReference, setBuyerReference] = useState('')
-  const [lines, setLines] = useState<DraftLine[]>([emptyLine(defaultRevenue, defaultTax)])
+  const [reference, setReference] = useState(savedDraft?.reference ?? '')
+  const [buyerReference, setBuyerReference] = useState(savedDraft?.buyerReference ?? '')
+  const [lines, setLines] = useState<DraftLine[]>(
+    () => savedDraft?.lines ?? [emptyLine(defaultRevenue, defaultTax)],
+  )
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<{ path: string | null; message: string }[]>([])
   const [dateNotice, setDateNotice] = useState<string | null>(null)
@@ -212,7 +232,14 @@ function AdvancedInvoiceForm() {
   const [leaving, setLeaving] = useState(false)
   const confirmRef = useRef<HTMLButtonElement>(null)
 
-  const fiscalYearRows = fiscalYears.ok ? fiscalYears.data.fiscalYears : []
+  useEffect(() => {
+    if (savedDraft !== null) clearBookingDraft(BOOKING_RETURN_TO)
+  }, [savedDraft])
+
+  const fiscalYearRows = useMemo(
+    () => (fiscalYears.ok ? fiscalYears.data.fiscalYears : []),
+    [fiscalYears],
+  )
   const fiscalStartMonth = useMemo(() => {
     const latest = latestFiscalYear(fiscalYearRows)
     return latest === undefined ? 1 : startingMonth(latest)
@@ -226,7 +253,7 @@ function AdvancedInvoiceForm() {
   const fiscalYearBlocked = fiscalGate.kind === 'blocked'
 
   function persistDraftForReturn(): void {
-    saveBookingDraft(BOOKING_RETURN_TO, {
+    saveBookingDraft<SavedAdvancedInvoiceDraft>(BOOKING_RETURN_TO, {
       contactNumber,
       kind,
       issueDate,
@@ -263,11 +290,14 @@ function AdvancedInvoiceForm() {
   /** One key per attempt. A second click must not draft a second invoice. */
   const idempotencyKey = useRef<string>(crypto.randomUUID())
 
-  const update = useCallback((index: number, patch: Partial<DraftLine>) => {
-    setLines((current) =>
-      current.map((line, position) => (position === index ? { ...line, ...patch } : line)),
-    )
-  }, [])
+  const update = useCallback(
+    (index: number, patch: Partial<DraftLine>) => {
+      setLines((current) =>
+        current.map((line, position) => (position === index ? { ...line, ...patch } : line)),
+      )
+    },
+    [setLines],
+  )
 
   const rateOf = (code: string): string =>
     codes.find((item) => item.code === code)?.ratePercent ?? '0'

@@ -11,6 +11,8 @@ import { useT } from '~/i18n/provider'
 import { defaultJournal, equityAccounts, openingJournals } from '~/lib/account-options'
 import {
   dayAfter,
+  earlierUnclosedBookYearCodes,
+  formatBookYearCodeList,
   hasYearAfter,
   isFiscalYearCode,
   latestFiscalYear,
@@ -24,7 +26,13 @@ import { useHydrated } from '~/lib/hydration'
 import { may, MAY_CLOSE_YEAR, MAY_OPEN_YEAR } from '~/lib/roles'
 import { closeYear, listAccounts, listJournals } from '~/server/ledger'
 import { createFiscalYear, listFiscalYears } from '~/server/setup'
-import { earliestOpenFiscalYear, priorFiscalYearCodeToOpen } from '@klopt/core'
+import { earliestOpenFiscalYear, priorFiscalYearCodeToOpen } from '~/lib/booking-fiscal-year-gate'
+
+type FiscalYearsSearch = {
+  openYear?: string
+  returnTo?: string
+  focus?: 'confirm'
+}
 
 /**
  * Boekjaren — what is open, what comes next, and closing one.
@@ -64,11 +72,11 @@ export const Route = createFileRoute('/_app/fiscal-years')({
     const openText =
       typeof openRaw === 'number' ? String(openRaw) : typeof openRaw === 'string' ? openRaw : ''
     const returnRaw = search['returnTo']
-    return {
-      openYear: isFiscalYearCode(openText) ? openText : undefined,
-      returnTo: typeof returnRaw === 'string' && returnRaw.startsWith('/') ? returnRaw : undefined,
-      focus: search['focus'] === 'confirm' ? ('confirm' as const) : undefined,
-    }
+    const parsed: FiscalYearsSearch = {}
+    if (isFiscalYearCode(openText)) parsed.openYear = openText
+    if (typeof returnRaw === 'string' && returnRaw.startsWith('/')) parsed.returnTo = returnRaw
+    if (search['focus'] === 'confirm') parsed.focus = 'confirm'
+    return parsed
   },
   loader: async ({ context }) => {
     const [years, accounts, journals] = await Promise.all([
@@ -141,7 +149,7 @@ function yearToClose(years: readonly FiscalYearOption[], now: string): string {
 function FiscalYears() {
   const { years, accounts, journals, role } = Route.useLoaderData()
   const search = Route.useSearch()
-  const { t } = useT()
+  const { t, locale } = useT()
 
   if (!years.ok) {
     return (
@@ -156,6 +164,24 @@ function FiscalYears() {
 
   const rows = years.data.fiscalYears as readonly YearRow[]
   const now = today()
+  const listLanguage = locale === 'en' ? 'en' : 'nl'
+  const fiscalYearsSearch: FiscalYearsSearch = {
+    ...(search.openYear === undefined ? {} : { openYear: search.openYear }),
+    ...(search.returnTo === undefined ? {} : { returnTo: search.returnTo }),
+    ...(search.focus === undefined ? {} : { focus: search.focus }),
+  }
+
+  function priorNotClosedHint(row: YearRow): string | null {
+    const earlier = earlierUnclosedBookYearCodes(rows, row)
+    if (earlier.length === 0) return null
+    if (earlier.length === 1) {
+      return t('fiscalYears.earlierOneNotClosed', { earlier: earlier[0]!, year: row.code })
+    }
+    return t('fiscalYears.earlierManyNotClosed', {
+      earlierList: formatBookYearCodeList(earlier, listLanguage),
+      year: row.code,
+    })
+  }
 
   const columns: readonly Column<YearRow>[] = [
     {
@@ -261,17 +287,31 @@ function FiscalYears() {
         rowKey={(row) => row.code}
         caption={t('fiscalYears.caption')}
         empty={t('fiscalYears.empty')}
+        rowDetail={(row) => {
+          const message = priorNotClosedHint(row)
+          if (message === null) return null
+          return (
+            <p
+              data-testid="fiscal-year-prior-not-closed-hint"
+              className="line-clamp-2 max-w-[22rem] sm:max-w-none"
+            >
+              {message}
+            </p>
+          )
+        }}
       />
 
       {may(MAY_OPEN_YEAR, role) ? (
-        <OpenNextYear years={rows} search={search} />
+        <OpenNextYear years={rows} search={fiscalYearsSearch} />
       ) : (
         <Withheld title={t('fiscalYears.openTitle')} why={t('fiscalYears.mayNotOpen')} />
       )}
 
-      {may(MAY_OPEN_YEAR, role) ? <OpenPriorYear years={rows} search={search} /> : null}
+      {may(MAY_OPEN_YEAR, role) ? <OpenPriorYear years={rows} search={fiscalYearsSearch} /> : null}
 
-      {may(MAY_OPEN_YEAR, role) ? <OpenRequestedYear years={rows} search={search} /> : null}
+      {may(MAY_OPEN_YEAR, role) ? (
+        <OpenRequestedYear years={rows} search={fiscalYearsSearch} />
+      ) : null}
 
       {may(MAY_CLOSE_YEAR, role) ? (
         <CloseYear
@@ -446,12 +486,6 @@ function OpenNextYear({
   )
 }
 
-type FiscalYearsSearch = {
-  openYear?: string
-  returnTo?: string
-  focus?: 'confirm'
-}
-
 /**
  * Open exactly one earlier year — the calendar label before the earliest open
  * year. No year field: a typo must not open 1925 or 2205; the server range
@@ -543,6 +577,7 @@ function FixedYearOpenPanel({
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<readonly string[] | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const creating = useRef(false)
 
   const planned = plannedFiscalYear(code, startMonth)
 
@@ -553,34 +588,40 @@ function FixedYearOpenPanel({
   }, [search.focus, search.openYear, code, expanded])
 
   async function create(): Promise<void> {
+    if (creating.current || busy) return
+    creating.current = true
     setBusy(true)
     setProblems(null)
     setNotice(null)
 
-    const result = await createFiscalYear({ data: { code } })
-    setBusy(false)
+    try {
+      const result = await createFiscalYear({ data: { code } })
 
-    if (!result.ok) {
-      setProblems(
-        result.problem.violations.length > 0
-          ? result.problem.violations.map((violation) => violationMessage(t, violation))
-          : [result.problem.detail],
+      if (!result.ok) {
+        setProblems(
+          result.problem.violations.length > 0
+            ? result.problem.violations.map((violation) => violationMessage(t, violation))
+            : [result.problem.detail],
+        )
+        return
+      }
+
+      setNotice(
+        result.data.created
+          ? t('fiscalYears.opened', {
+              year: result.data.code,
+              from: formatDate(result.data.startsOn),
+              to: formatDate(result.data.endsOn),
+            })
+          : t('fiscalYears.alreadyOpen', { year: result.data.code }),
       )
-      return
-    }
-
-    setNotice(
-      result.data.created
-        ? t('fiscalYears.opened', {
-            year: result.data.code,
-            from: formatDate(result.data.startsOn),
-            to: formatDate(result.data.endsOn),
-          })
-        : t('fiscalYears.alreadyOpen', { year: result.data.code }),
-    )
-    await router.invalidate()
-    if (search.returnTo !== undefined) {
-      await router.navigate({ to: search.returnTo })
+      await router.invalidate()
+      if (search.returnTo !== undefined) {
+        await router.navigate({ to: search.returnTo })
+      }
+    } finally {
+      creating.current = false
+      setBusy(false)
     }
   }
 
@@ -599,6 +640,9 @@ function FixedYearOpenPanel({
       ) : (
         <>
           <h2 className="text-base font-medium">{title}</h2>
+          <p className="mt-1 tabular text-base font-medium" data-testid="fixed-year-open-code">
+            {code}
+          </p>
           <p className="text-muted-foreground mt-1 tabular text-sm">
             {formatDate(planned.startsOn)} – {formatDate(planned.endsOn)}
           </p>
@@ -611,6 +655,7 @@ function FixedYearOpenPanel({
               <input
                 type="checkbox"
                 checked={ack}
+                aria-label={t('fiscalYears.openPriorAck', { year: code })}
                 onChange={(event) => {
                   setAck(event.target.checked)
                 }}

@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { assessDocumentFiscalYear } from '@klopt/core'
+import { assessDocumentFiscalYear } from '~/lib/booking-fiscal-year-gate'
 import { Check } from 'lucide-react'
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { AccountPicker } from '~/components/finance/account-picker'
@@ -97,7 +97,10 @@ function NewPurchaseInvoice() {
   const { t, plural } = useT()
   const modLabel = hydrated && isApple() ? '⌘' : 'Ctrl'
 
-  const fiscalYearRows = fiscalYears.ok ? fiscalYears.data.fiscalYears : []
+  const fiscalYearRows = useMemo(
+    () => (fiscalYears.ok ? fiscalYears.data.fiscalYears : []),
+    [fiscalYears],
+  )
   const fiscalStartMonth = useMemo(() => {
     const latest = latestFiscalYear(fiscalYearRows)
     return latest === undefined ? 1 : startingMonth(latest)

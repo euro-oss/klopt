@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { installFiscalYearBookingFakeClock } from './support/fiscal-year-booking-fake-clock'
 import { withPngSourceChunk } from './support/png-source-chunk.js'
 
 const OUT = join(import.meta.dirname, '..', '..', '..', 'docs', 'pr-screenshots', '200')
@@ -21,8 +22,30 @@ test.beforeAll(async () => {
 
 test.skip(!CAPTURE, 'Set CAPTURE_PR_SCREENSHOTS=1 to write docs/pr-screenshots/200')
 
+async function aSupplier(page: Page): Promise<void> {
+  await page.goto('/contacts')
+  await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
+  await page.getByLabel('Nummer', { exact: true }).fill('CRE-0001')
+  await page.getByLabel('Naam', { exact: true }).fill('Leverancier B.V.')
+  await page.getByRole('textbox', { name: 'Btw-nummer' }).fill('NL987654321B01')
+  await page.getByLabel('E-mail').fill('facturen@leverancier.test')
+  await page.getByLabel('IBAN').fill('NL91ABNA0417164300')
+  await page.getByRole('checkbox', { name: /Leverancier/ }).check()
+  await page.getByRole('button', { name: 'Opslaan' }).click()
+  await expect(page.getByRole('button', { name: /Leverancier B\.V\./ })).toBeVisible()
+}
+
+async function setBillDate(page: Page, isoDate: string): Promise<void> {
+  const field = page.getByLabel('Factuurdatum', { exact: true })
+  await field.click()
+  await field.fill(isoDate)
+  await expect(field).toHaveValue(isoDate)
+}
+
+test.use({ timezoneId: 'Europe/Amsterdam' })
+
 async function ready(page: Page): Promise<void> {
-  await page.clock.setFixedTime(new Date('2026-01-15T10:00:00Z'))
+  await installFiscalYearBookingFakeClock(page)
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.goto('/setup')
@@ -32,6 +55,7 @@ async function ready(page: Page): Promise<void> {
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
   ).toBeVisible()
   await hydrated(page)
+  await aSupplier(page)
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -63,7 +87,8 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page }) => {
   await ready(page)
 
   await page.goto('/purchases/new')
-  await page.getByLabel('Factuurdatum', { exact: true }).fill('2025-12-15')
+  await hydrated(page)
+  await setBillDate(page, '2025-12-15')
   await shoot(page, 'purchase-blocked')
 
   await page.getByRole('link', { name: 'Boekjaar 2025 openen' }).click()
@@ -75,6 +100,10 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page }) => {
   await shoot(page, 'purchase-returned')
 
   await page.goto('/fiscal-years')
+  await hydrated(page)
+  await expect(page.getByTestId('fiscal-year-prior-not-closed-hint')).toBeVisible()
+  await shoot(page, 'fiscal-years-list')
+
   await shoot(page, 'fiscal-years-next-card')
 
   await page.getByRole('button', { name: 'Vorig boekjaar openen' }).click()

@@ -499,6 +499,10 @@ export const nl = {
     'Er wordt geen beginbalans aangemaakt; alleen de twaalf periodes van dat boekjaar.',
   'fiscalYears.openPriorAck': 'Ik wil boekjaar {year} openen.',
   'fiscalYears.openSpecificTitle': 'Boekjaar {year} openen',
+  'fiscalYears.earlierOneNotClosed':
+    'Boekjaar {earlier} is nog niet afgesloten; het resultaat staat nog niet in de beginbalans van {year}.',
+  'fiscalYears.earlierManyNotClosed':
+    'Boekjaren {earlierList} zijn nog niet afgesloten; het resultaat staat nog niet in de beginbalans van {year}.',
 
   // Btw-codes: standaardcodes bekijken en ontbrekende toevoegen (#87 PR B / #88).
   'taxCodes.title': 'Btw-codes',

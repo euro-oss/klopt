@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode, Fragment } from 'react'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
@@ -85,6 +85,7 @@ export function LedgerTable<TRow>({
   empty,
   caption,
   typeAheadColumn,
+  rowDetail,
 }: {
   columns: readonly Column<TRow>[]
   rows: readonly TRow[]
@@ -101,6 +102,8 @@ export function LedgerTable<TRow>({
    * A table sorted by something other than its first column says so here.
    */
   typeAheadColumn?: string | undefined
+  /** Optional muted line rendered beneath a row (full table width). */
+  rowDetail?: ((row: TRow) => ReactNode | null | undefined) | undefined
 }) {
   const { t, plural } = useT()
   const hydrated = useHydrated()
@@ -312,57 +315,66 @@ export function LedgerTable<TRow>({
             {rows.map((row, index) => {
               const key = keys[index] ?? String(index)
               const selected = selection.has(key)
+              const detail = rowDetail?.(row)
               return (
-                <tr
-                  key={key}
-                  // One row in the tab order, and the arrows move it: a table of
-                  // four hundred rows that has to be tabbed through is a table
-                  // nobody reaches the end of.
-                  tabIndex={index === cursor ? 0 : -1}
-                  aria-current={index === cursor ? true : undefined}
-                  data-selected={selected}
-                  onFocus={() => {
-                    setAt({ key, index })
-                    anchor.current = index
-                  }}
-                  onClick={
-                    onRowActivate === undefined
-                      ? undefined
-                      : () => {
-                          onRowActivate(row)
-                        }
-                  }
-                  className={cn(
-                    'border-border/60 group border-b last:border-0 outline-none',
-                    onRowActivate !== undefined && 'hover:bg-muted/60 cursor-pointer',
-                    // The cursor uses `--ring` (black in light, yellow in dark):
-                    // yellow-on-white is too thin for a hairline, so selection
-                    // is a yellow fill with black text when the row is chosen.
-                    index === cursor && 'outline-ring outline-2 -outline-offset-2',
-                    // A selected row is marked at its edge rather than filled,
-                    // so a selection of forty rows is still a table of figures.
-                    selected && 'border-l-ring bg-muted/60 border-l-2 font-medium',
+                <Fragment key={key}>
+                  <tr
+                    tabIndex={index === cursor ? 0 : -1}
+                    aria-current={index === cursor ? true : undefined}
+                    data-selected={selected}
+                    onFocus={() => {
+                      setAt({ key, index })
+                      anchor.current = index
+                    }}
+                    onClick={
+                      onRowActivate === undefined
+                        ? undefined
+                        : () => {
+                            onRowActivate(row)
+                          }
+                    }
+                    className={cn(
+                      'border-border/60 group border-b last:border-0 outline-none',
+                      onRowActivate !== undefined && 'hover:bg-muted/60 cursor-pointer',
+                      // The cursor uses `--ring` (black in light, yellow in dark):
+                      // yellow-on-white is too thin for a hairline, so selection
+                      // is a yellow fill with black text when the row is chosen.
+                      index === cursor && 'outline-ring outline-2 -outline-offset-2',
+                      // A selected row is marked at its edge rather than filled,
+                      // so a selection of forty rows is still a table of figures.
+                      selected && 'border-l-ring bg-muted/60 border-l-2 font-medium',
+                    )}
+                  >
+                    {columns.map((column, columnIndex) => (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          'px-3 py-1.5',
+                          column.align === 'right' && 'text-right',
+                          stickyFirst &&
+                            columnIndex === 0 &&
+                            cn(
+                              'bg-background sticky left-0 z-10 border-r border-border',
+                              onRowActivate !== undefined && 'group-hover:bg-muted/60',
+                              selected && 'bg-muted/60',
+                            ),
+                        )}
+                      >
+                        {column.cell(row)}
+                      </td>
+                    ))}
+                  </tr>
+                  {detail != null && detail !== false && (
+                    <tr className="border-border/60 border-b last:border-0">
+                      <td
+                        colSpan={columns.length}
+                        className="text-muted-foreground px-3 pt-0 pb-2 text-xs"
+                      >
+                        {detail}
+                      </td>
+                    </tr>
                   )}
-                >
-                  {columns.map((column, columnIndex) => (
-                    <td
-                      key={column.key}
-                      className={cn(
-                        'px-3 py-1.5',
-                        column.align === 'right' && 'text-right',
-                        stickyFirst &&
-                          columnIndex === 0 &&
-                          cn(
-                            'bg-background sticky left-0 z-10 border-r border-border',
-                            onRowActivate !== undefined && 'group-hover:bg-muted/60',
-                            selected && 'bg-muted/60',
-                          ),
-                      )}
-                    >
-                      {column.cell(row)}
-                    </td>
-                  ))}
-                </tr>
+                </Fragment>
               )
             })}
           </tbody>

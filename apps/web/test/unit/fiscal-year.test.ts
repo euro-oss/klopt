@@ -4,6 +4,8 @@ import {
   currentFiscalYear,
   dayAfter,
   fiscalYearSearch,
+  earlierUnclosedBookYearCodes,
+  formatBookYearCodeList,
   hasYearAfter,
   isFiscalYearCode,
   isYearScopedRoute,
@@ -250,5 +252,26 @@ describe('whether a close has anywhere to carry balances to', () => {
   it('steps over a month end and a leap day', () => {
     expect(dayAfter('2026-12-31')).toBe('2027-01-01')
     expect(dayAfter('2024-02-28')).toBe('2024-02-29')
+  })
+})
+
+describe('earlier unclosed book years on Boekjaren', () => {
+  it('lists every prior open year, oldest first', () => {
+    const years = [calendar('2024'), calendar('2025'), { ...calendar('2026'), status: 'open' }]
+    expect(earlierUnclosedBookYearCodes(years, calendar('2026'))).toEqual(['2024', '2025'])
+    expect(earlierUnclosedBookYearCodes(years, calendar('2025'))).toEqual(['2024'])
+    expect(earlierUnclosedBookYearCodes(years, calendar('2024'))).toEqual([])
+  })
+
+  it('ignores closed prior years', () => {
+    const years = [{ ...calendar('2025'), status: 'closed' }, calendar('2026')]
+    expect(earlierUnclosedBookYearCodes(years, calendar('2026'))).toEqual([])
+  })
+
+  it('formats year lists for Dutch copy', () => {
+    expect(formatBookYearCodeList(['2025'], 'nl')).toBe('2025')
+    expect(formatBookYearCodeList(['2024', '2025'], 'nl')).toBe('2024 en 2025')
+    expect(formatBookYearCodeList(['2023', '2024', '2025'], 'nl')).toBe('2023, 2024 en 2025')
+    expect(formatBookYearCodeList(['2023', '2024', '2025'], 'en')).toBe('2023, 2024 and 2025')
   })
 })
