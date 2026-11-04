@@ -12,6 +12,17 @@ import {
   type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
 
+const IMPORT_WIZARD_ADVANCED_CHECKBOX = /Boekhouddetails|Accounting details/i
+
+/** Import wizard gates the Geavanceerd row on `useHydrated()` — same signal as #199 on sign-in. */
+async function waitImportWizardHydrated(page: Page): Promise<void> {
+  await expect(
+    page.locator('[data-slot="import-wizard"]').getByRole('checkbox', {
+      name: IMPORT_WIZARD_ADVANCED_CHECKBOX,
+    }),
+  ).toBeEnabled({ timeout: 30_000 })
+}
+
 /**
  * Import wizard phone layout (#134 / #180 QA blocker 7): 390 light/dark past Source.
  */
@@ -236,6 +247,7 @@ async function clickNext(page: Page): Promise<void> {
 /** Fresh Bron (source pick), clearing saved wizard progress when the resume card is shown. */
 async function ensureFreshBronStep(page: Page): Promise<void> {
   await page.goto('/importeren')
+  await waitImportWizardHydrated(page)
   const bronHeading = page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })
   const resumeSection = page.locator('section').filter({
     has: page.getByRole('button', { name: 'Doorgaan' }),
@@ -245,23 +257,30 @@ async function ensureFreshBronStep(page: Page): Promise<void> {
 
   const clearDialog = page.getByRole('alertdialog', { name: /Je voortgang wissen/ })
   const restartBtn = resumeSection.getByRole('button', { name: 'Opnieuw beginnen' })
-  await expect(async () => {
-    await restartBtn.click()
-    await expect(clearDialog.or(bronHeading)).toBeVisible({ timeout: 2_000 })
-  }).toPass({ timeout: 30_000 })
-
-  if (!(await bronHeading.isVisible())) {
-    await expect(clearDialog).toBeVisible()
-    await clearDialog.getByRole('button', { name: 'Opnieuw beginnen' }).click()
-  }
+  await expect(restartBtn).toBeEnabled()
+  await restartBtn.click()
+  await expect(clearDialog).toBeVisible({ timeout: 30_000 })
+  await clearDialog.getByRole('button', { name: 'Opnieuw beginnen' }).click()
   await expect(bronHeading).toBeVisible({ timeout: 30_000 })
 }
 
-async function waitForYearCheckbox(page: Page, yearLabel: string): Promise<void> {
-  await expect(page.getByRole('checkbox', { name: /^202\d$/ }).first()).toBeVisible({
-    timeout: 60_000,
-  })
-  await expect(page.getByRole('checkbox', { name: yearLabel })).toBeVisible({ timeout: 60_000 })
+async function fetchAdministrationAndWaitForYear(page: Page, yearLabel: string): Promise<void> {
+  await expect(
+    page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
+  ).toBeVisible()
+  await waitImportWizardHydrated(page)
+  const yearCheckbox = page.getByRole('checkbox', { name: yearLabel })
+  if (await yearCheckbox.isVisible()) return
+
+  const fetchBtn = page.getByRole('button', { name: 'Administraties ophalen' })
+  await expect(fetchBtn).toBeEnabled()
+  await fetchBtn.click()
+  const adminRadio = page.getByRole('radio', { name: /Voorbeeld BV/ })
+  await expect(adminRadio).toBeVisible({ timeout: 30_000 })
+  await expect(adminRadio).toBeEnabled()
+  await adminRadio.click()
+  await expect(adminRadio).toBeChecked()
+  await expect(yearCheckbox).toBeVisible({ timeout: 60_000 })
 }
 
 async function pickMoneybirdOnBron(page: Page): Promise<void> {
@@ -296,13 +315,13 @@ async function connectStandIn(page: Page, standIn: MoneybirdStandIn): Promise<vo
   await expect(
     page.getByRole('heading', { name: /Welke administratie en welke jaren/ }),
   ).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Administraties ophalen' })).toBeEnabled({
+    timeout: 30_000,
+  })
 }
 
 async function advanceToOverzicht(page: Page, yearLabel = '2026'): Promise<void> {
-  await page.getByRole('button', { name: 'Administraties ophalen' }).click()
-  await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
-  await page.getByText('Voorbeeld BV').click()
-  await waitForYearCheckbox(page, yearLabel)
+  await fetchAdministrationAndWaitForYear(page, yearLabel)
   await clickNext(page)
   await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
     timeout: 30_000,
@@ -453,10 +472,7 @@ test('390 connect and VAT steps do not overflow in light and dark', async ({ pag
       await assertTokenAboveFooter(page)
 
       await clickNext(page)
-      await page.getByRole('button', { name: 'Administraties ophalen' }).click()
-      await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
-      await page.getByText('Voorbeeld BV').click()
-      await waitForYearCheckbox(page, '2025')
+      await fetchAdministrationAndWaitForYear(page, '2025')
       await clickNext(page)
       await clickNext(page)
       await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
@@ -480,10 +496,7 @@ test('390 problems step: overflow, step-of, and document singular in light and d
     for (const theme of ['light', 'dark'] as const) {
       await setTheme(page, theme)
       await connectStandIn(page, standIn)
-      await page.getByRole('button', { name: 'Administraties ophalen' }).click()
-      await expect(page.getByText('Voorbeeld BV')).toBeVisible({ timeout: 30_000 })
-      await page.getByText('Voorbeeld BV').click()
-      await waitForYearCheckbox(page, '2025')
+      await fetchAdministrationAndWaitForYear(page, '2025')
       await clickNext(page)
       await clickNext(page)
       await mapAllOpenRates(page)
