@@ -132,9 +132,12 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
 /** Take a brand-new address all the way to a signed-in session. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.getByLabel('E-mail').fill(email)
-  await page.getByRole('button', { name: 'Stuur me een code' }).click()
+  const sendCode = page.getByRole('button', { name: 'Stuur me een code' })
+  await expect(sendCode).toBeEnabled({ timeout: 15_000 })
+  await sendCode.click()
 
   await expect(page.getByLabel('Code')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Stuur een nieuwe code' })).toBeEnabled()
   // The 6th digit auto-submits (codeHelp). Do not click Aanmelden after fill.
   await page.getByLabel('Code').fill(await codeFor(email))
   await expect(page.getByLabel('Code')).toHaveCount(0)

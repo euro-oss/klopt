@@ -83,7 +83,8 @@ export default defineConfig({
           stdout: 'pipe',
           stderr: 'pipe',
           port: 3399,
-          reuseExistingServer: true,
+          // Never reuse: a prior calendar-proof run leaves KLOPT_E2E_TODAY_ISO on the dev server.
+          reuseExistingServer: false,
           timeout: 120_000,
           env: e2eWebServerEnv(),
         },
