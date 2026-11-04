@@ -18,6 +18,7 @@ import {
   latestFiscalYear,
   nextFiscalYear,
   plannedFiscalYear,
+  sanitizeBookYearOpenSearch,
   startingMonth,
   type FiscalYearOption,
 } from '~/lib/fiscal-year'
@@ -165,11 +166,11 @@ function FiscalYears() {
   const rows = years.data.fiscalYears as readonly YearRow[]
   const now = today()
   const listLanguage = locale === 'en' ? 'en' : 'nl'
-  const fiscalYearsSearch: FiscalYearsSearch = {
+  const fiscalYearsSearch = sanitizeBookYearOpenSearch(rows, {
     ...(search.openYear === undefined ? {} : { openYear: search.openYear }),
     ...(search.returnTo === undefined ? {} : { returnTo: search.returnTo }),
     ...(search.focus === undefined ? {} : { focus: search.focus }),
-  }
+  })
 
   function priorNotClosedHint(row: YearRow): string | null {
     const earlier = earlierUnclosedBookYearCodes(rows, row)
@@ -364,8 +365,6 @@ function OpenNextYear({
   const earliest = earliestOpenFiscalYear(years)
   const priorCode = earliest === undefined ? null : priorFiscalYearCodeToOpen(earliest.code)
   const priorAvailable = priorCode !== null && !years.some((year) => year.code === priorCode)
-  const wantsPriorUi =
-    priorAvailable && (search.openYear === undefined || search.openYear === priorCode)
 
   const initialCode =
     search.openYear !== undefined && suggestion !== null && search.openYear === suggestion.code
@@ -377,7 +376,7 @@ function OpenNextYear({
   const [problems, setProblems] = useState<readonly string[] | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [priorExpanded, setPriorExpanded] = useState(
-    () => wantsPriorUi && (search.focus === 'confirm' || search.openYear === priorCode),
+    () => priorAvailable && search.openYear === priorCode,
   )
 
   /** What the server will make of what has been typed, while it is being typed. */

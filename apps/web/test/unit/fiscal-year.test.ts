@@ -8,10 +8,13 @@ import {
   formatBookYearCodeList,
   hasYearAfter,
   isFiscalYearCode,
+  isOfferedFiscalYearToOpen,
   isYearScopedRoute,
   nextFiscalYear,
+  offeredFiscalYearCodesToOpen,
   plannedFiscalYear,
   resolveFiscalYear,
+  sanitizeBookYearOpenSearch,
   startingMonth,
   withinFiscalYear,
   type FiscalYearOption,
@@ -293,5 +296,35 @@ describe('opening the prior book year from Boekjaren', () => {
   it('offers no year below the 1960 floor', () => {
     expect(priorFiscalYearCodeToOpen('1960')).toBeNull()
     expect(priorFiscalYearCodeToOpen('1961')).toBe('1960')
+  })
+})
+
+describe('book years offered to open from Boekjaren or a form link', () => {
+  it('names prior and next labels only', () => {
+    expect(offeredFiscalYearCodesToOpen([calendar('2026')])).toEqual({
+      prior: '2025',
+      next: '2027',
+    })
+    expect(offeredFiscalYearCodesToOpen([calendar('2024'), calendar('2026')])).toEqual({
+      prior: null,
+      next: '2027',
+    })
+  })
+
+  it('treats only those two labels as openable', () => {
+    const years = [calendar('2024'), calendar('2026')]
+    expect(isOfferedFiscalYearToOpen(years, '2025')).toBe(false)
+    expect(isOfferedFiscalYearToOpen(years, '2023')).toBe(false)
+    expect(isOfferedFiscalYearToOpen(years, '2027')).toBe(true)
+  })
+
+  it('drops a gap-year openYear from deep links', () => {
+    const years = [calendar('2026')]
+    expect(
+      sanitizeBookYearOpenSearch(years, { openYear: '2030', focus: 'confirm', returnTo: '/x' }),
+    ).toEqual({ returnTo: '/x' })
+    expect(
+      sanitizeBookYearOpenSearch(years, { openYear: '2025', focus: 'confirm', returnTo: '/x' }),
+    ).toEqual({ openYear: '2025', focus: 'confirm', returnTo: '/x' })
   })
 })

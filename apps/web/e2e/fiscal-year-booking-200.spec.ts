@@ -283,11 +283,35 @@ test('Boekjaren ignores an openYear the screen does not offer', async ({ page })
   await page.goto('/fiscal-years?openYear=2030&focus=confirm')
   await hydrated(page)
 
-  await expect(page.getByTestId('open-requested-year')).toHaveCount(0)
   await expect(page.getByTestId('open-prior-year')).toHaveCount(0)
   await expect(page.getByRole('checkbox', { name: /Ik wil boekjaar 2030/ })).toHaveCount(0)
   await expect(page.getByTestId('fiscal-years-open-section')).toBeVisible()
   await expect(page.getByTestId('derived-dates')).toContainText('2027')
+})
+
+test('Boekjaren ignores out-of-range openYear values', async ({ page }) => {
+  await ready(page)
+
+  for (const year of ['1959', '2101'] as const) {
+    await page.goto(`/fiscal-years?openYear=${year}&focus=confirm`)
+    await hydrated(page)
+    await expect(page.getByTestId('open-prior-year')).toHaveCount(0)
+    await expect(
+      page.getByRole('checkbox', { name: new RegExp(`boekjaar ${year}`, 'i') }),
+    ).toHaveCount(0)
+  }
+})
+
+test('a gap book year shows the message without an open link', async ({ page }) => {
+  await ready(page)
+  await openBookYear(page, '2024')
+
+  await page.goto('/purchases/new')
+  await hydrated(page)
+  await setBillDate(page, '2025-06-01')
+
+  await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Boekjaar 2025 openen' })).toHaveCount(0)
 })
 
 test('Boekjaren names every earlier open year on the next row', async ({ page }) => {

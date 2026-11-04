@@ -15,6 +15,7 @@
  */
 
 import { isFiscalYearCodeInRange } from '@klopt/core'
+import { earliestOpenFiscalYear, priorFiscalYearCodeToOpen } from '~/lib/booking-fiscal-year-gate'
 
 /** Where the chosen year is remembered. Read on the server, set from the shell. */
 export const REPORT_YEAR_COOKIE = 'klopt_report_year'
@@ -282,4 +283,50 @@ export function formatBookYearCodeList(codes: readonly string[], language: 'nl' 
   const conj = language === 'nl' ? ' en ' : ' and '
   if (codes.length === 2) return `${codes[0]}${conj}${last}`
   return `${codes.slice(0, -1).join(', ')}${conj}${last}`
+}
+
+/** The two book-year labels Boekjaren may offer to open: prior and next. */
+export function offeredFiscalYearCodesToOpen(years: readonly FiscalYearOption[]): {
+  readonly prior: string | null
+  readonly next: string | null
+} {
+  const earliest = earliestOpenFiscalYear(years)
+  const priorRaw = earliest === undefined ? null : priorFiscalYearCodeToOpen(earliest.code)
+  const prior = priorRaw !== null && !years.some((year) => year.code === priorRaw) ? priorRaw : null
+  const next = nextFiscalYear(years)?.code ?? null
+  return { prior, next }
+}
+
+/** Whether this label is one of the two offered opens and inside 1960–2100. */
+export function isOfferedFiscalYearToOpen(
+  years: readonly FiscalYearOption[],
+  code: string,
+): boolean {
+  if (!isFiscalYearCodeInRange(code)) return false
+  const { prior, next } = offeredFiscalYearCodesToOpen(years)
+  return code === prior || code === next
+}
+
+export type BookYearOpenSearch = {
+  readonly openYear?: string
+  readonly returnTo?: string
+  readonly focus?: 'confirm'
+}
+
+/** Drop ?openYear= and ?focus= when the year is not one of the two offered opens. */
+export function sanitizeBookYearOpenSearch(
+  years: readonly FiscalYearOption[],
+  search: BookYearOpenSearch,
+): BookYearOpenSearch {
+  const base =
+    search.returnTo === undefined
+      ? {}
+      : ({ returnTo: search.returnTo } satisfies BookYearOpenSearch)
+  if (search.openYear === undefined) return base
+  if (!isOfferedFiscalYearToOpen(years, search.openYear)) return base
+  return {
+    ...base,
+    openYear: search.openYear,
+    ...(search.focus === 'confirm' ? { focus: 'confirm' as const } : {}),
+  }
 }
