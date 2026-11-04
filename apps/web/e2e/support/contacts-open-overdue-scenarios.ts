@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
+import { addCalendarDays } from '../../src/lib/amsterdam-date.js'
 import {
   contactsOverdueBooksInPriorFiscalYear,
   customerNotYetDueIssueDate,
@@ -6,7 +7,14 @@ import {
   OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
   type ContactsOverdueFixtureDates,
 } from './contacts-overdue-fixture-dates.js'
-import { chooseOption, enableAdvancedMode, hydrated, signIn, uniqueEmail } from '../support.js'
+import {
+  chooseOption,
+  enableAdvancedMode,
+  hydrated,
+  openEntitySwitcher,
+  signIn,
+  uniqueEmail,
+} from '../support.js'
 
 async function expectOpenInk(openLocator: Locator): Promise<void> {
   await expect(openLocator).toHaveClass(/text-ink/)
@@ -14,11 +22,14 @@ async function expectOpenInk(openLocator: Locator): Promise<void> {
   await expect(openLocator).not.toHaveClass(/text-ink-muted/)
 }
 
-export async function openAdmin(page: Page): Promise<void> {
+export async function openAdmin(page: Page, opts?: { firstFiscalYear?: string }): Promise<void> {
   await page.goto('/sign-in')
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
   await page.getByLabel('Naam', { exact: true }).fill('Open Kleur Test BV')
+  if (opts?.firstFiscalYear !== undefined) {
+    await page.locator('input[name="firstFiscalYear"]').fill(opts.firstFiscalYear)
+  }
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
@@ -30,7 +41,10 @@ export async function openAdmin(page: Page): Promise<void> {
 async function selectShellBookYear(page: Page, year: string): Promise<void> {
   await page.goto('/')
   await hydrated(page)
-  await chooseOption(page, 'Boekjaar', new RegExp(`^${year}`))
+  await openEntitySwitcher(page)
+  await page.getByRole('combobox', { name: 'Boekjaar', exact: true }).click()
+  await page.getByRole('option', { name: new RegExp(`^${year}`) }).click({ timeout: 60_000 })
+  await page.keyboard.press('Escape')
 }
 
 async function seedEntityForSales(page: Page): Promise<void> {
@@ -82,7 +96,16 @@ async function seedSupplier(page: Page, number: string, name: string): Promise<v
   await expect(page.getByRole('button', { name: new RegExp(name) })).toBeVisible()
 }
 
-async function issueInvoice(page: Page, customer: RegExp, issueDate?: string): Promise<void> {
+async function pickSalesLineVat(page: Page): Promise<void> {
+  await chooseOption(page, 'Btw regel 1', /^H21/)
+}
+
+async function issueInvoice(
+  page: Page,
+  customer: RegExp,
+  issueDate?: string,
+  fiscalYearStart?: string,
+): Promise<void> {
   await page.goto('/invoices/new')
   await page.getByRole('combobox', { name: 'Klant' }).click()
   await page.getByRole('option', { name: customer }).click()
@@ -93,6 +116,9 @@ async function issueInvoice(page: Page, customer: RegExp, issueDate?: string): P
   await page.getByLabel('Aantal regel 1').fill('1')
   await page.getByLabel('Eenheid regel 1').fill('EA')
   await page.getByLabel('Prijs regel 1').fill('100,00')
+  if (issueDate !== undefined && fiscalYearStart !== undefined && issueDate < fiscalYearStart) {
+    await pickSalesLineVat(page)
+  }
   await page.getByRole('button', { name: 'Concept opslaan' }).click()
   await page.getByRole('button', { name: 'Versturen en boeken' }).click()
   await expect(page.getByRole('heading', { name: /Factuur \d{4}-/ })).toBeVisible()
@@ -125,23 +151,41 @@ export async function runCustomerOpenOverdueScenario(
   page: Page,
   dates: ContactsOverdueFixtureDates,
 ): Promise<void> {
-  await openAdmin(page)
-  await ensureContactsFixtureFiscalYears(page, dates.asOf)
-  await seedEntityForSales(page)
-
   const year = dates.asOf.slice(0, 4)
   const prior = String(Number(year) - 1)
 
+  await openAdmin(page, { firstFiscalYear: prior })
+  await ensureContactsFixtureFiscalYears(page, dates.asOf)
+  await seedEntityForSales(page)
+
   if (contactsOverdueBooksInPriorFiscalYear(dates)) {
     await selectShellBookYear(page, prior)
-    await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo', OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS)
-    await issueInvoice(page, /Klif Te Laat Demo/, dates.customerOverdueIssueDate())
+    await seedCustomer(
+      page,
+      'DEB-1953',
+      'Klif Te Laat Demo',
+      dates.asOf === dates.fiscalYearStart ||
+        dates.asOf === addCalendarDays(dates.fiscalYearStart, 1)
+        ? 0
+        : OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
+    )
+    await issueInvoice(
+      page,
+      /Klif Te Laat Demo/,
+      dates.customerOverdueIssueDate(),
+      dates.fiscalYearStart,
+    )
     await selectShellBookYear(page, year)
   }
 
   await seedCustomer(page, 'DEB-1950', 'Stilte Niets Open')
   await seedCustomer(page, 'DEB-1952', 'Windvaan Open Kleur', 30)
-  await issueInvoice(page, /Windvaan Open Kleur/, customerNotYetDueIssueDate(dates))
+  await issueInvoice(
+    page,
+    /Windvaan Open Kleur/,
+    customerNotYetDueIssueDate(dates),
+    dates.fiscalYearStart,
+  )
 
   await page.setViewportSize({ width: 1440, height: 1040 })
   await page.goto('/contacts')
@@ -167,8 +211,21 @@ export async function runCustomerOpenOverdueScenario(
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
   if (!contactsOverdueBooksInPriorFiscalYear(dates)) {
-    await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo', OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS)
-    await issueInvoice(page, /Klif Te Laat Demo/, dates.customerOverdueIssueDate())
+    await seedCustomer(
+      page,
+      'DEB-1953',
+      'Klif Te Laat Demo',
+      dates.asOf === dates.fiscalYearStart ||
+        dates.asOf === addCalendarDays(dates.fiscalYearStart, 1)
+        ? 0
+        : OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
+    )
+    await issueInvoice(
+      page,
+      /Klif Te Laat Demo/,
+      dates.customerOverdueIssueDate(),
+      dates.fiscalYearStart,
+    )
   }
 
   await page.goto('/contacts')
@@ -207,25 +264,16 @@ export async function runSupplierOpenOverdueScenario(
   page: Page,
   dates: ContactsOverdueFixtureDates,
 ): Promise<void> {
-  await openAdmin(page)
+  const year = dates.asOf.slice(0, 4)
+  const prior = String(Number(year) - 1)
+
+  await openAdmin(page, { firstFiscalYear: prior })
   await ensureContactsFixtureFiscalYears(page, dates.asOf)
   await seedEntityForSales(page)
   await seedSupplier(page, 'LEV-1954', 'Leverancier Kleur Proef')
 
-  const year = dates.asOf.slice(0, 4)
-  const prior = String(Number(year) - 1)
   const overdue = dates.overduePurchaseBill()
   const notYetDue = dates.notYetDuePurchaseBill()
-
-  if (contactsOverdueBooksInPriorFiscalYear(dates)) {
-    await selectShellBookYear(page, prior)
-    await bookSupplierBill(page, {
-      number: 'F-1954-late',
-      invoiceDate: overdue.invoiceDate,
-      dueDate: overdue.dueDate,
-    })
-    await selectShellBookYear(page, year)
-  }
 
   await bookSupplierBill(page, {
     number: 'F-1954-future',
@@ -247,7 +295,15 @@ export async function runSupplierOpenOverdueScenario(
   const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
   await expectOpenInk(listOpen)
 
-  if (!contactsOverdueBooksInPriorFiscalYear(dates)) {
+  if (contactsOverdueBooksInPriorFiscalYear(dates)) {
+    await selectShellBookYear(page, prior)
+    await bookSupplierBill(page, {
+      number: 'F-1954-late',
+      invoiceDate: overdue.invoiceDate,
+      dueDate: overdue.dueDate,
+    })
+    await selectShellBookYear(page, year)
+  } else {
     await bookSupplierBill(page, {
       number: 'F-1954-late',
       invoiceDate: overdue.invoiceDate,

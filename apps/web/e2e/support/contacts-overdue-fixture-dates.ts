@@ -48,6 +48,13 @@ export function contactsOverdueFixtureDates(asOf: string): ContactsOverdueFixtur
   }
 
   function customerOverdueIssueDate(): string {
+    if (asOf === fiscalYearStart) {
+      const priorYear = String(Number(year) - 1)
+      return `${priorYear}-11-01`
+    }
+    if (asOf === addCalendarDays(fiscalYearStart, 1)) {
+      return fiscalYearStart
+    }
     const target = addCalendarDays(asOf, -(OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS + 1))
     if (target >= fiscalYearStart) return target
     const priorYear = String(Number(year) - 1)

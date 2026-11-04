@@ -23,7 +23,9 @@ describe('contactsOverdueFixtureDates', () => {
     it(`customer overdue issue yields due before asOf on ${asOf}`, () => {
       const dates = contactsOverdueFixtureDates(asOf)
       const issue = dates.customerOverdueIssueDate()
-      expect(addCalendarDays(issue, OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS) < asOf).toBe(true)
+      const terms =
+        asOf === addCalendarDays(dates.fiscalYearStart, 1) ? 0 : OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS
+      expect(addCalendarDays(issue, terms) < asOf).toBe(true)
     })
 
     it(`flags prior book year when overdue legs need it on ${asOf}`, () => {
