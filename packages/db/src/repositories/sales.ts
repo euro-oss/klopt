@@ -27,7 +27,7 @@ import {
   salesInvoices,
   taxCodes,
 } from '../schema/index.js'
-import { activeBankAllocationsPerInvoice } from './active-bank-allocations.js'
+import { bankAllocationsPerInvoiceSubquery } from './active-bank-allocations.js'
 
 /**
  * Sales persistence.
@@ -956,7 +956,7 @@ export class SalesRepository {
    * is why it lives here rather than being written out twice.
    */
   private allocatedPerInvoice(entityId: string) {
-    return activeBankAllocationsPerInvoice(this.tx, entityId)
+    return bankAllocationsPerInvoiceSubquery(this.tx, entityId)
   }
 
   /** Issued credit notes linked to an invoice, summed per credited invoice. */

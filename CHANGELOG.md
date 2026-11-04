@@ -18,13 +18,14 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
-### Bank: reversing a match releases allocations
+### Bank: reversing a match releases the line
 
 Reversing the journal entry for an afgeletterde bank line now runs in one
-transaction with resetting that line to `unmatched` and clearing its
-`journalEntryId`. Allocation rows stay for audit; outstanding, dunning,
-match candidates and open-document counts ignore allocations whose match entry
-has been reversed.
+transaction with deleting that line's `bank_transaction_allocations` rows and
+resetting the line to `unmatched` with a cleared `journalEntryId`. The match
+entry and its reversal stay in the ledger; allocations are workflow state only.
+Outstanding, dunning, match candidates and open-document counts use a shared
+allocation sum again after the delete.
 
 ### Redesign: Import wizard (#134)
 

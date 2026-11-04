@@ -22,7 +22,7 @@ import {
   entities,
   salesInvoices,
 } from '../schema/index.js'
-import { activeBankAllocationsPerInvoice } from './active-bank-allocations.js'
+import { bankAllocationsPerInvoiceSubquery } from './active-bank-allocations.js'
 
 /**
  * Bank persistence.
@@ -454,7 +454,7 @@ export class BankRepository {
    * invoice stop being chased once it is paid.
    */
   async matchCandidates(entityId: string): Promise<readonly MatchCandidate[]> {
-    const allocated = activeBankAllocationsPerInvoice(this.tx, entityId)
+    const allocated = bankAllocationsPerInvoiceSubquery(this.tx, entityId)
 
     const rows = await this.tx
       .select({
@@ -637,20 +637,16 @@ export class BankRepository {
   }
 
   /**
-   * After a match entry is reversed, the bank line can be booked again.
+   * After a match entry is reversed, drop workflow allocations and unlock the line.
    *
-   * Allocations are left in place; outstanding queries ignore them once the
-   * linked entry has a reversal. Clearing `journalEntryId` keeps the row
-   * append-only in the ledger while making workflow state honest again.
+   * The match entry and its reversal stay in the ledger; allocations are
+   * workflow state only. Deleting them avoids unique-index conflicts on rematch
+   * and keeps outstanding honest without a migration linking rows to entries.
    */
   async releaseMatchForReversedEntry(entityId: string, reversedEntryId: string): Promise<void> {
-    await this.tx
-      .update(bankTransactions)
-      .set({
-        status: 'unmatched',
-        journalEntryId: null,
-        updatedAt: new Date().toISOString(),
-      })
+    const [transaction] = await this.tx
+      .select({ id: bankTransactions.id })
+      .from(bankTransactions)
       .where(
         and(
           eq(bankTransactions.entityId, entityId),
@@ -658,6 +654,27 @@ export class BankRepository {
           eq(bankTransactions.status, 'matched'),
         ),
       )
+      .limit(1)
+
+    if (transaction === undefined) return
+
+    await this.tx
+      .delete(bankTransactionAllocations)
+      .where(
+        and(
+          eq(bankTransactionAllocations.entityId, entityId),
+          eq(bankTransactionAllocations.transactionId, transaction.id),
+        ),
+      )
+
+    await this.tx
+      .update(bankTransactions)
+      .set({
+        status: 'unmatched',
+        journalEntryId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(bankTransactions.entityId, entityId), eq(bankTransactions.id, transaction.id)))
   }
 
   /** What has been allocated against an invoice, for the outstanding sum. */
@@ -667,7 +684,7 @@ export class BankRepository {
   ): Promise<Map<string, bigint>> {
     if (invoiceIds.length === 0) return new Map()
 
-    const allocated = activeBankAllocationsPerInvoice(this.tx, entityId)
+    const allocated = bankAllocationsPerInvoiceSubquery(this.tx, entityId)
     const rows = await this.tx
       .select({
         invoiceId: allocated.invoiceId,
