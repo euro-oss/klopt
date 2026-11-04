@@ -133,14 +133,16 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.getByLabel('E-mail').fill(email)
   const sendCode = page.getByRole('button', { name: 'Stuur me een code' })
-  await expect(sendCode).toBeEnabled({ timeout: 15_000 })
+  const allUrlDelay = Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? '')
+  const enabledTimeout = Number.isFinite(allUrlDelay) && allUrlDelay > 0 ? 120_000 : 15_000
+  await expect(sendCode).toBeEnabled({ timeout: enabledTimeout })
   await sendCode.click()
 
   await expect(page.getByLabel('Code')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Stuur een nieuwe code' })).toBeEnabled()
   // The 6th digit auto-submits (codeHelp). Do not click Aanmelden after fill.
   await page.getByLabel('Code').fill(await codeFor(email))
-  await expect(page.getByLabel('Code')).toHaveCount(0)
+  await expect(page.getByLabel('Code')).toHaveCount(0, { timeout: enabledTimeout })
 }
 
 /**

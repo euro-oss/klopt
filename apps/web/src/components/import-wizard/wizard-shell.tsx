@@ -6,7 +6,8 @@
  * a disabled stub.
  */
 
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Circle, LoaderCircle } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Keycap } from '~/components/ui/keycap'
 import { Stepper } from '~/components/ui/stepper'
@@ -189,8 +190,11 @@ export function WizardFooter({
   onNext,
   onNextBlocked,
   nextLabel,
+  nextSaving = false,
+  nextSavingLabel,
   nextDisabled,
   nextReason,
+  footerError,
   showBack,
   showNextKeycap = true,
   note,
@@ -200,8 +204,13 @@ export function WizardFooter({
   readonly onNext?: () => void
   /** Required when `onNext` is set; omit with `onNext` for a Back-only footer. */
   readonly nextLabel?: string
+  /** Step save in flight — Volgende stays focusable with aria-busy (#201). */
+  readonly nextSaving?: boolean
+  readonly nextSavingLabel?: string
   readonly nextDisabled?: boolean
   readonly nextReason?: string | null
+  /** Inline field-error copy directly under Volgende (#201). */
+  readonly footerError?: string | null
   readonly showBack: boolean
   readonly showNextKeycap?: boolean
   /** Left-side status on the stopped import screens. */
@@ -211,7 +220,33 @@ export function WizardFooter({
   const hydrated = useHydrated()
   const modKey = hydrated && isApple() ? '⌘' : 'Ctrl'
   const blocked = nextDisabled === true
+  const saving = nextSaving === true
+  const savingLabel = nextSavingLabel ?? t('wizard.nextSaving')
   const showNext = onNext !== undefined && nextLabel !== undefined && nextLabel !== ''
+  const [spinnerDue, setSpinnerDue] = useState(false)
+  const [reducedMotion, setReducedMotion] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setReducedMotion(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (!saving) return undefined
+    const timer = window.setTimeout(() => setSpinnerDue(true), 150)
+    return () => {
+      window.clearTimeout(timer)
+      setSpinnerDue(false)
+    }
+  }, [saving])
+
+  const displayLabel = saving ? savingLabel : nextLabel
+  const showKeycap = showNextKeycap && !blocked && !saving
+  const showPendingIndicator = saving && (spinnerDue || reducedMotion)
   return (
     <footer className="border-line bg-surface mt-8 flex flex-col gap-3 border-t pt-4 max-md:sticky max-md:bottom-16 max-md:z-20 max-md:-mx-4 max-md:px-4 max-md:pb-3 md:flex-row md:flex-wrap md:items-center">
       {showBack && onBack !== undefined && (
@@ -238,13 +273,20 @@ export function WizardFooter({
           <Button
             type="button"
             className={cn(
-              'min-h-11 w-full md:w-auto',
+              'relative min-h-11 w-full md:w-auto',
               blocked &&
                 'border-[var(--input-border)] bg-[var(--neutral-bg)] text-[var(--ink-muted)] hover:bg-[var(--neutral-bg)]',
             )}
             // String 'true' — a boolean can serialise as aria-disabled="" and break checks.
             aria-disabled={blocked ? 'true' : undefined}
-            aria-describedby={blocked && nextReason ? 'wizard-next-why' : undefined}
+            aria-busy={saving ? 'true' : undefined}
+            aria-describedby={
+              blocked && nextReason
+                ? 'wizard-next-why'
+                : footerError !== null && footerError !== undefined && footerError !== ''
+                  ? 'wizard-next-error'
+                  : undefined
+            }
             onClick={() => {
               if (blocked) {
                 onNextBlocked?.()
@@ -254,14 +296,50 @@ export function WizardFooter({
             }}
             data-focus="next"
           >
-            {nextLabel}
-            {showNextKeycap && !blocked && (
-              <span className="ml-1 hidden items-center gap-0.5 md:inline-flex">
-                <Keycap>{modKey}</Keycap>
-                <Keycap>↵</Keycap>
+            <span className="invisible inline-flex flex-col items-center gap-0" aria-hidden>
+              <span className="inline-flex items-center">
+                {nextLabel}
+                {showNextKeycap ? (
+                  <span className="ml-1 hidden items-center gap-0.5 md:inline-flex">
+                    <Keycap>{modKey}</Keycap>
+                    <Keycap>↵</Keycap>
+                  </span>
+                ) : null}
               </span>
-            )}
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-3.5 shrink-0" />
+                {savingLabel}
+              </span>
+            </span>
+            <span className="absolute inset-0 flex items-center justify-center gap-1.5 px-4">
+              {showPendingIndicator ? (
+                reducedMotion ? (
+                  <Circle className="size-3.5 shrink-0 fill-current" aria-hidden />
+                ) : (
+                  <LoaderCircle
+                    className="size-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                    aria-hidden
+                  />
+                )
+              ) : null}
+              <span>{displayLabel}</span>
+              {showKeycap ? (
+                <span className="ml-1 hidden items-center gap-0.5 md:inline-flex">
+                  <Keycap>{modKey}</Keycap>
+                  <Keycap>↵</Keycap>
+                </span>
+              ) : null}
+            </span>
           </Button>
+          {footerError !== null && footerError !== undefined && footerError !== '' && (
+            <p
+              id="wizard-next-error"
+              role="alert"
+              className="text-destructive max-w-sm text-sm md:text-right"
+            >
+              {footerError}
+            </p>
+          )}
         </div>
       )}
     </footer>

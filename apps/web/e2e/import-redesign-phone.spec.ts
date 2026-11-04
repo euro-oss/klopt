@@ -11,6 +11,7 @@ import {
   startPreValidFromMoneybirdStandIn,
   type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
+import { installE2eRouteDelays } from './support/route-delays'
 
 const IMPORT_WIZARD_ADVANCED_CHECKBOX = /Boekhouddetails|Accounting details/i
 
@@ -34,16 +35,7 @@ test.beforeAll(async () => {
 })
 
 test.beforeEach(async ({ page }) => {
-  const delayMs = process.env['KLOPT_E2E_API_DELAY_MS']
-  if (delayMs === undefined || delayMs === '') return
-  const ms = Number(delayMs)
-  await page.route(/\/api\//, async (route) => {
-    const nonGetOnly = process.env['KLOPT_E2E_API_DELAY_NON_GET_ONLY'] === '1'
-    if (!nonGetOnly || route.request().method() !== 'GET') {
-      await new Promise((resolve) => setTimeout(resolve, ms))
-    }
-    await route.continue()
-  })
+  await installE2eRouteDelays(page)
 })
 
 async function anAdministration(page: Page): Promise<void> {
@@ -642,46 +634,43 @@ test('390 stopped partway shows booked plural and one retry path in light and da
   }
 })
 
-test.describe('390 stopped partial one booked (see #201)', () => {
-  test('390 stopped partial with one booked document shows singular bookedCount_one copy', async ({
-    page,
-  }) => {
-    test.fixme(true, 'Volgende click dropped while save in flight, #201')
-    test.setTimeout(180_000)
-    const standIn = await startOneDocumentMoneybirdStandIn()
+test('390 stopped partial with one booked document shows singular bookedCount_one copy', async ({
+  page,
+}) => {
+  test.setTimeout(180_000)
+  const standIn = await startOneDocumentMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await connectStandIn(page, standIn)
+    await advanceToOverzicht(page)
+    await clickNext(page)
+    const restore = await installPartialImportFinishHook('first-running')
     try {
-      await anAdministration(page)
-      await page.setViewportSize({ width: 390, height: 844 })
-      await connectStandIn(page, standIn)
-      await advanceToOverzicht(page)
-      await clickNext(page)
-      const restore = await installPartialImportFinishHook('first-running')
-      try {
-        await page
-          .getByRole('alertdialog')
-          .getByRole('button', { name: /Overzetten bevestigen/i })
-          .click()
-        await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
-          timeout: 60_000,
-        })
-        await drivePartialImportStop(page)
+      await page
+        .getByRole('alertdialog')
+        .getByRole('button', { name: /Overzetten bevestigen/i })
+        .click()
+      await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+        timeout: 60_000,
+      })
+      await drivePartialImportStop(page)
 
-        const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
-        await expect(bookedLine.first()).toBeVisible({ timeout: 120_000 })
-        const bookedText = await bookedLine.first().innerText()
-        expect(bookedText).toMatch(/(\d+)/)
-        const bookedCount = Number(bookedText.match(/(\d+)/)![1]!)
-        expect(bookedCount, 'fixture must stop partial with exactly one booked document').toBe(1)
-        await expect(page.getByText('1 document staat al in Klopt')).toBeVisible()
-        for (const theme of ['light', 'dark'] as const) {
-          await setTheme(page, theme)
-          await assertPhoneWizardLayout(page, `${theme} stopped-partial-one`)
-        }
-      } finally {
-        restore()
+      const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
+      await expect(bookedLine.first()).toBeVisible({ timeout: 120_000 })
+      const bookedText = await bookedLine.first().innerText()
+      expect(bookedText).toMatch(/(\d+)/)
+      const bookedCount = Number(bookedText.match(/(\d+)/)![1]!)
+      expect(bookedCount, 'fixture must stop partial with exactly one booked document').toBe(1)
+      await expect(page.getByText('1 document staat al in Klopt')).toBeVisible()
+      for (const theme of ['light', 'dark'] as const) {
+        await setTheme(page, theme)
+        await assertPhoneWizardLayout(page, `${theme} stopped-partial-one`)
       }
     } finally {
-      await standIn.close()
+      restore()
     }
-  })
+  } finally {
+    await standIn.close()
+  }
 })

@@ -3107,6 +3107,7 @@ export const nl = {
   'wizard.step.importeren': 'Importeren',
   'wizard.step.klaar': 'Klaar',
   'wizard.next': 'Volgende',
+  'wizard.nextSaving': 'Opslaan…',
   'wizard.back': 'Terug',
   'wizard.connect': 'Verbinden',
   'wizard.done': 'Klaar',

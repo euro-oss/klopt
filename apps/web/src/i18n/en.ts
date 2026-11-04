@@ -2730,6 +2730,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.step.importeren': 'Import',
   'wizard.step.klaar': 'Done',
   'wizard.next': 'Next',
+  'wizard.nextSaving': 'Saving…',
   'wizard.back': 'Back',
   'wizard.connect': 'Connect',
   'wizard.done': 'Done',
