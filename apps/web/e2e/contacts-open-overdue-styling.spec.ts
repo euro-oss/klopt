@@ -1,6 +1,16 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { addCalendarDays, todayInAmsterdam } from '../src/lib/amsterdam-date.js'
+import { todayInAmsterdam } from '../src/lib/amsterdam-date.js'
+import {
+  CONTACTS_OVERDUE_CALENDAR_PROOF_DATES,
+  contactsOverdueFixtureDates,
+  contactsOverdueNeedsPriorFiscalYear,
+  customerNotYetDueIssueDate,
+  ensurePriorFiscalYearOpen,
+  installWallClock,
+  OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
+  type ContactsOverdueFixtureDates,
+} from './support/contacts-overdue-fixture-dates.js'
 import {
   chooseOption,
   DATABASE_URL,
@@ -14,17 +24,11 @@ import {
  * #195 item 1 — open amount ink by default; red only when contact has overdue sales or purchase bills.
  */
 
+test.use({ timezoneId: 'Europe/Amsterdam' })
+
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
-
-function invoiceIssueDateDaysAgo(days: number): string {
-  return addCalendarDays(todayInAmsterdam(), -days)
-}
-
-function invoiceDueDateDaysFromNow(days: number): string {
-  return addCalendarDays(todayInAmsterdam(), days)
-}
 
 async function expectOpenInk(openLocator: Locator): Promise<void> {
   await expect(openLocator).toHaveClass(/text-ink/)
@@ -45,6 +49,30 @@ async function openAdmin(page: Page): Promise<void> {
   await hydrated(page)
 }
 
+async function bookOverduePurchaseInPriorYearWhenNeeded(
+  page: Page,
+  dates: ContactsOverdueFixtureDates,
+  run: () => Promise<void>,
+): Promise<void> {
+  if (!contactsOverdueNeedsPriorFiscalYear(dates.asOf)) {
+    await run()
+    return
+  }
+  const currentYear = dates.asOf.slice(0, 4)
+  const prior = String(Number(currentYear) - 1)
+  await ensurePriorFiscalYearOpen(page, dates.asOf)
+  await page.goto('/')
+  await hydrated(page)
+  await chooseOption(page, 'Boekjaar', new RegExp(`^${prior}`))
+  try {
+    await run()
+  } finally {
+    await page.goto('/')
+    await hydrated(page)
+    await chooseOption(page, 'Boekjaar', new RegExp(`^${currentYear}`))
+  }
+}
+
 async function seedEntityForSales(page: Page): Promise<void> {
   await page.goto('/settings')
   await page.getByLabel('Straat').fill('Demoweg')
@@ -58,12 +86,20 @@ async function seedEntityForSales(page: Page): Promise<void> {
   await expect(page.getByText('Opgeslagen.')).toBeVisible()
 }
 
-async function seedCustomer(page: Page, number: string, name: string): Promise<void> {
+async function seedCustomer(
+  page: Page,
+  number: string,
+  name: string,
+  paymentTermsDays?: number,
+): Promise<void> {
   await page.goto('/contacts')
   await page.getByRole('button', { name: 'Nieuwe relatie' }).click()
   await page.getByLabel('Nummer', { exact: true }).fill(number)
   await page.getByLabel('Naam', { exact: true }).fill(name)
   await page.getByLabel('E-mail').fill('facturen@example.nl')
+  if (paymentTermsDays !== undefined) {
+    await page.getByLabel('Betalingstermijn').fill(String(paymentTermsDays))
+  }
   await page.getByLabel('Straat').fill('Demoweg')
   await page.getByLabel('Huisnr.').fill('10')
   await page.getByLabel('Postcode').fill('1000 AA')
@@ -125,14 +161,15 @@ async function bookSupplierBill(
   await expect(page.getByText('goedgekeurd voor betaling')).toBeVisible()
 }
 
-test('not-yet-due open amount is ink on list and card; overdue is red; Niets open stays muted', async ({
-  page,
-}) => {
+async function runCustomerOpenOverdueScenario(
+  page: Page,
+  dates: ContactsOverdueFixtureDates,
+): Promise<void> {
   await openAdmin(page)
   await seedEntityForSales(page)
   await seedCustomer(page, 'DEB-1950', 'Stilte Niets Open')
   await seedCustomer(page, 'DEB-1952', 'Windvaan Open Kleur')
-  await issueInvoice(page, /Windvaan Open Kleur/)
+  await issueInvoice(page, /Windvaan Open Kleur/, customerNotYetDueIssueDate(dates))
 
   await page.setViewportSize({ width: 1440, height: 1040 })
   await page.goto('/contacts')
@@ -157,8 +194,12 @@ test('not-yet-due open amount is ink on list and card; overdue is red; Niets ope
   await expectOpenInk(listOpen)
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
-  await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo')
-  await issueInvoice(page, /Klif Te Laat Demo/, invoiceIssueDateDaysAgo(45))
+  await seedCustomer(page, 'DEB-1953', 'Klif Te Laat Demo', OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS)
+  if (dates.asOf === dates.fiscalYearStart) {
+    // No in-year sales invoice can be overdue on the first calendar day of the book year.
+    return
+  }
+  await issueInvoice(page, /Klif Te Laat Demo/, dates.customerOverdueIssueDate())
 
   await page.goto('/contacts')
   await hydrated(page)
@@ -190,18 +231,20 @@ test('not-yet-due open amount is ink on list and card; overdue is red; Niets ope
   await expect(
     emptyMobileOpen.locator('span.text-ink-muted', { hasText: 'Niets open' }),
   ).toBeVisible()
-})
+}
 
-test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purchase due dates)', async ({
-  page,
-}) => {
+async function runSupplierOpenOverdueScenario(
+  page: Page,
+  dates: ContactsOverdueFixtureDates,
+): Promise<void> {
   await openAdmin(page)
   await seedEntityForSales(page)
   await seedSupplier(page, 'LEV-1954', 'Leverancier Kleur Proef')
+  const notYetDue = dates.notYetDuePurchaseBill()
   await bookSupplierBill(page, {
     number: 'F-1954-future',
-    invoiceDate: invoiceIssueDateDaysAgo(10),
-    dueDate: invoiceDueDateDaysFromNow(90),
+    invoiceDate: notYetDue.invoiceDate,
+    dueDate: notYetDue.dueDate,
   })
 
   await page.setViewportSize({ width: 1440, height: 1040 })
@@ -218,10 +261,17 @@ test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purcha
   const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
   await expectOpenInk(listOpen)
 
-  await bookSupplierBill(page, {
-    number: 'F-1954-late',
-    invoiceDate: invoiceIssueDateDaysAgo(60),
-    dueDate: invoiceDueDateDaysFromNow(-30),
+  if (contactsOverdueNeedsPriorFiscalYear(dates.asOf)) {
+    return
+  }
+
+  const overdue = dates.overduePurchaseBill()
+  await bookOverduePurchaseInPriorYearWhenNeeded(page, dates, async () => {
+    await bookSupplierBill(page, {
+      number: 'F-1954-late',
+      invoiceDate: overdue.invoiceDate,
+      dueDate: overdue.dueDate,
+    })
   })
 
   await page.goto('/contacts')
@@ -236,4 +286,34 @@ test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purcha
 
   const listOpenLate = listRow.locator('[data-contacts-list-open-amount]:visible')
   await expect(listOpenLate).toHaveClass(/text-destructive/)
+}
+
+test('not-yet-due open amount is ink on list and card; overdue is red; Niets open stays muted', async ({
+  page,
+}) => {
+  await runCustomerOpenOverdueScenario(page, contactsOverdueFixtureDates(todayInAmsterdam()))
+})
+
+test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purchase due dates)', async ({
+  page,
+}) => {
+  await runSupplierOpenOverdueScenario(page, contactsOverdueFixtureDates(todayInAmsterdam()))
+})
+
+test.describe('fake wall clock — calendar-stable fixture dates', () => {
+  for (const asOf of CONTACTS_OVERDUE_CALENDAR_PROOF_DATES) {
+    test.describe(`as-of ${asOf}`, () => {
+      test.use({ extraHTTPHeaders: { 'X-Klopt-E2e-As-Of': asOf } })
+
+      test('customer styling', async ({ page }) => {
+        await installWallClock(page, asOf)
+        await runCustomerOpenOverdueScenario(page, contactsOverdueFixtureDates(asOf))
+      })
+
+      test('supplier styling', async ({ page }) => {
+        await installWallClock(page, asOf)
+        await runSupplierOpenOverdueScenario(page, contactsOverdueFixtureDates(asOf))
+      })
+    })
+  }
 })

@@ -25,6 +25,9 @@ export default defineConfig({
      * which is the only way to be genuinely in front. See the plugin, and
      * ADR 0056.
      */
-    nitro({ plugins: ['./src/server-plugins/headless.ts'], traceDeps: ['pdfkit*'] }),
+    nitro({
+      plugins: ['./src/server-plugins/headless.ts', './src/server-plugins/e2e-as-of.ts'],
+      traceDeps: ['pdfkit*'],
+    }),
   ],
 })
