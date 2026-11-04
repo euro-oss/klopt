@@ -648,40 +648,40 @@ test.describe('390 stopped partial one booked (see #201)', () => {
   }) => {
     test.fixme(true, 'Volgende click dropped while save in flight, #201')
     test.setTimeout(180_000)
-  const standIn = await startOneDocumentMoneybirdStandIn()
-  try {
-    await anAdministration(page)
-    await page.setViewportSize({ width: 390, height: 844 })
-    await connectStandIn(page, standIn)
-    await advanceToOverzicht(page)
-    await clickNext(page)
-    const restore = await installPartialImportFinishHook('first-running')
+    const standIn = await startOneDocumentMoneybirdStandIn()
     try {
-      await page
-        .getByRole('alertdialog')
-        .getByRole('button', { name: /Overzetten bevestigen/i })
-        .click()
-      await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
-        timeout: 60_000,
-      })
-      await drivePartialImportStop(page)
+      await anAdministration(page)
+      await page.setViewportSize({ width: 390, height: 844 })
+      await connectStandIn(page, standIn)
+      await advanceToOverzicht(page)
+      await clickNext(page)
+      const restore = await installPartialImportFinishHook('first-running')
+      try {
+        await page
+          .getByRole('alertdialog')
+          .getByRole('button', { name: /Overzetten bevestigen/i })
+          .click()
+        await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+          timeout: 60_000,
+        })
+        await drivePartialImportStop(page)
 
-      const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
-      await expect(bookedLine.first()).toBeVisible({ timeout: 120_000 })
-      const bookedText = await bookedLine.first().innerText()
-      expect(bookedText).toMatch(/(\d+)/)
-      const bookedCount = Number(bookedText.match(/(\d+)/)![1]!)
-      expect(bookedCount, 'fixture must stop partial with exactly one booked document').toBe(1)
-      await expect(page.getByText('1 document staat al in Klopt')).toBeVisible()
-      for (const theme of ['light', 'dark'] as const) {
-        await setTheme(page, theme)
-        await assertPhoneWizardLayout(page, `${theme} stopped-partial-one`)
+        const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
+        await expect(bookedLine.first()).toBeVisible({ timeout: 120_000 })
+        const bookedText = await bookedLine.first().innerText()
+        expect(bookedText).toMatch(/(\d+)/)
+        const bookedCount = Number(bookedText.match(/(\d+)/)![1]!)
+        expect(bookedCount, 'fixture must stop partial with exactly one booked document').toBe(1)
+        await expect(page.getByText('1 document staat al in Klopt')).toBeVisible()
+        for (const theme of ['light', 'dark'] as const) {
+          await setTheme(page, theme)
+          await assertPhoneWizardLayout(page, `${theme} stopped-partial-one`)
+        }
+      } finally {
+        restore()
       }
     } finally {
-      restore()
+      await standIn.close()
     }
-  } finally {
-    await standIn.close()
-  }
   })
 })
