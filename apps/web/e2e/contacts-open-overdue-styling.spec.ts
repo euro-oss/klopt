@@ -6,6 +6,7 @@ import {
   contactsOverdueFixtureDates,
   contactsOverdueNeedsPriorFiscalYear,
   customerNotYetDueIssueDate,
+  ensureContactsFixtureBookYear,
   ensurePriorFiscalYearOpen,
   installWallClock,
   OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
@@ -166,6 +167,7 @@ async function runCustomerOpenOverdueScenario(
   dates: ContactsOverdueFixtureDates,
 ): Promise<void> {
   await openAdmin(page)
+  await ensureContactsFixtureBookYear(page, dates.asOf)
   await seedEntityForSales(page)
   await seedCustomer(page, 'DEB-1950', 'Stilte Niets Open')
   await seedCustomer(page, 'DEB-1952', 'Windvaan Open Kleur')
@@ -236,6 +238,7 @@ async function runSupplierOpenOverdueScenario(
   dates: ContactsOverdueFixtureDates,
 ): Promise<void> {
   await openAdmin(page)
+  await ensureContactsFixtureBookYear(page, dates.asOf)
   await seedEntityForSales(page)
   await seedSupplier(page, 'LEV-1954', 'Leverancier Kleur Proef')
   const notYetDue = dates.notYetDuePurchaseBill()

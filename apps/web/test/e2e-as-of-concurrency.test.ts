@@ -41,4 +41,22 @@ describe('localTodayIso e2e as-of under concurrent requests', () => {
 
     vi.useRealTimers()
   })
+
+  it('reads klopt-e2e-as-of cookie when the header is absent', async () => {
+    process.env['KLOPT_E2E_LEGAL_TOGGLE'] = '1'
+    process.env['NODE_ENV'] = 'test'
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-04T12:00:00'))
+
+    const handler = requestHandler(() => new Response(localTodayIso()))
+    const response = await handler(
+      new Request('http://localhost/contacts', {
+        headers: { cookie: 'klopt-e2e-as-of=2027-03-05' },
+      }),
+      {},
+    )
+    expect(await response.text()).toBe('2027-03-05')
+
+    vi.useRealTimers()
+  })
 })

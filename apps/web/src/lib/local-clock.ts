@@ -29,5 +29,7 @@ export function localTodayIso(): string {
 
 /** Morning / afternoon / evening from the local hour. */
 export function localDayPart(): DayPart {
+  // Match Playwright `wallClockInstantForIsoDate` (noon) when as-of is overridden.
+  if (readE2eAsOfOverrideSafe() !== null) return dayPartAt(12)
   return dayPartAt(new Date().getHours())
 }

@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { addCalendarDays } from '../../src/lib/amsterdam-date.js'
+import { chooseOption, hydrated } from '../support.js'
 
 /** Calendar dates exercised in the fake-clock proof. */
 export const CONTACTS_OVERDUE_CALENDAR_PROOF_DATES = [
@@ -97,6 +98,14 @@ export function wallClockInstantForIsoDate(isoDate: string): Date {
 
 export async function installWallClock(page: Page, isoDate: string): Promise<void> {
   const instant = wallClockInstantForIsoDate(isoDate)
+  const baseURL = process.env['KLOPT_E2E_BASE_URL'] ?? 'http://localhost:3399'
+  await page.context().addCookies([
+    {
+      name: 'klopt-e2e-as-of',
+      value: isoDate,
+      url: baseURL,
+    },
+  ])
   await page.setExtraHTTPHeaders({
     'X-Klopt-E2e-As-Of': isoDate,
   })
@@ -104,16 +113,28 @@ export async function installWallClock(page: Page, isoDate: string): Promise<voi
   await page.clock.setFixedTime(instant)
 }
 
-export async function ensurePriorFiscalYearOpen(page: Page, asOf: string): Promise<void> {
-  const priorCode = String(Number(asOf.slice(0, 4)) - 1)
+export async function ensureFiscalYearOpen(page: Page, code: string): Promise<void> {
   const response = await page.request.post('/api/v1/fiscal-years', {
     headers: {
       'Content-Type': 'application/json',
       'Idempotency-Key': crypto.randomUUID(),
     },
-    data: { code: priorCode },
+    data: { code },
   })
   expect(response.ok() || response.status() === 409, await response.text()).toBeTruthy()
+}
+
+/** Open the calendar year for `asOf` and select it in the shell (setup defaults to real today). */
+export async function ensureContactsFixtureBookYear(page: Page, asOf: string): Promise<void> {
+  const year = asOf.slice(0, 4)
+  await ensureFiscalYearOpen(page, year)
+  await page.goto('/')
+  await hydrated(page)
+  await chooseOption(page, 'Boekjaar', new RegExp(`^${year}`))
+}
+
+export async function ensurePriorFiscalYearOpen(page: Page, asOf: string): Promise<void> {
+  await ensureFiscalYearOpen(page, String(Number(asOf.slice(0, 4)) - 1))
 }
 
 export function customerNotYetDueIssueDate(dates: ContactsOverdueFixtureDates): string {
