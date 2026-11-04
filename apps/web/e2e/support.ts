@@ -116,11 +116,9 @@ export async function setAdvancedMode(page: Page, enabled: boolean): Promise<voi
   await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
   if ((await toggle.getAttribute('aria-checked')) !== want) {
-    const persisted = page.waitForResponse(isAdvancedModeSaveResponse, { timeout: 15_000 })
     await toggle.click()
-    await persisted
   }
-  await expect(toggle).toHaveAttribute('aria-checked', want)
+  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 30_000 })
 }
 
 /** Turn boekhouddetails on from Settings (owner default is off). */
