@@ -100,8 +100,10 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page }) => {
   await shoot(page, 'purchase-returned')
 
   await page.goto('/fiscal-years')
-  await hydrated(page)
-  await expect(page.getByTestId('fiscal-year-prior-not-closed-hint')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Boekjaren' })).toBeVisible()
+  await expect(page.getByTestId('fiscal-year-prior-not-closed-hint')).toBeVisible({
+    timeout: 30_000,
+  })
   await shoot(page, 'fiscal-years-list')
 
   await shoot(page, 'fiscal-years-next-card')
