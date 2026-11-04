@@ -120,8 +120,7 @@ test('a close shows the entries first, is gated on the acknowledgement, and happ
   await expect(page.getByText(/geen periode die/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Toon wat er geboekt wordt' })).toBeDisabled()
 
-  const openSection = page.getByTestId('fiscal-years-open-section')
-  await openSection.getByRole('button', { name: `Boekjaar ${next} openen` }).click()
+  await page.getByRole('button', { name: `Boekjaar ${next} openen` }).click()
   await expect(page.getByText(/geen periode die/)).toBeHidden()
 
   // The result goes to an eigen-vermogenrekening, chosen by typing at the
