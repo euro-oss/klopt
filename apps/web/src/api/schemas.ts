@@ -1294,7 +1294,7 @@ export const importWizardStepSchema = z.enum([
   'klaar',
 ])
 
-export const importWizardSourceSchema = z.enum(['moneybird', 'exact'])
+export const importWizardSourceSchema = z.enum(['moneybird', 'exact', 'xaf'])
 
 export const saveImportWizardStateBody = z.object({
   source: importWizardSourceSchema.nullable(),

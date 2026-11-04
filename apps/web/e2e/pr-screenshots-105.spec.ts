@@ -760,13 +760,13 @@ test('capture resume, verbinden states, #92/#93, failures', async ({ browser }) 
         }
 
         await expect(
-          page.getByText(/gestopt|niets geboekt|deel kan al geboekt/i).first(),
+          page.getByText(/gestopt|niets geboekt|staan al in Klopt/i).first(),
         ).toBeVisible({ timeout: 120_000 })
         // PM r4: failed / failedPartial never show busy chrome.
         await expect(page.getByRole('heading', { name: /^Import gestopt$/ })).toBeVisible()
         await expect(page.getByText(/Bezig met overzetten|Bezig met importeren/)).toHaveCount(0)
         await setTheme(page, theme)
-        const partial = await page.getByText(/deel kan al geboekt/i).count()
+        const partial = await page.getByText(/staan al in Klopt/i).count()
         await shoot(
           page,
           partial > 0

@@ -781,5 +781,27 @@ describe('export then import: the round trip that makes the migration claim true
         dryRun: true,
       }),
     ).rejects.toMatchObject({ code: 'forbidden' })
+
+    // A bookkeeper can open the import wizard but does not hold ledger:import.
+    const bookkeeper = await newEntity([
+      'ledger:read',
+      'ledger:post',
+      'ledger:draft',
+      'ledger:configure',
+      'ledger:export',
+      'payments:prepare',
+    ])
+    await expect(
+      handleImportAuditFile(await context(bookkeeper.token, uuidv7()), {
+        xml: '<auditfile/>',
+        dryRun: true,
+      }),
+    ).rejects.toMatchObject({ code: 'forbidden' })
+    await expect(
+      handleImportAuditFile(await context(bookkeeper.token, uuidv7()), {
+        xml: '<auditfile/>',
+        dryRun: false,
+      }),
+    ).rejects.toMatchObject({ code: 'forbidden' })
   })
 })

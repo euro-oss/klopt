@@ -3392,6 +3392,7 @@
                     "enum": [
                       "moneybird",
                       "exact",
+                      "xaf",
                       null
                     ]
                   },
@@ -3468,6 +3469,7 @@
                 "enum": [
                   "moneybird",
                   "exact",
+                  "xaf",
                   null
                 ]
               },
@@ -15622,7 +15624,8 @@
     "ImportSource": {
       "enum": [
         "moneybird",
-        "exact"
+        "exact",
+        "xaf"
       ]
     },
     "ImportWizardStep": {

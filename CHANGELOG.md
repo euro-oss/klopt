@@ -18,6 +18,25 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Redesign: Import wizard (#134)
+
+The import wizard matches the v2 export (`ImportSource`, `ImportFindings`, and
+the batch-1 boards `ImportYears`, `ImportPreview`, `ImportRun`, `ImportConfirm`,
+`ImportStopped`, `ImportStoppedPartial`). The screen shows six steps — Bron,
+Verbinden, Jaren, Voorbeeld, Problemen, Importeren — while the existing
+ten-step Moneybird flow underneath stays. Exact Online keeps the #161 flow: it stops after the VAT step and writes nothing.
+A third source, XAF, stores `source: xaf` on the wizard and opens the existing
+audit-file dry run. `ImportSource` in the API now includes `xaf`
+(`importWizardSourceSchema` in `apps/web/src/api/schemas.ts`, OpenAPI
+`ImportSource`). Copy says most Dutch packages can export an XAF file.
+A stopped import with nothing booked offers “Opnieuw proberen”; a partly
+booked import shows the booked count, Legal’s duplicate-check sentence, and
+“De rest overzetten” plus a link to journal entries. Problems uses the same
+finding cards, with `1`–`3` and `Z` on the VAT step. Dark follows the tokens.
+Phone 390 hides the stepper (a “step n of 6” line instead) so the page does
+not scroll sideways. With no `?bron=`, the shell title is Importeren / Import,
+not Moneybird. Screenshots under `docs/pr-screenshots/180/`.
+
 ### Contacts and sales outstanding (#195)
 
 Payment reminders and debtor ageing now subtract issued credit notes from what's

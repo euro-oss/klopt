@@ -141,6 +141,10 @@ test('picking Exact on Bron updates ?bron= and the page title', async ({ page })
   await anAdministration(page)
   await page.goto('/importeren')
   await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
+  // No ?bron= yet: the shell title is Importeren, not Moneybird (#180).
+  const banner = page.getByRole('banner')
+  await expect(banner.getByText('Importeren', { exact: true })).toBeVisible()
+  await expect(banner.getByText('Moneybird', { exact: true })).toHaveCount(0)
   const moneybird = page.getByRole('radio', { name: /Moneybird/ })
   await expect(moneybird).toBeEnabled({ timeout: 15_000 })
   await moneybird.click()
@@ -427,6 +431,75 @@ test('#95 self-assessed VAT lands on Klaar with the filing block (#105)', async 
         /Indienen via Klopt kan zodra Klopt dit ondersteunt; wacht daar niet op als je aangiftetermijn eerder afloopt/i,
       ),
     ).toBeVisible()
+  } finally {
+    await standIn.close()
+  }
+})
+
+test('a stopped import with nothing booked offers only Try again', async ({ page }) => {
+  test.setTimeout(300_000)
+  const standIn = await startNullRateMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await connectStandIn(page, standIn)
+    await pickAdminAndWaitForYears(page, '2026')
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
+      timeout: 30_000,
+    })
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Welke btw-code/ })).toBeVisible()
+    await mapAllOpenRates(page)
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Waar komen je rekeningen/ })).toBeVisible({
+      timeout: 30_000,
+    })
+    for (let i = 0; i < 12; i += 1) {
+      const confirm = page.getByRole('button', { name: 'Bevestigen' })
+      if ((await confirm.count()) === 0) break
+      const before = await confirm.count()
+      await confirm.first().click()
+      await expect(confirm).toHaveCount(before - 1, { timeout: 30_000 })
+    }
+    await clickNext(page)
+    await expect(
+      page.getByRole('heading', { name: /Wat we nog moeten oplossen|Niets houdt/ }),
+    ).toBeVisible({ timeout: 30_000 })
+    await clickNext(page)
+    await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible()
+    await clickNext(page)
+    const confirmDialog = page.getByRole('alertdialog')
+    await expect(confirmDialog).toBeVisible()
+    await confirmDialog.getByRole('button', { name: /Overzetten bevestigen/i }).click()
+    await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+      timeout: 60_000,
+    })
+
+    process.env['KLOPT_ENCRYPTION_KEY'] = 'e2e-encryption-key-not-for-production-01234'
+    const { importMoneybirdAdministration } = await import('../../worker/src/moneybird.js')
+    const { createFilesystemDocumentStore } = await import('@klopt/adapters')
+    const { createDatabase, closeDatabase } = await import('@klopt/db')
+    const directory = mkdtempSync(join(tmpdir(), 'mb-stopped-none-'))
+    const db = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+    const rejectingFetch: typeof globalThis.fetch = () =>
+      Promise.reject(new Error('forced pre-commit network failure'))
+    try {
+      const store = createFilesystemDocumentStore({ directory })
+      for (let i = 0; i < 8; i += 1) {
+        const result = await importMoneybirdAdministration(db, store, rejectingFetch)
+        if (result.state === 'idle') break
+      }
+    } finally {
+      await closeDatabase(db)
+    }
+
+    await expect(page.getByRole('heading', { name: /^Import gestopt$/ })).toBeVisible({
+      timeout: 120_000,
+    })
+    await expect(page.getByText(/We hebben niets geboekt/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Opnieuw proberen' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Wat we nog moeten oplossen/ })).toHaveCount(0)
+    await expect(page.getByText('terug', { exact: true })).toHaveCount(0)
   } finally {
     await standIn.close()
   }
