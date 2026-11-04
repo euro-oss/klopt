@@ -3,7 +3,7 @@ import { addCalendarDays } from '../../src/lib/amsterdam-date.js'
 import {
   CONTACTS_OVERDUE_CALENDAR_PROOF_DATES,
   contactsOverdueFixtureDates,
-  contactsOverdueNeedsPriorFiscalYear,
+  contactsOverdueBooksInPriorFiscalYear,
   OVERDUE_CUSTOMER_PAYMENT_TERMS_DAYS,
 } from '../../e2e/support/contacts-overdue-fixture-dates.js'
 
@@ -31,7 +31,7 @@ describe('contactsOverdueFixtureDates', () => {
       const needsPrior =
         dates.customerOverdueIssueDate() < dates.fiscalYearStart ||
         dates.overduePurchaseBill().dueDate < dates.fiscalYearStart
-      expect(contactsOverdueNeedsPriorFiscalYear(dates)).toBe(needsPrior)
+      expect(contactsOverdueBooksInPriorFiscalYear(dates)).toBe(needsPrior)
     })
   }
 })

@@ -1,26 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { requestHandler } from '@tanstack/react-start/server'
-import { bindE2eAsOfHeaderReader } from '../../src/lib/e2e-as-of-request.js'
-import { ensureE2eAsOfServerBridge } from '../../src/lib/e2e-as-of-server-bridge.js'
-import { localTodayIso } from '../../src/lib/local-clock.js'
 
 describe('localTodayIso', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-15T12:00:00'))
-    bindE2eAsOfHeaderReader(null)
-    ensureE2eAsOfServerBridge()
+    vi.resetModules()
     process.env['KLOPT_E2E_LEGAL_TOGGLE'] = '1'
     process.env['NODE_ENV'] = 'test'
+    delete process.env['KLOPT_E2E_TODAY_ISO']
   })
 
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
-    bindE2eAsOfHeaderReader(null)
+    vi.resetModules()
+    delete process.env['KLOPT_E2E_TODAY_ISO']
   })
 
-  it('returns the real local calendar date when process is undefined', () => {
+  async function loadLocalClock() {
+    return import('../../src/lib/local-clock.js')
+  }
+
+  it('returns the real local calendar date when process is undefined', async () => {
+    const { localTodayIso } = await loadLocalClock()
     const saved = globalThis.process
     vi.stubGlobal('process', undefined)
     try {
@@ -30,35 +32,29 @@ describe('localTodayIso', () => {
     }
   })
 
-  it('ignores the e2e as-of override when NODE_ENV is production', async () => {
+  it('ignores KLOPT_E2E_TODAY_ISO when NODE_ENV is production', async () => {
     process.env['NODE_ENV'] = 'production'
-    const handler = requestHandler(() => new Response(localTodayIso()))
-    const response = await handler(
-      new Request('http://localhost/', { headers: { 'X-Klopt-E2e-As-Of': '2026-01-01' } }),
-      {},
-    )
-    expect(await response.text()).toBe('2026-03-15')
+    process.env['KLOPT_E2E_TODAY_ISO'] = '2026-01-01'
+    const { localTodayIso } = await loadLocalClock()
+    expect(localTodayIso()).toBe('2026-03-15')
   })
 
-  it('ignores the e2e as-of override when KLOPT_E2E_LEGAL_TOGGLE is not set', async () => {
+  it('ignores KLOPT_E2E_TODAY_ISO when KLOPT_E2E_LEGAL_TOGGLE is not set', async () => {
     delete process.env['KLOPT_E2E_LEGAL_TOGGLE']
-    const handler = requestHandler(() => new Response(localTodayIso()))
-    const response = await handler(
-      new Request('http://localhost/', { headers: { 'X-Klopt-E2e-As-Of': '2026-01-01' } }),
-      {},
-    )
-    expect(await response.text()).toBe('2026-03-15')
+    process.env['KLOPT_E2E_TODAY_ISO'] = '2026-01-01'
+    const { localTodayIso } = await loadLocalClock()
+    expect(localTodayIso()).toBe('2026-03-15')
   })
 
-  it('uses the request header override when e2e gating is on', async () => {
-    const handler = requestHandler(() => new Response(localTodayIso()))
-    const withHeader = await handler(
-      new Request('http://localhost/', { headers: { 'X-Klopt-E2e-As-Of': '2026-01-15' } }),
-      {},
-    )
-    expect(await withHeader.text()).toBe('2026-01-15')
+  it('uses KLOPT_E2E_TODAY_ISO read at process start when e2e gating is on', async () => {
+    process.env['KLOPT_E2E_TODAY_ISO'] = '2026-01-15'
+    const { localTodayIso } = await loadLocalClock()
+    expect(localTodayIso()).toBe('2026-01-15')
+  })
 
-    const withoutHeader = await handler(new Request('http://localhost/'), {})
-    expect(await withoutHeader.text()).toBe('2026-03-15')
+  it('rejects impossible calendar dates in KLOPT_E2E_TODAY_ISO', async () => {
+    process.env['KLOPT_E2E_TODAY_ISO'] = '2027-13-45'
+    const { localTodayIso } = await loadLocalClock()
+    expect(localTodayIso()).toBe('2026-03-15')
   })
 })

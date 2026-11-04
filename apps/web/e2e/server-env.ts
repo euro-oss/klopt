@@ -61,5 +61,9 @@ export function e2eWebServerEnv(
     // Legal URLs stay unset (self-hosted). Specs that need the hosted
     // checkbox set cookie `klopt-e2e-legal=on` (see legal-links.ts).
     KLOPT_E2E_LEGAL_TOGGLE: '1',
+    ...(environment['KLOPT_E2E_TODAY_ISO'] !== undefined &&
+    environment['KLOPT_E2E_TODAY_ISO'] !== ''
+      ? { KLOPT_E2E_TODAY_ISO: environment['KLOPT_E2E_TODAY_ISO'] }
+      : {}),
   }
 }
