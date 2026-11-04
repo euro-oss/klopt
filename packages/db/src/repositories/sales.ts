@@ -15,7 +15,6 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from 'dr
 import type { Transaction } from '../client.js'
 import {
   accounts,
-  bankTransactionAllocations,
   contactAddresses,
   contacts,
   entities,
@@ -28,6 +27,7 @@ import {
   salesInvoices,
   taxCodes,
 } from '../schema/index.js'
+import { activeBankAllocationsPerInvoice } from './active-bank-allocations.js'
 
 /**
  * Sales persistence.
@@ -956,17 +956,7 @@ export class SalesRepository {
    * is why it lives here rather than being written out twice.
    */
   private allocatedPerInvoice(entityId: string) {
-    return this.tx
-      .select({
-        invoiceId: bankTransactionAllocations.invoiceId,
-        total: sql<string>`sum(${bankTransactionAllocations.amountMinorUnits})::text`.as(
-          'allocated',
-        ),
-      })
-      .from(bankTransactionAllocations)
-      .where(eq(bankTransactionAllocations.entityId, entityId))
-      .groupBy(bankTransactionAllocations.invoiceId)
-      .as('allocated')
+    return activeBankAllocationsPerInvoice(this.tx, entityId)
   }
 
   /** Issued credit notes linked to an invoice, summed per credited invoice. */

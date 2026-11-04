@@ -4,7 +4,19 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
-import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
+import {
+  closeDatabase,
+  createDatabase,
+  issueToken,
+  runMigrations,
+  withBankRead,
+  withSalesRead,
+  type Database,
+} from '@klopt/db'
+import {
+  activeBankAllocationsPerInvoice,
+  allBankAllocationsPerInvoiceForTest,
+} from '../../../packages/db/src/repositories/active-bank-allocations.js'
 import {
   seedEntity,
   seedSalesConfiguration,
@@ -31,7 +43,11 @@ import {
   handleIssueInvoice,
   handleListOverdueInvoices,
 } from '../src/api/handlers/sales.js'
-import { handleGetJournalEntry } from '../src/api/handlers/ledger.js'
+import {
+  handleGetJournalEntry,
+  handlePostJournalEntry,
+  handleReverseJournalEntry,
+} from '../src/api/handlers/ledger.js'
 import { handleUpdateEntity } from '../src/api/handlers/setup.js'
 import {
   updateEntityBody,
@@ -41,6 +57,7 @@ import {
   draftInvoiceBody,
   importStatementBody,
   issueInvoiceBody,
+  postJournalEntryBody,
   transactionsQuery,
 } from '../src/api/schemas.js'
 
@@ -420,6 +437,188 @@ describe('confirming a match', () => {
         confirmMatchBody.parse({ accountNumber: '4000' }),
       ),
     ).rejects.toThrow(/already booked/)
+  })
+})
+
+describe('reversing a bank match', () => {
+  const reverseMatchEntry = async (journalEntryId: string) =>
+    handleReverseJournalEntry(await contextFor(uuidv7()), journalEntryId, {
+      bookingDate: '2026-04-02',
+      description: null,
+      dryRun: false,
+    })
+
+  it('restores outstanding, dunning, open documents, candidates, and rematch', async () => {
+    const invoice = await anInvoice()
+    const transactionId = await aTransaction({
+      amount: '1210,00',
+      description: `Betaling factuur ${invoice.number}`,
+      sequence: 120,
+    })
+
+    const confirmed = await handleConfirmMatch(
+      await contextFor(uuidv7()),
+      transactionId,
+      confirmMatchBody.parse({
+        allocations: [{ invoiceId: invoice.invoiceId, amount: '121000' }],
+      }),
+    )
+    const journalEntryId = (confirmed.body as { journalEntryId: string }).journalEntryId
+
+    await reverseMatchEntry(journalEntryId)
+
+    const list = await handleListBankTransactions(
+      await contextFor(),
+      transactionsQuery.parse({ bankAccountId, limit: 1000 }),
+    )
+    expect(list.body.transactions.find((item) => item.id === transactionId)?.status).toBe(
+      'unmatched',
+    )
+
+    await withSalesRead(database, async (sales) => {
+      const open = await sales.openInvoices(entityId, '2026-06-01')
+      const row = open.find((item) => item.id === invoice.invoiceId)
+      expect(row?.total).toBe(121_000n)
+
+      const dunnable = await sales.dunnable(entityId, '2026-06-01')
+      expect(dunnable.map((item) => item.invoiceId)).toContain(invoice.invoiceId)
+
+      expect(open.some((item) => item.id === invoice.invoiceId)).toBe(true)
+
+      const detail = await sales.findInvoice(entityId, invoice.invoiceId)
+      const counts = await sales.openDocumentCounts(entityId, detail!.contactId)
+      expect(counts.sales).toBeGreaterThan(0)
+    })
+
+    await withBankRead(database, async (bank) => {
+      const candidates = await bank.matchCandidates(entityId)
+      const candidate = candidates.find((item) => item.invoiceId === invoice.invoiceId)
+      expect(candidate?.outstanding).toBe(121_000n)
+    })
+
+    const dunning = await handleGetDunningQueue(await contextFor(), { asOf: '2026-06-01' })
+    expect(dunning.body.actions.map((item) => item.number)).toContain(invoice.number)
+
+    await handleConfirmMatch(
+      await contextFor(uuidv7()),
+      transactionId,
+      confirmMatchBody.parse({
+        allocations: [{ invoiceId: invoice.invoiceId, amount: '121000' }],
+      }),
+    )
+
+    await withBankRead(database, async (bank) => {
+      const allocated = await bank.allocatedFor(entityId, [invoice.invoiceId])
+      expect(allocated.get(invoice.invoiceId) ?? 0n).toBe(121_000n)
+    })
+  })
+
+  it('restores the remainder after a partial match is reversed', async () => {
+    const invoice = await anInvoice()
+    const transactionId = await aTransaction({
+      amount: '500,00',
+      description: `deelbetaling ${invoice.number}`,
+      sequence: 121,
+    })
+
+    const confirmed = await handleConfirmMatch(
+      await contextFor(uuidv7()),
+      transactionId,
+      confirmMatchBody.parse({
+        allocations: [{ invoiceId: invoice.invoiceId, amount: '50000' }],
+      }),
+    )
+
+    await reverseMatchEntry((confirmed.body as { journalEntryId: string }).journalEntryId)
+
+    await withBankRead(database, async (bank) => {
+      const candidates = await bank.matchCandidates(entityId)
+      const candidate = candidates.find((item) => item.invoiceId === invoice.invoiceId)
+      expect(candidate?.outstanding).toBe(121_000n)
+    })
+  })
+
+  it('does nothing to a booked match when an unrelated entry is reversed', async () => {
+    const invoice = await anInvoice()
+    const transactionId = await aTransaction({
+      amount: '1210,00',
+      description: `Betaling factuur ${invoice.number}`,
+      sequence: 122,
+    })
+
+    const confirmed = await handleConfirmMatch(
+      await contextFor(uuidv7()),
+      transactionId,
+      confirmMatchBody.parse({
+        allocations: [{ invoiceId: invoice.invoiceId, amount: '121000' }],
+      }),
+    )
+
+    const unrelated = await handlePostJournalEntry(
+      await contextFor(uuidv7()),
+      postJournalEntryBody.parse({
+        journalCode: 'MEM',
+        bookingDate: '2026-04-02',
+        documentDate: '2026-04-02',
+        description: 'Memo',
+        lines: [
+          { accountNumber: '8000', debit: '100' },
+          { accountNumber: '4900', credit: '100' },
+        ],
+      }),
+    )
+
+    await handleReverseJournalEntry(await contextFor(uuidv7()), unrelated.body.entry.id, {
+      bookingDate: '2026-04-02',
+      description: null,
+      dryRun: false,
+    })
+
+    const list = await handleListBankTransactions(
+      await contextFor(),
+      transactionsQuery.parse({ bankAccountId, limit: 1000 }),
+    )
+    expect(list.body.transactions.find((item) => item.id === transactionId)?.status).toBe('matched')
+
+    await withBankRead(database, async (bank) => {
+      const allocated = await bank.allocatedFor(entityId, [invoice.invoiceId])
+      expect(allocated.get(invoice.invoiceId) ?? 0n).toBe(121_000n)
+    })
+
+    void confirmed
+  })
+
+  it('mutation check: allocation rows stay but active sums ignore reversed matches', async () => {
+    const invoice = await anInvoice()
+    const transactionId = await aTransaction({
+      amount: '1210,00',
+      description: `Betaling factuur ${invoice.number}`,
+      sequence: 123,
+    })
+
+    const confirmed = await handleConfirmMatch(
+      await contextFor(uuidv7()),
+      transactionId,
+      confirmMatchBody.parse({
+        allocations: [{ invoiceId: invoice.invoiceId, amount: '121000' }],
+      }),
+    )
+
+    await reverseMatchEntry((confirmed.body as { journalEntryId: string }).journalEntryId)
+
+    const sums = await database.transaction(async (tx) => {
+      const active = activeBankAllocationsPerInvoice(tx, entityId)
+      const all = allBankAllocationsPerInvoiceForTest(tx, entityId)
+      const activeRows = await tx.select().from(active)
+      const allRows = await tx.select().from(all)
+      return {
+        active: activeRows.find((row) => row.invoiceId === invoice.invoiceId)?.total ?? null,
+        all: allRows.find((row) => row.invoiceId === invoice.invoiceId)?.total ?? null,
+      }
+    })
+
+    expect(sums.all).toBe('121000')
+    expect(sums.active).toBeNull()
   })
 })
 

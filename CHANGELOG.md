@@ -18,6 +18,14 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Bank: reversing a match releases allocations
+
+Reversing the journal entry for an afgeletterde bank line now runs in one
+transaction with resetting that line to `unmatched` and clearing its
+`journalEntryId`. Allocation rows stay for audit; outstanding, dunning,
+match candidates and open-document counts ignore allocations whose match entry
+has been reversed.
+
 ### Redesign: Import wizard (#134)
 
 The import wizard matches the v2 export (`ImportSource`, `ImportFindings`, and

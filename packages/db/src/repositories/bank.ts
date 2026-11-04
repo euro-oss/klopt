@@ -22,6 +22,7 @@ import {
   entities,
   salesInvoices,
 } from '../schema/index.js'
+import { activeBankAllocationsPerInvoice } from './active-bank-allocations.js'
 
 /**
  * Bank persistence.
@@ -453,15 +454,7 @@ export class BankRepository {
    * invoice stop being chased once it is paid.
    */
   async matchCandidates(entityId: string): Promise<readonly MatchCandidate[]> {
-    const allocated = this.tx
-      .select({
-        invoiceId: bankTransactionAllocations.invoiceId,
-        total: sql<string>`sum(${bankTransactionAllocations.amountMinorUnits})`.as('allocated'),
-      })
-      .from(bankTransactionAllocations)
-      .where(eq(bankTransactionAllocations.entityId, entityId))
-      .groupBy(bankTransactionAllocations.invoiceId)
-      .as('allocated')
+    const allocated = activeBankAllocationsPerInvoice(this.tx, entityId)
 
     const rows = await this.tx
       .select({
@@ -643,6 +636,30 @@ export class BankRepository {
     return updated.length > 0
   }
 
+  /**
+   * After a match entry is reversed, the bank line can be booked again.
+   *
+   * Allocations are left in place; outstanding queries ignore them once the
+   * linked entry has a reversal. Clearing `journalEntryId` keeps the row
+   * append-only in the ledger while making workflow state honest again.
+   */
+  async releaseMatchForReversedEntry(entityId: string, reversedEntryId: string): Promise<void> {
+    await this.tx
+      .update(bankTransactions)
+      .set({
+        status: 'unmatched',
+        journalEntryId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(bankTransactions.entityId, entityId),
+          eq(bankTransactions.journalEntryId, reversedEntryId),
+          eq(bankTransactions.status, 'matched'),
+        ),
+      )
+  }
+
   /** What has been allocated against an invoice, for the outstanding sum. */
   async allocatedFor(
     entityId: string,
@@ -650,19 +667,14 @@ export class BankRepository {
   ): Promise<Map<string, bigint>> {
     if (invoiceIds.length === 0) return new Map()
 
+    const allocated = activeBankAllocationsPerInvoice(this.tx, entityId)
     const rows = await this.tx
       .select({
-        invoiceId: bankTransactionAllocations.invoiceId,
-        total: sql<string>`sum(${bankTransactionAllocations.amountMinorUnits})::text`,
+        invoiceId: allocated.invoiceId,
+        total: allocated.total,
       })
-      .from(bankTransactionAllocations)
-      .where(
-        and(
-          eq(bankTransactionAllocations.entityId, entityId),
-          inArray(bankTransactionAllocations.invoiceId, [...invoiceIds]),
-        ),
-      )
-      .groupBy(bankTransactionAllocations.invoiceId)
+      .from(allocated)
+      .where(inArray(allocated.invoiceId, [...invoiceIds]))
 
     return new Map(rows.map((row) => [row.invoiceId, BigInt(row.total)]))
   }

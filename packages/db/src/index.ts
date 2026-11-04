@@ -210,6 +210,7 @@ export {
 } from './repositories/sales.js'
 export {
   withLedger,
+  withLedgerAndBank,
   withReporting,
   withSearch,
   withRgs,
