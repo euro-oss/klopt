@@ -14,8 +14,11 @@
  * thing that should be tested by naming dates rather than by rendering a page.
  */
 
-import { isFiscalYearCodeInRange } from '@klopt/core'
-import { earliestOpenFiscalYear, priorFiscalYearCodeToOpen } from '~/lib/booking-fiscal-year-gate'
+import {
+  earliestOpenFiscalYear,
+  isFiscalYearCodeInRange,
+  priorFiscalYearCodeToOpen,
+} from '@klopt/core'
 
 /** Where the chosen year is remembered. Read on the server, set from the shell. */
 export const REPORT_YEAR_COOKIE = 'klopt_report_year'
