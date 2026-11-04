@@ -4,7 +4,7 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
-export default defineConfig(() => ({
+export default defineConfig({
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
   // pdfkit loads its AFM fonts at runtime (createRequire + package imports);
@@ -25,9 +25,6 @@ export default defineConfig(() => ({
      * which is the only way to be genuinely in front. See the plugin, and
      * ADR 0056.
      */
-    nitro({
-      plugins: ['./src/server-plugins/headless.ts'],
-      traceDeps: ['pdfkit*'],
-    }),
+    nitro({ plugins: ['./src/server-plugins/headless.ts'], traceDeps: ['pdfkit*'] }),
   ],
-}))
+})

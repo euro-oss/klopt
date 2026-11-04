@@ -15,7 +15,7 @@ export function isValidCalendarIsoDate(iso: string): boolean {
   )
 }
 
-export function parseE2eAsOfHeader(raw: string | null | undefined): string | undefined {
+export function parseCalendarIsoDate(raw: string | null | undefined): string | undefined {
   const trimmed = raw?.trim()
   if (trimmed === undefined || trimmed === '') return undefined
   if (!ISO.test(trimmed)) return undefined

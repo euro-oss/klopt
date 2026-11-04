@@ -6,7 +6,7 @@
  */
 
 import { dayPartAt, type DayPart } from './dashboard'
-import { parseE2eAsOfHeader } from './e2e-as-of-header'
+import { parseCalendarIsoDate } from './calendar-iso-date'
 
 /** Fixed at module load from `KLOPT_E2E_TODAY_ISO` (never written at runtime). */
 function readE2eTodayAtProcessStart(): string | null {
@@ -14,7 +14,7 @@ function readE2eTodayAtProcessStart(): string | null {
   if (typeof process === 'undefined') return null
   if (process.env['KLOPT_E2E_LEGAL_TOGGLE'] !== '1') return null
   if (process.env['NODE_ENV'] === 'production') return null
-  const parsed = parseE2eAsOfHeader(process.env['KLOPT_E2E_TODAY_ISO'])
+  const parsed = parseCalendarIsoDate(process.env['KLOPT_E2E_TODAY_ISO'])
   return parsed ?? null
 }
 
