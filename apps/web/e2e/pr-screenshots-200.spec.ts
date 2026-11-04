@@ -204,10 +204,10 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await page.goto('/fiscal-years')
   await hydrated(page)
   await expect(page.getByTestId('fiscal-years-open-section')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Vorig boekjaar openen' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Boekjaar 2025 openen' })).toBeVisible()
   await shoot(page, 'fiscal-years-open-actions', page.getByTestId('fiscal-years-open-section'))
 
-  await page.getByRole('button', { name: 'Vorig boekjaar openen' }).click()
+  await page.getByRole('button', { name: 'Boekjaar 2025 openen' }).click()
   await expect(page.getByTestId('open-prior-year')).toBeVisible()
   await shoot(page, 'fiscal-years-prior-expanded', page.getByTestId('fiscal-years-open-section'))
 
