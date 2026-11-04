@@ -167,12 +167,55 @@ function assertDocumentCountCopy(text: string, count: number): void {
   }
 }
 
+/** Stable label for the visible wizard step (phone step-of line plus main h2 when present). */
+async function visibleWizardStepMarker(page: Page): Promise<string> {
+  const parts: string[] = []
+  const stepOf = page
+    .getByRole('paragraph')
+    .filter({ hasText: /^Stap \d+ van 6:/ })
+    .filter({ visible: true })
+  if ((await stepOf.count()) > 0) {
+    parts.push((await stepOf.first().innerText()).trim())
+  }
+  const wizard = page.locator('[data-slot="import-wizard"]')
+  for (const pattern of [
+    /Waar komen je boeken vandaan/,
+    /Verbind met Moneybird/,
+    /Welke administratie en welke jaren/,
+    /Wat we gaan overzetten/,
+    /Welke btw-code/,
+    /Waar komen je rekeningen/,
+    /Wat we nog moeten oplossen|Niets houdt/,
+    /Klaar om over te zetten/,
+    /Bezig met overzetten/,
+  ] as const) {
+    const heading = wizard.getByRole('heading', { name: pattern })
+    if (await heading.isVisible()) {
+      parts.push((await heading.innerText()).trim())
+      break
+    }
+  }
+  return parts.join('|')
+}
+
 async function clickNext(page: Page): Promise<void> {
   const next = page.locator('button[data-focus="next"]')
   await expect
     .poll(async () => (await next.getAttribute('aria-disabled')) !== 'true', { timeout: 60_000 })
     .toBe(true)
+  const before = await visibleWizardStepMarker(page)
   await next.click()
+  await expect
+    .poll(
+      async () => {
+        if (await page.getByRole('alertdialog').isVisible()) return true
+        const after = await visibleWizardStepMarker(page)
+        if (before === '' && after !== '') return true
+        return after !== before && after !== ''
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true)
 }
 
 /** Fresh Bron (source pick), clearing saved wizard progress when the resume card is shown. */
