@@ -139,7 +139,7 @@ test('prior-year confirm offers only earliest open year minus one, with no year 
 
   await page.goto('/fiscal-years')
   await hydrated(page)
-  await page.getByRole('button', { name: 'Vorig boekjaar openen' }).click()
+  await page.getByRole('button', { name: 'Boekjaar 2025 openen' }).click()
 
   const panel = page.getByTestId('open-prior-year')
   await expect(panel.getByTestId('fixed-year-open-code')).toHaveText('2025', {
@@ -160,7 +160,7 @@ test('at book-year floor 1960, prior-year opening is not offered', async ({ page
   expect(opened.ok()).toBeTruthy()
 
   await page.goto('/fiscal-years')
-  await expect(page.getByRole('button', { name: 'Vorig boekjaar openen' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Boekjaar 1959 openen' })).toHaveCount(0)
   await expect(page.getByTestId('open-prior-year')).toHaveCount(0)
 })
 

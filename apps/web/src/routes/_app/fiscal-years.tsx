@@ -458,10 +458,7 @@ function OpenNextYear({
           onClick={() => {
             void create()
           }}
-          aria-label={
-            planned === null ? t('fiscalYears.open') : t('fiscalYears.openNow', { year: code.trim() })
-          }
-          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="bg-primary text-primary-foreground whitespace-nowrap px-3 py-2 text-sm font-medium disabled:opacity-50 sm:px-4"
         >
           {busy
             ? t('common.busy')
@@ -470,15 +467,15 @@ function OpenNextYear({
               : t('fiscalYears.openNow', { year: code.trim() })}
         </button>
 
-        {priorAvailable && !priorExpanded ? (
+        {priorAvailable && priorCode !== null && !priorExpanded ? (
           <button
             type="button"
-            className="border-input text-muted-foreground hover:bg-accent border px-4 py-2 text-sm font-medium"
+            className="border-input text-muted-foreground hover:bg-accent whitespace-nowrap border px-3 py-2 text-sm font-medium sm:px-4"
             onClick={() => {
               setPriorExpanded(true)
             }}
           >
-            {t('fiscalYears.openPriorAction')}
+            {t('fiscalYears.openNow', { year: priorCode })}
           </button>
         ) : null}
       </div>
@@ -622,7 +619,7 @@ function PriorYearConfirmPanel({
         onClick={() => {
           void create()
         }}
-        className="bg-primary text-primary-foreground mt-4 inline-flex min-h-11 items-center px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="bg-primary text-primary-foreground mt-4 inline-flex min-h-11 items-center whitespace-nowrap px-3 py-2 text-sm font-medium disabled:opacity-50 sm:px-4"
       >
         {busy ? t('common.busy') : t('fiscalYears.openNow', { year: code })}
       </button>
