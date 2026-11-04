@@ -3146,6 +3146,7 @@
                     "invalid_date.declaration_year_four",
                     "invalid_date.document_date_calendar",
                     "invalid_date.fiscal_year_labelled",
+                    "invalid_date.fiscal_year_out_of_range",
                     "invalid_date.starting_month",
                     "invalid_date.validfrom_date",
                     "invalid_date.validity_window_end",

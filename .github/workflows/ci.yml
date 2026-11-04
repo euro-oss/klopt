@@ -266,6 +266,9 @@ jobs:
       - name: Playwright e2e
         run: pnpm --filter @klopt/web run test:e2e
 
+      - name: Playwright e2e (#200 fiscal year booking)
+        run: pnpm --filter @klopt/web run test:e2e:fiscal-year-booking
+
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

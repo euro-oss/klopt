@@ -82,7 +82,8 @@ test('the next book year is opened from one field, and turns up in the shell', a
   await expect(page.getByTestId('derived-dates')).toContainText(String(seeded + 3))
   await label.fill(next)
 
-  await page.getByRole('button', { name: 'Boekjaar openen' }).click()
+  const openSection = page.getByTestId('fiscal-years-open-section')
+  await openSection.getByRole('button', { name: `Boekjaar ${next} openen` }).click()
   await expect(page.getByText(`Boekjaar ${next} staat open`)).toBeVisible()
 
   // In the table, and — the acceptance criterion that spans two issues — in the
@@ -96,7 +97,7 @@ test('the next book year is opened from one field, and turns up in the shell', a
 
   // A label that is already a book year is not offered again, rather than being
   // offered and then refused.
-  await expect(page.getByRole('button', { name: 'Boekjaar openen' })).toBeDisabled()
+  await expect(openSection.getByRole('button', { name: `Boekjaar ${next} openen` })).toBeDisabled()
   await expect(page.getByText(`Boekjaar ${next} bestaat al.`)).toBeVisible()
 })
 
@@ -310,7 +311,10 @@ test('a bookkeeper may open the next year and is not offered the close', async (
     // And the half that is theirs works.
     const next = String(new Date().getUTCFullYear() + 1)
     await expect(keeperPage.getByLabel('Jaartal')).toHaveValue(next)
-    await keeperPage.getByRole('button', { name: 'Boekjaar openen' }).click()
+    await keeperPage
+      .getByTestId('fiscal-years-open-section')
+      .getByRole('button', { name: `Boekjaar ${next} openen` })
+      .click()
     await expect(keeperPage.getByText(`Boekjaar ${next} staat open`)).toBeVisible()
   } finally {
     await owner.close()

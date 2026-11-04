@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { planFiscalYear } from '@klopt/core'
+import { planFiscalYear, priorFiscalYearCodeToOpen } from '@klopt/core'
 import {
   currentFiscalYear,
   dayAfter,
   fiscalYearSearch,
+  earlierUnclosedBookYearCodes,
+  formatBookYearCodeList,
   hasYearAfter,
   isFiscalYearCode,
+  isOfferedFiscalYearToOpen,
   isYearScopedRoute,
   nextFiscalYear,
+  offeredFiscalYearCodesToOpen,
   plannedFiscalYear,
   resolveFiscalYear,
+  sanitizeBookYearOpenSearch,
   startingMonth,
   withinFiscalYear,
   type FiscalYearOption,
@@ -203,6 +208,10 @@ describe('the next book year', () => {
     expect(nextFiscalYear([])).toBeNull()
   })
 
+  it('offers nothing beyond the configured book-year ceiling', () => {
+    expect(nextFiscalYear([calendar('2100')])).toBeNull()
+  })
+
   /**
    * The dates the screen shows read-only are the dates the server will create.
    *
@@ -250,5 +259,72 @@ describe('whether a close has anywhere to carry balances to', () => {
   it('steps over a month end and a leap day', () => {
     expect(dayAfter('2026-12-31')).toBe('2027-01-01')
     expect(dayAfter('2024-02-28')).toBe('2024-02-29')
+  })
+})
+
+describe('earlier unclosed book years on Boekjaren', () => {
+  it('lists every prior open year, oldest first', () => {
+    const years = [calendar('2024'), calendar('2025'), { ...calendar('2026'), status: 'open' }]
+    expect(earlierUnclosedBookYearCodes(years, calendar('2026'))).toEqual(['2024', '2025'])
+    expect(earlierUnclosedBookYearCodes(years, calendar('2025'))).toEqual(['2024'])
+    expect(earlierUnclosedBookYearCodes(years, calendar('2024'))).toEqual([])
+  })
+
+  it('ignores closed prior years', () => {
+    const years = [{ ...calendar('2025'), status: 'closed' }, calendar('2026')]
+    expect(earlierUnclosedBookYearCodes(years, calendar('2026'))).toEqual([])
+  })
+
+  it('shows no hint once every earlier year is closed', () => {
+    const years = [
+      { ...calendar('2024'), status: 'closed' },
+      { ...calendar('2025'), status: 'closed' },
+      calendar('2026'),
+    ]
+    expect(earlierUnclosedBookYearCodes(years, calendar('2026'))).toEqual([])
+  })
+
+  it('formats year lists for Dutch copy', () => {
+    expect(formatBookYearCodeList(['2025'], 'nl')).toBe('2025')
+    expect(formatBookYearCodeList(['2024', '2025'], 'nl')).toBe('2024 en 2025')
+    expect(formatBookYearCodeList(['2023', '2024', '2025'], 'nl')).toBe('2023, 2024 en 2025')
+    expect(formatBookYearCodeList(['2023', '2024', '2025'], 'en')).toBe('2023, 2024 and 2025')
+  })
+})
+
+describe('opening the prior book year from Boekjaren', () => {
+  it('offers no year below the 1960 floor', () => {
+    expect(priorFiscalYearCodeToOpen('1960')).toBeNull()
+    expect(priorFiscalYearCodeToOpen('1961')).toBe('1960')
+  })
+})
+
+describe('book years offered to open from Boekjaren or a form link', () => {
+  it('names prior and next labels only', () => {
+    expect(offeredFiscalYearCodesToOpen([calendar('2026')])).toEqual({
+      prior: '2025',
+      next: '2027',
+    })
+    expect(offeredFiscalYearCodesToOpen([calendar('2024'), calendar('2026')])).toEqual({
+      prior: '2023',
+      next: '2027',
+    })
+  })
+
+  it('treats only those two labels as openable', () => {
+    const years = [calendar('2024'), calendar('2026')]
+    expect(isOfferedFiscalYearToOpen(years, '2025')).toBe(false)
+    expect(isOfferedFiscalYearToOpen(years, '2023')).toBe(true)
+    expect(isOfferedFiscalYearToOpen(years, '2027')).toBe(true)
+  })
+
+  it('drops a gap-year openYear from deep links', () => {
+    const years = [calendar('2026')]
+    expect(
+      sanitizeBookYearOpenSearch(years, { openYear: '2030', focus: 'confirm', returnTo: '/x' }),
+    ).toEqual({ returnTo: '/x' })
+    expect(
+      sanitizeBookYearOpenSearch(years, { openYear: '2025', focus: 'confirm', returnTo: '/x' }),
+    ).toEqual({ openYear: '2025', focus: 'confirm', returnTo: '/x' })
   })
 })
