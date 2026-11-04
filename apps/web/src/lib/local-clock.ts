@@ -17,9 +17,14 @@ const serverBridgePath =
     ? fileURLToPath(new URL('./e2e-as-of-server-bridge.ts', import.meta.url))
     : null
 
+type E2eAsOfServerBridgeModule = {
+  ensureE2eAsOfServerBridge: () => void
+}
+
 function ensureServerBridgeLoaded(): void {
   if (serverRequire === null || serverBridgePath === null) return
-  serverRequire(serverBridgePath).ensureE2eAsOfServerBridge()
+  const bridge = serverRequire(serverBridgePath) as E2eAsOfServerBridgeModule
+  bridge.ensureE2eAsOfServerBridge()
 }
 
 function readE2eAsOfOverrideSafe(): string | null {
