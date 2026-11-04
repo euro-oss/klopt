@@ -225,6 +225,9 @@ async function visibleWizardStepMarker(page: Page): Promise<string> {
 }
 
 async function clickNext(page: Page): Promise<void> {
+  if ((await page.locator('[data-slot="import-wizard"]').count()) > 0) {
+    await waitImportWizardHydrated(page)
+  }
   const next = page.locator('button[data-focus="next"]')
   await expect
     .poll(async () => (await next.getAttribute('aria-disabled')) !== 'true', { timeout: 60_000 })
@@ -280,6 +283,9 @@ async function fetchAdministrationAndWaitForYear(page: Page, yearLabel: string):
   await expect(adminRadio).toBeEnabled()
   await adminRadio.click()
   await expect(adminRadio).toBeChecked()
+  await expect(page.getByRole('heading', { name: 'Jaren', exact: true })).toBeVisible({
+    timeout: 60_000,
+  })
   await expect(yearCheckbox).toBeVisible({ timeout: 60_000 })
 }
 
