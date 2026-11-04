@@ -170,7 +170,7 @@ export async function runCustomerOpenOverdueScenario(
 
   const listRow = page.getByRole('button', { name: /Windvaan Open Kleur/ })
   const listOpen = listRow.locator('[data-contacts-list-open-amount]:visible')
-  await expect(listOpen).toHaveAttribute('data-contact-open-overdue', 'false')
+  await expect(listOpen).toHaveAttribute('data-contacts-open-overdue', 'false')
   await expectOpenInk(listOpen)
   await expect(listRow.getByText(/dagen te laat|dag te laat/i)).toHaveCount(0)
 
@@ -191,7 +191,7 @@ export async function runCustomerOpenOverdueScenario(
 
   const overdueRow = page.getByRole('button', { name: /Klif Te Laat Demo/ })
   const overdueListOpen = overdueRow.locator('[data-contacts-list-open-amount]:visible')
-  await expect(overdueListOpen).toHaveAttribute('data-contact-open-overdue', 'true')
+  await expect(overdueListOpen).toHaveAttribute('data-contacts-open-overdue', 'true')
   await expect(overdueListOpen).toHaveClass(/text-destructive/)
   await expect(overdueCard.getByText(/dagen te laat|dag te laat/i)).toBeVisible()
 
@@ -201,7 +201,7 @@ export async function runCustomerOpenOverdueScenario(
   const overdueRowMobile = page.getByRole('button', { name: /Klif Te Laat Demo/ })
   await expect(overdueRowMobile.getByText(/dagen te laat|dag te laat/i)).toBeVisible()
   const mobileOpen = overdueRowMobile.locator('[data-contacts-list-open-amount]:visible')
-  await expect(mobileOpen).toHaveAttribute('data-contact-open-overdue', 'true')
+  await expect(mobileOpen).toHaveAttribute('data-contacts-open-overdue', 'true')
   await expect(mobileOpen).toHaveClass(/text-destructive/)
 
   const emptyRowMobile = page.getByRole('button', { name: /Stilte Niets Open/ })
