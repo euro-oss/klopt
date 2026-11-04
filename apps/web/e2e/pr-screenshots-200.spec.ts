@@ -21,6 +21,21 @@ async function entityId(page: Page): Promise<string> {
   return body.id
 }
 
+async function setTaxCodeValidTo(id: string, code: string, validTo: string): Promise<void> {
+  const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
+  const sql = (database as unknown as { $client: SqlTag }).$client
+  try {
+    await sql`
+      update klopt.tax_codes
+      set valid_to = ${validTo}::date
+      where entity_id = ${id}::uuid
+        and code = ${code}
+    `
+  } finally {
+    await closeDatabase(database)
+  }
+}
+
 async function setTaxCodeValidFrom(id: string, code: string, validFrom: string): Promise<void> {
   const database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
   const sql = (database as unknown as { $client: SqlTag }).$client
@@ -188,6 +203,113 @@ async function shoot(page: Page, name: string, scrollTarget?: Locator): Promise<
   await page.evaluate(() => window.scrollTo(0, 0))
 }
 
+async function shootPurchaseVatHidden(page: Page): Promise<void> {
+  const hint = page.locator('#purchase-invoice-date-hint')
+  const line = page.getByTestId('billnew-line-1')
+  await expect(hint).toContainText('Boekjaar 2025 is nog niet geopend.')
+  await expect(page.getByText('Kies een andere')).toHaveCount(0)
+  await expect(page.getByLabel('Btw-code regel 1')).toContainText('VH21')
+
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme)
+    for (const size of SIZES) {
+      await page.setViewportSize({ width: size.width, height: size.height })
+      await expect(page.locator('body')).toBeVisible()
+      const inset = size.width === 390 ? await mobileTabBarInset(page) : 0
+      await line.scrollIntoViewIfNeeded()
+      const clip = await page.evaluate(
+        ({ inset, pad }) => {
+          const hintEl = document.querySelector('#purchase-invoice-date-hint')
+          const lineEl = document.querySelector('[data-testid="billnew-line-1"]')
+          if (!(hintEl instanceof HTMLElement) || !(lineEl instanceof HTMLElement)) {
+            throw new Error('purchase-vat-hidden clip targets missing')
+          }
+          const docTop = (element: HTMLElement): number =>
+            element.getBoundingClientRect().top + window.scrollY
+          const docBottom = (element: HTMLElement): number => docTop(element) + element.offsetHeight
+          const hintTop = docTop(hintEl) - pad
+          const lineBottom = docBottom(lineEl) + pad
+          const view = window.innerHeight - inset
+          const limit = view
+          const fitBottom = Math.max(0, lineBottom - view)
+          let scrollY = hintTop >= fitBottom ? fitBottom : hintTop
+          window.scrollTo(0, scrollY)
+          if (hintEl.getBoundingClientRect().top < pad) {
+            scrollY = hintTop
+            window.scrollTo(0, scrollY)
+          }
+          if (window.innerWidth <= 390) {
+            const hintBox = hintEl.getBoundingClientRect()
+            const clipY = Math.max(0, hintBox.top - pad)
+            return {
+              x: 0,
+              y: clipY,
+              width: window.innerWidth,
+              height: Math.max(1, limit - clipY),
+            }
+          }
+          const merge = (): DOMRect => {
+            const a = hintEl.getBoundingClientRect()
+            const b = lineEl.getBoundingClientRect()
+            const mergeTop = Math.min(a.top, b.top)
+            const left = Math.min(a.left, b.left)
+            const right = Math.max(a.right, b.right)
+            const mergeBottom = Math.max(a.bottom, b.bottom)
+            return new DOMRect(left, mergeTop, right - left, mergeBottom - mergeTop)
+          }
+          let rect = merge()
+          if (rect.bottom > limit - pad) {
+            window.scrollBy(0, rect.bottom - (limit - pad))
+            rect = merge()
+          }
+          if (rect.top < pad) {
+            window.scrollBy(0, rect.top - pad)
+            rect = merge()
+          }
+          const clipY = Math.max(0, rect.top - pad)
+          const maxHeight = limit - clipY
+          const clipHeight = Math.min(rect.height + pad * 2, maxHeight)
+          return {
+            x: Math.max(0, rect.left - pad),
+            y: clipY,
+            width: Math.min(rect.width + pad * 2, window.innerWidth - Math.max(0, rect.left - pad)),
+            height: Math.max(1, clipHeight),
+          }
+        },
+        { inset, pad: 12 },
+      )
+      const png = await page.screenshot({ animations: 'disabled', clip })
+      writeFileSync(
+        join(OUT, `purchase-vat-hidden-${theme}-${size.label}.png`),
+        withPngSourceChunk(png, SCREENSHOT_SOURCE),
+      )
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.evaluate(() => window.scrollTo(0, 0))
+}
+
+async function preparePurchaseVatHiddenShot(page: Page, entity: string): Promise<void> {
+  await setTaxCodeValidFrom(entity, 'VH21', '2025-01-01')
+  await page.goto('/purchases/new')
+  await hydrated(page)
+  await page.getByLabel('Hun nummer', { exact: true }).fill('DEC-2025-VAT')
+  await chooseOption(page, 'Leverancier', /Leverancier B\.V\./)
+  await setBillDate(page, '2025-12-15')
+  await page.getByLabel('Omschrijving regel 1').fill('Kantoor')
+  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
+  await chooseOption(page, 'Btw-code regel 1', /^VH21/)
+  await page.getByLabel('Excl. btw regel 1').fill('100,00')
+  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
+  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
+  await page.getByLabel('Btw', { exact: true }).fill('21,00')
+  await page.getByLabel('Totaal', { exact: true }).fill('121,00')
+  await setTaxCodeValidTo(entity, 'VH21', '2025-11-30')
+  await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
+  await expect(page.getByText('Kies een andere')).toHaveCount(0)
+  await expect(page.getByLabel('Btw-code regel 1')).toContainText('VH21')
+}
+
 async function openBookYear(page: Page, code: string): Promise<void> {
   const opened = await page.request.post('/api/v1/fiscal-years', {
     headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
@@ -199,7 +321,6 @@ async function openBookYear(page: Page, code: string): Promise<void> {
 test('capture #200 fiscal year booking gate screenshots', async ({ page, browser }) => {
   test.setTimeout(900_000)
   await ready(page)
-  await setTaxCodeValidFrom(await entityId(page), 'VL9', '2026-01-01')
 
   await page.goto('/purchases/new')
   await hydrated(page)
@@ -208,34 +329,8 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await expect(page.getByText('Kies een andere')).toHaveCount(0)
   await shoot(page, 'purchase-blocked')
 
-  await page.getByLabel('Hun nummer', { exact: true }).fill('DEC-2025-VAT')
-  await chooseOption(page, 'Leverancier', /Leverancier B\.V\./)
-  await setBillDate(page, '2026-01-15')
-  await page.getByLabel('Exclusief btw', { exact: true }).fill('100,00')
-  await page.getByLabel('Btw', { exact: true }).fill('9,00')
-  await page.getByLabel('Totaal', { exact: true }).fill('109,00')
-  await page.getByLabel('Omschrijving regel 1').fill('Kantoor')
-  await chooseOption(page, 'Grootboek regel 1', /^4400 /)
-  await chooseOption(page, 'Btw-code regel 1', /^VL9/)
-  await page.getByLabel('Excl. btw regel 1').fill('100,00')
-  await page.getByRole('button', { name: 'Btw berekenen voor regel 1' }).click()
-  await setBillDate(page, '2025-12-15')
-  await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
-  await expect(page.getByText('geldt niet op deze datum')).toHaveCount(0)
-  await expect(page.getByText('Kies een andere')).toHaveCount(0)
-  await expect(page.getByLabel('Exclusief btw', { exact: true })).not.toHaveAttribute(
-    'aria-invalid',
-    'true',
-  )
-  await expect(page.getByLabel('Btw', { exact: true })).not.toHaveAttribute('aria-invalid', 'true')
-  await expect(page.getByLabel('Totaal', { exact: true })).not.toHaveAttribute(
-    'aria-invalid',
-    'true',
-  )
-  const purchaseVatHiddenClip = page.locator('main form').filter({
-    has: page.locator('#purchase-invoice-date-hint'),
-  })
-  await shoot(page, 'purchase-vat-hidden', purchaseVatHiddenClip)
+  await preparePurchaseVatHiddenShot(page, await entityId(page))
+  await shootPurchaseVatHidden(page)
 
   await shoot(page, 'purchase-date-hint', page.locator('#purchase-invoice-date-hint'))
 
@@ -337,4 +432,15 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
   await shoot(page, 'fiscal-years-list', pluralHint)
 
   await shoot(page, 'fiscal-years-next-card', page.getByTestId('fiscal-years-open-section'))
+})
+
+test('capture purchase-vat-hidden PNGs only', async ({ page }) => {
+  test.skip(
+    !CAPTURE || process.env['CAPTURE_VAT_HIDDEN_ONLY'] !== '1',
+    'Set CAPTURE_PR_SCREENSHOTS=1 and CAPTURE_VAT_HIDDEN_ONLY=1',
+  )
+  test.setTimeout(120_000)
+  await ready(page)
+  await preparePurchaseVatHiddenShot(page, await entityId(page))
+  await shootPurchaseVatHidden(page)
 })
