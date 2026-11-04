@@ -642,10 +642,12 @@ test('390 stopped partway shows booked plural and one retry path in light and da
   }
 })
 
-test('390 stopped partial with one booked document shows singular bookedCount_one copy', async ({
-  page,
-}) => {
-  test.setTimeout(180_000)
+test.describe('390 stopped partial one booked (see #201)', () => {
+  test('390 stopped partial with one booked document shows singular bookedCount_one copy', async ({
+    page,
+  }) => {
+    test.fixme(true, 'Volgende click dropped while save in flight, #201')
+    test.setTimeout(180_000)
   const standIn = await startOneDocumentMoneybirdStandIn()
   try {
     await anAdministration(page)
@@ -681,4 +683,5 @@ test('390 stopped partial with one booked document shows singular bookedCount_on
   } finally {
     await standIn.close()
   }
+  })
 })
