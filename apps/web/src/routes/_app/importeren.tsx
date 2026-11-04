@@ -10,6 +10,7 @@ import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import type { MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
 import type { RankableAccount } from '@klopt/core/moneybird-account-ranker'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -225,6 +226,7 @@ function ImportWizardPage() {
   })
   const [showResume, setShowResume] = useState(resuming)
   const [busy, setBusy] = useState(false)
+  const [advanceInFlight, setAdvanceInFlight] = useState(false)
   const [footerSaveError, setFooterSaveError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -535,9 +537,11 @@ function ImportWizardPage() {
     setFooterSaveError(null)
     const ok = await persistWizard({ step: next })
     if (!ok) return false
-    setStep(next)
-    setShowResume(false)
-    setError(null)
+    flushSync(() => {
+      setStep(next)
+      setShowResume(false)
+      setError(null)
+    })
     return true
   }
 
@@ -592,15 +596,19 @@ function ImportWizardPage() {
     setTaxViolations({})
     setBusy(true)
     setError(null)
-    const result = await saveMoneybirdMappings({
-      data: {
-        accountMappings: next?.accountMappings ?? accountMappings,
-        taxMappings: attemptedTax,
-        importDecisions: next?.importDecisions ?? decisions,
-        idempotencyKey: crypto.randomUUID(),
-      },
-    })
-    setBusy(false)
+    let result: Awaited<ReturnType<typeof saveMoneybirdMappings>>
+    try {
+      result = await saveMoneybirdMappings({
+        data: {
+          accountMappings: next?.accountMappings ?? accountMappings,
+          taxMappings: attemptedTax,
+          importDecisions: next?.importDecisions ?? decisions,
+          idempotencyKey: crypto.randomUUID(),
+        },
+      })
+    } finally {
+      setBusy(false)
+    }
     if (!result.ok) {
       const message = result.problem?.detail ?? t('common.unknownError')
       setError(message)
@@ -813,8 +821,17 @@ function ImportWizardPage() {
     return null
   })()
 
+  const canNextRef = useRef(canNext)
+  canNextRef.current = canNext
+  const stepRef = useRef(step)
+  stepRef.current = step
+  const sourceRef = useRef(source)
+  sourceRef.current = source
+
   async function executeAdvanceOnce(): Promise<boolean> {
-    if (!mayLedgerImport || !canNext) return false
+    if (!mayLedgerImport || !canNextRef.current) return false
+    const step = stepRef.current
+    const source = sourceRef.current
     if (step === 'bron' && (source === 'moneybird' || source === 'exact')) {
       return await goTo('verbinden')
     }
@@ -823,28 +840,31 @@ function ImportWizardPage() {
         setBusy(true)
         setError(null)
         setFooterSaveError(null)
-        const result = await connectMoneybird({
-          data: { baseUrl, apiToken, idempotencyKey: crypto.randomUUID() },
-        })
-        setBusy(false)
-        if (!result.ok) {
-          const codes = new Set((result.problem?.violations ?? []).map((row) => row.code))
-          const invalid = codes.has('invalid_token')
-          const unreachable = codes.has('moneybird_unreachable')
-          setError(
-            invalid
-              ? t('wizard.verbinden.tokenInvalid')
-              : unreachable
-                ? t('wizard.verbinden.unreachable')
-                : (result.problem?.detail ?? t('common.unknownError')),
-          )
-          // Auth or reachability failure — Volgende stays off until the field changes.
-          if (invalid || unreachable) setTokenRefused(true)
-          return false
+        try {
+          const result = await connectMoneybird({
+            data: { baseUrl, apiToken, idempotencyKey: crypto.randomUUID() },
+          })
+          if (!result.ok) {
+            const codes = new Set((result.problem?.violations ?? []).map((row) => row.code))
+            const invalid = codes.has('invalid_token')
+            const unreachable = codes.has('moneybird_unreachable')
+            setError(
+              invalid
+                ? t('wizard.verbinden.tokenInvalid')
+                : unreachable
+                  ? t('wizard.verbinden.unreachable')
+                  : (result.problem?.detail ?? t('common.unknownError')),
+            )
+            // Auth or reachability failure — Volgende stays off until the field changes.
+            if (invalid || unreachable) setTokenRefused(true)
+            return false
+          }
+          setTokenRefused(false)
+          setApiToken('')
+          await router.invalidate()
+        } finally {
+          setBusy(false)
         }
-        setTokenRefused(false)
-        setApiToken('')
-        await router.invalidate()
       }
       return await goTo('administratie')
     }
@@ -892,24 +912,37 @@ function ImportWizardPage() {
 
   async function requestWizardAdvance() {
     if (!mayLedgerImport) return
-    if (advanceInFlightRef.current) return
-    if (busy) {
+    if (advanceInFlightRef.current || busy) {
       queueAdvance()
       return
     }
     advanceInFlightRef.current = true
+    setAdvanceInFlight(true)
     setFooterSaveError(null)
     try {
-      const ok = await executeAdvanceOnce()
-      if (!ok) clearAdvanceQueue()
-      else advanceQueuedRef.current = false
+      for (;;) {
+        const stepBefore = stepRef.current
+        const ok = await executeAdvanceOnce()
+        if (!ok) {
+          clearAdvanceQueue()
+          return
+        }
+        if (!advanceQueuedRef.current) break
+        if (stepRef.current === stepBefore) {
+          clearAdvanceQueue()
+          break
+        }
+        advanceQueuedRef.current = false
+      }
     } finally {
       advanceInFlightRef.current = false
+      setAdvanceInFlight(false)
+      setBusy(false)
     }
   }
 
   const wizardVolgendePending = {
-    nextSaving: busy,
+    nextSaving: busy || advanceInFlight,
     nextSavingLabel: t('wizard.nextSaving'),
     footerError: footerSaveError,
   } as const
@@ -2721,7 +2754,7 @@ function ImportWizardPage() {
                     ? t('wizard.importeren.tryAgain')
                     : t('wizard.next')
               }
-              nextDisabled={failureKind === 'none' ? !canNext : busy}
+              nextDisabled={failureKind === 'none' ? !canNext : false}
               nextReason={failureKind === 'none' ? nextReason : null}
               onNextBlocked={() => {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)

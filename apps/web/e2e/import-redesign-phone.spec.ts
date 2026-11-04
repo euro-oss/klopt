@@ -222,10 +222,20 @@ async function clickNext(page: Page): Promise<void> {
   }
   const next = page.locator('button[data-focus="next"]')
   await expect
-    .poll(async () => (await next.getAttribute('aria-disabled')) !== 'true', { timeout: 60_000 })
+    .poll(
+      async () => {
+        const disabled = await next.getAttribute('aria-disabled')
+        const busy = await next.getAttribute('aria-busy')
+        return disabled !== 'true' && busy !== 'true'
+      },
+      { timeout: 60_000 },
+    )
     .toBe(true)
   const before = await visibleWizardStepMarker(page)
   await next.click()
+  await expect
+    .poll(async () => (await next.getAttribute('aria-busy')) !== 'true', { timeout: 60_000 })
+    .toBe(true)
   await expect
     .poll(
       async () => {
@@ -234,7 +244,7 @@ async function clickNext(page: Page): Promise<void> {
         if (before === '' && after !== '') return true
         return after !== before && after !== ''
       },
-      { timeout: 30_000 },
+      { timeout: 60_000 },
     )
     .toBe(true)
 }
@@ -451,8 +461,29 @@ async function tickMoneybirdImportWorker(): Promise<void> {
   }
 }
 
-async function drivePartialImportStop(_page: Page): Promise<void> {
-  await tickMoneybirdImportWorker()
+async function drivePartialImportStop(page: Page): Promise<void> {
+  const urlDelayMs = Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? 0)
+  const deadline = Date.now() + (urlDelayMs > 0 ? 240_000 : 30_000)
+  while (Date.now() < deadline) {
+    await tickMoneybirdImportWorker()
+    const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
+    if (
+      await bookedLine
+        .first()
+        .isVisible()
+        .catch(() => false)
+    )
+      return
+    const stopped = page.getByText(/staan al in Klopt|We hebben niets geboekt/i)
+    if (
+      await stopped
+        .first()
+        .isVisible()
+        .catch(() => false)
+    )
+      return
+    await page.waitForTimeout(urlDelayMs > 0 ? 2_000 : 500)
+  }
 }
 
 test('390 connect and VAT steps do not overflow in light and dark', async ({ page }) => {
@@ -637,7 +668,8 @@ test('390 stopped partway shows booked plural and one retry path in light and da
 test('390 stopped partial with one booked document shows singular bookedCount_one copy', async ({
   page,
 }) => {
-  test.setTimeout(180_000)
+  const urlDelayMs = Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? 0)
+  test.setTimeout(urlDelayMs > 0 ? 360_000 : 180_000)
   const standIn = await startOneDocumentMoneybirdStandIn()
   try {
     await anAdministration(page)
