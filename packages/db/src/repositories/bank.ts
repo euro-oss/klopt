@@ -7,6 +7,7 @@ import {
   type MatchCandidate,
   type MatchRule,
   type StatementProblem,
+  type Actor,
 } from '@klopt/core'
 import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
@@ -23,6 +24,7 @@ import {
   salesInvoices,
 } from '../schema/index.js'
 import { bankAllocationsPerInvoiceSubquery } from './active-bank-allocations.js'
+import { AuditRepository } from './audit.js'
 
 /**
  * Bank persistence.
@@ -643,14 +645,21 @@ export class BankRepository {
    * workflow state only. Deleting them avoids unique-index conflicts on rematch
    * and keeps outstanding honest without a migration linking rows to entries.
    */
-  async releaseMatchForReversedEntry(entityId: string, reversedEntryId: string): Promise<void> {
+  async releaseMatchForReversedEntry(request: {
+    readonly entityId: string
+    readonly reversedMatchEntryId: string
+    readonly reversalEntryId: string
+    readonly actor: Actor
+    readonly requestId: string | null
+    readonly ip: string | null
+  }): Promise<void> {
     const [transaction] = await this.tx
       .select({ id: bankTransactions.id })
       .from(bankTransactions)
       .where(
         and(
-          eq(bankTransactions.entityId, entityId),
-          eq(bankTransactions.journalEntryId, reversedEntryId),
+          eq(bankTransactions.entityId, request.entityId),
+          eq(bankTransactions.journalEntryId, request.reversedMatchEntryId),
           eq(bankTransactions.status, 'matched'),
         ),
       )
@@ -658,11 +667,24 @@ export class BankRepository {
 
     if (transaction === undefined) return
 
+    const allocationRows = await this.tx
+      .select({
+        invoiceId: bankTransactionAllocations.invoiceId,
+        amountMinorUnits: bankTransactionAllocations.amountMinorUnits,
+      })
+      .from(bankTransactionAllocations)
+      .where(
+        and(
+          eq(bankTransactionAllocations.entityId, request.entityId),
+          eq(bankTransactionAllocations.transactionId, transaction.id),
+        ),
+      )
+
     await this.tx
       .delete(bankTransactionAllocations)
       .where(
         and(
-          eq(bankTransactionAllocations.entityId, entityId),
+          eq(bankTransactionAllocations.entityId, request.entityId),
           eq(bankTransactionAllocations.transactionId, transaction.id),
         ),
       )
@@ -674,7 +696,32 @@ export class BankRepository {
         journalEntryId: null,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(eq(bankTransactions.entityId, entityId), eq(bankTransactions.id, transaction.id)))
+      .where(
+        and(
+          eq(bankTransactions.entityId, request.entityId),
+          eq(bankTransactions.id, transaction.id),
+        ),
+      )
+
+    await new AuditRepository(this.tx).append({
+      entityId: request.entityId,
+      actor: request.actor,
+      action: 'bank.releaseMatch',
+      resourceType: 'bank_transaction',
+      resourceId: transaction.id,
+      before: null,
+      after: {
+        transactionId: transaction.id,
+        matchEntryId: request.reversedMatchEntryId,
+        reversalEntryId: request.reversalEntryId,
+        allocations: allocationRows.map((row) => ({
+          invoiceId: row.invoiceId,
+          amountMinorUnits: row.amountMinorUnits.toString(),
+        })),
+      },
+      requestId: request.requestId,
+      ip: request.ip,
+    })
   }
 
   /** What has been allocated against an invoice, for the outstanding sum. */

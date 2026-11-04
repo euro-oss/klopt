@@ -256,7 +256,14 @@ export async function handleReverseJournalEntry(
     )
 
     if (!posted.dryRun && !posted.replayed && posted.entry.reversesEntryId !== null) {
-      await bank.releaseMatchForReversedEntry(context.entityId, posted.entry.reversesEntryId)
+      await bank.releaseMatchForReversedEntry({
+        entityId: context.entityId,
+        reversedMatchEntryId: posted.entry.reversesEntryId,
+        reversalEntryId: posted.entry.id,
+        actor: context.actor,
+        requestId: context.requestId,
+        ip: context.ip,
+      })
     }
 
     return posted

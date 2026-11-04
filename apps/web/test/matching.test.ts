@@ -45,8 +45,10 @@ import {
   handleReverseJournalEntry,
 } from '../src/api/handlers/ledger.js'
 import { handleUpdateEntity } from '../src/api/handlers/setup.js'
+import { handleListAuditLog } from '../src/api/handlers/audit.js'
 import {
   updateEntityBody,
+  auditLogQuery,
   confirmMatchBody,
   createBankAccountBody,
   createContactBody,
@@ -437,12 +439,88 @@ describe('confirming a match', () => {
 })
 
 describe('reversing a bank match', () => {
-  const reverseMatchEntry = async (journalEntryId: string) =>
-    handleReverseJournalEntry(await contextFor(uuidv7()), journalEntryId, {
+  const reverseMatchEntry = async (journalEntryId: string, idempotencyKey = uuidv7()) =>
+    handleReverseJournalEntry(await contextFor(idempotencyKey), journalEntryId, {
       bookingDate: '2026-04-02',
       description: null,
       dryRun: false,
     })
+
+  const releaseMatchAuditsFor = async (transactionId: string) => {
+    const result = await handleListAuditLog(
+      await contextFor(),
+      auditLogQuery.parse({
+        action: 'bank.releaseMatch',
+        resourceType: 'bank_transaction',
+        resourceId: transactionId,
+      }),
+    )
+    return result.body.entries
+  }
+
+  it('keeps the match entry and its reversal in the ledger', async () => {
+    const invoice = await anInvoice()
+    const transactionId = await aTransaction({
+      amount: '1210,00',
+      description: `Betaling factuur ${invoice.number}`,
+      sequence: 126,
+    })
+
+    const confirmed = await handleConfirmMatch(
+      await contextFor(uuidv7()),
+      transactionId,
+      confirmMatchBody.parse({
+        allocations: [{ invoiceId: invoice.invoiceId, amount: '121000' }],
+      }),
+    )
+    const matchEntryId = (confirmed.body as { journalEntryId: string }).journalEntryId
+
+    const reversed = await reverseMatchEntry(matchEntryId)
+    const reversalEntryId = reversed.body.entry.id
+
+    const matchEntry = await handleGetJournalEntry(await contextFor(), matchEntryId)
+    expect(matchEntry.body.entry.id).toBe(matchEntryId)
+
+    const reversalEntry = await handleGetJournalEntry(await contextFor(), reversalEntryId)
+    expect(reversalEntry.body.entry.reversesEntryId).toBe(matchEntryId)
+  })
+
+  it('records exactly one bank.releaseMatch audit row listing every deleted allocation', async () => {
+    const first = await anInvoice({ amount: '50000' })
+    const second = await anInvoice({ amount: '40000' })
+    const transactionId = await aTransaction({
+      amount: '800,00',
+      description: `Betaling ${first.number} ${second.number}`,
+      sequence: 127,
+    })
+
+    const confirmed = await handleConfirmMatch(
+      await contextFor(uuidv7()),
+      transactionId,
+      confirmMatchBody.parse({
+        allocations: [
+          { invoiceId: first.invoiceId, amount: '50000' },
+          { invoiceId: second.invoiceId, amount: '30000' },
+        ],
+      }),
+    )
+    const matchEntryId = (confirmed.body as { journalEntryId: string }).journalEntryId
+
+    const reversed = await reverseMatchEntry(matchEntryId)
+    const reversalEntryId = reversed.body.entry.id
+
+    const audits = await releaseMatchAuditsFor(transactionId)
+    expect(audits).toHaveLength(1)
+    expect(audits[0]?.after).toMatchObject({
+      transactionId,
+      matchEntryId,
+      reversalEntryId,
+      allocations: [
+        { invoiceId: first.invoiceId, amountMinorUnits: '50000' },
+        { invoiceId: second.invoiceId, amountMinorUnits: '30000' },
+      ],
+    })
+  })
 
   it('restores outstanding, dunning, open documents, candidates, and rematch', async () => {
     const invoice = await anInvoice()
@@ -462,6 +540,8 @@ describe('reversing a bank match', () => {
     const journalEntryId = (confirmed.body as { journalEntryId: string }).journalEntryId
 
     await reverseMatchEntry(journalEntryId)
+
+    expect(await releaseMatchAuditsFor(transactionId)).toHaveLength(1)
 
     const list = await handleListBankTransactions(
       await contextFor(),
@@ -575,6 +655,8 @@ describe('reversing a bank match', () => {
       dryRun: false,
     })
 
+    expect(await releaseMatchAuditsFor(transactionId)).toEqual([])
+
     const list = await handleListBankTransactions(
       await contextFor(),
       transactionsQuery.parse({ bankAccountId, limit: 1000 }),
@@ -610,6 +692,8 @@ describe('reversing a bank match', () => {
       (confirmed.body as { journalEntryId: string }).journalEntryId,
       { bookingDate: '2026-04-02', description: null, dryRun: true },
     )
+
+    expect(await releaseMatchAuditsFor(transactionId)).toEqual([])
 
     const list = await handleListBankTransactions(
       await contextFor(),
@@ -662,6 +746,8 @@ describe('reversing a bank match', () => {
       },
     )
     expect(second.body.replayed).toBe(true)
+
+    expect(await releaseMatchAuditsFor(transactionId)).toHaveLength(1)
 
     const list = await handleListBankTransactions(
       await contextFor(),
