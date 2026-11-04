@@ -40,6 +40,24 @@ export async function withLedger<T>(
 }
 
 /**
+ * Ledger posting that may need to adjust bank match workflow in the same commit.
+ *
+ * Reversing a bank match entry must release the line and stop counting its
+ * allocations in the same transaction as the reversal post.
+ */
+export async function withLedgerAndBank<T>(
+  database: Database,
+  work: (repositories: { ledger: DrizzleLedgerRepository; bank: BankRepository }) => Promise<T>,
+): Promise<T> {
+  return database.transaction(async (tx) =>
+    work({
+      ledger: new DrizzleLedgerRepository(tx),
+      bank: new BankRepository(tx),
+    }),
+  )
+}
+
+/**
  * Reads run in a transaction too. A trial balance assembled from several
  * queries against a moving ledger is a trial balance that does not add up.
  */

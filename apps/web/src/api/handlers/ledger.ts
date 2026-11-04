@@ -8,7 +8,7 @@ import {
   type PostedJournalEntry,
   type TrialBalanceReport,
 } from '@klopt/core'
-import { withLedger, withReporting } from '@klopt/db'
+import { withLedger, withLedgerAndBank, withReporting } from '@klopt/db'
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError, toProblem, type ProblemDocument } from '../errors.js'
 import type {
@@ -233,13 +233,13 @@ export async function handleReverseJournalEntry(
   requirePermission(context, 'ledger:post')
   const idempotencyKey = requireIdempotencyKey(context)
 
-  const result = await withLedger(context.database, async (repository) => {
+  const result = await withLedgerAndBank(context.database, async ({ ledger: repository, bank }) => {
     const original = await repository.findEntryById(context.entityId, entryId)
     if (original === null) {
       throw new ApiError('not_found', `No entry ${entryId}.`)
     }
 
-    return postJournalEntry(
+    const posted = await postJournalEntry(
       buildReversal(original, {
         bookingDate: body.bookingDate,
         description: body.description,
@@ -254,6 +254,19 @@ export async function handleReverseJournalEntry(
       },
       { repository, clock: systemClock },
     )
+
+    if (!posted.dryRun && !posted.replayed && posted.entry.reversesEntryId !== null) {
+      await bank.releaseMatchForReversedEntry({
+        entityId: context.entityId,
+        reversedMatchEntryId: posted.entry.reversesEntryId,
+        reversalEntryId: posted.entry.id,
+        actor: context.actor,
+        requestId: context.requestId,
+        ip: context.ip,
+      })
+    }
+
+    return posted
   })
 
   return {

@@ -7,6 +7,7 @@ import {
   type MatchCandidate,
   type MatchRule,
   type StatementProblem,
+  type Actor,
 } from '@klopt/core'
 import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm'
 import type { Transaction } from '../client.js'
@@ -20,8 +21,11 @@ import {
   bankTransactions,
   contacts,
   entities,
+  purchaseInvoiceAllocations,
   salesInvoices,
 } from '../schema/index.js'
+import { bankAllocationsPerInvoiceSubquery } from './active-bank-allocations.js'
+import { AuditRepository } from './audit.js'
 
 /**
  * Bank persistence.
@@ -453,15 +457,7 @@ export class BankRepository {
    * invoice stop being chased once it is paid.
    */
   async matchCandidates(entityId: string): Promise<readonly MatchCandidate[]> {
-    const allocated = this.tx
-      .select({
-        invoiceId: bankTransactionAllocations.invoiceId,
-        total: sql<string>`sum(${bankTransactionAllocations.amountMinorUnits})`.as('allocated'),
-      })
-      .from(bankTransactionAllocations)
-      .where(eq(bankTransactionAllocations.entityId, entityId))
-      .groupBy(bankTransactionAllocations.invoiceId)
-      .as('allocated')
+    const allocated = bankAllocationsPerInvoiceSubquery(this.tx, entityId)
 
     const rows = await this.tx
       .select({
@@ -643,6 +639,122 @@ export class BankRepository {
     return updated.length > 0
   }
 
+  /**
+   * After a match entry is reversed, drop workflow allocations and unlock the line.
+   *
+   * The match entry and its reversal stay in the ledger; allocations are
+   * workflow state only. Deleting them avoids unique-index conflicts on rematch
+   * and keeps outstanding honest without a migration linking rows to entries.
+   */
+  async releaseMatchForReversedEntry(request: {
+    readonly entityId: string
+    readonly reversedMatchEntryId: string
+    readonly reversalEntryId: string
+    readonly actor: Actor
+    readonly requestId: string | null
+    readonly ip: string | null
+  }): Promise<void> {
+    const [transaction] = await this.tx
+      .select({ id: bankTransactions.id })
+      .from(bankTransactions)
+      .where(
+        and(
+          eq(bankTransactions.entityId, request.entityId),
+          eq(bankTransactions.journalEntryId, request.reversedMatchEntryId),
+          eq(bankTransactions.status, 'matched'),
+        ),
+      )
+      .limit(1)
+
+    if (transaction === undefined) return
+
+    const salesAllocationRows = await this.tx
+      .select({
+        invoiceId: bankTransactionAllocations.invoiceId,
+        amountMinorUnits: bankTransactionAllocations.amountMinorUnits,
+      })
+      .from(bankTransactionAllocations)
+      .where(
+        and(
+          eq(bankTransactionAllocations.entityId, request.entityId),
+          eq(bankTransactionAllocations.transactionId, transaction.id),
+        ),
+      )
+
+    const purchaseAllocationRows = await this.tx
+      .select({
+        invoiceId: purchaseInvoiceAllocations.invoiceId,
+        amountMinorUnits: purchaseInvoiceAllocations.amountMinorUnits,
+      })
+      .from(purchaseInvoiceAllocations)
+      .where(
+        and(
+          eq(purchaseInvoiceAllocations.entityId, request.entityId),
+          eq(purchaseInvoiceAllocations.transactionId, transaction.id),
+        ),
+      )
+
+    await this.tx
+      .delete(bankTransactionAllocations)
+      .where(
+        and(
+          eq(bankTransactionAllocations.entityId, request.entityId),
+          eq(bankTransactionAllocations.transactionId, transaction.id),
+        ),
+      )
+
+    await this.tx
+      .delete(purchaseInvoiceAllocations)
+      .where(
+        and(
+          eq(purchaseInvoiceAllocations.entityId, request.entityId),
+          eq(purchaseInvoiceAllocations.transactionId, transaction.id),
+        ),
+      )
+
+    await this.tx
+      .update(bankTransactions)
+      .set({
+        status: 'unmatched',
+        journalEntryId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(bankTransactions.entityId, request.entityId),
+          eq(bankTransactions.id, transaction.id),
+        ),
+      )
+
+    await new AuditRepository(this.tx).append({
+      entityId: request.entityId,
+      actor: request.actor,
+      action: 'bank.releaseMatch',
+      resourceType: 'bank_transaction',
+      resourceId: transaction.id,
+      before: null,
+      after: {
+        transactionId: transaction.id,
+        matchEntryId: request.reversedMatchEntryId,
+        reversalEntryId: request.reversalEntryId,
+        allocations: [
+          ...salesAllocationRows.map((row) => ({
+            kind: 'sales' as const,
+            invoiceId: row.invoiceId,
+            amountMinorUnits: row.amountMinorUnits.toString(),
+          })),
+          ...purchaseAllocationRows.map((row) => ({
+            kind: 'purchase' as const,
+            invoiceId: row.invoiceId,
+            amountMinorUnits: row.amountMinorUnits.toString(),
+          })),
+        ],
+      },
+      requestId: request.requestId,
+      ip: request.ip,
+    })
+  }
+
   /** What has been allocated against an invoice, for the outstanding sum. */
   async allocatedFor(
     entityId: string,
@@ -650,19 +762,14 @@ export class BankRepository {
   ): Promise<Map<string, bigint>> {
     if (invoiceIds.length === 0) return new Map()
 
+    const allocated = bankAllocationsPerInvoiceSubquery(this.tx, entityId)
     const rows = await this.tx
       .select({
-        invoiceId: bankTransactionAllocations.invoiceId,
-        total: sql<string>`sum(${bankTransactionAllocations.amountMinorUnits})::text`,
+        invoiceId: allocated.invoiceId,
+        total: allocated.total,
       })
-      .from(bankTransactionAllocations)
-      .where(
-        and(
-          eq(bankTransactionAllocations.entityId, entityId),
-          inArray(bankTransactionAllocations.invoiceId, [...invoiceIds]),
-        ),
-      )
-      .groupBy(bankTransactionAllocations.invoiceId)
+      .from(allocated)
+      .where(inArray(allocated.invoiceId, [...invoiceIds]))
 
     return new Map(rows.map((row) => [row.invoiceId, BigInt(row.total)]))
   }
