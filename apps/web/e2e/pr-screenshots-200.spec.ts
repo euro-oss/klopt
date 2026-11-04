@@ -114,9 +114,7 @@ async function shoot(page: Page, name: string, scrollTarget?: Locator): Promise<
         }
       } else {
         await page.evaluate(() => window.scrollTo(0, 0))
-        await expect
-          .poll(() => page.evaluate(() => window.scrollY))
-          .toBe(0)
+        await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
       }
       await expect(page.locator('body')).toBeVisible()
       const png = await page.screenshot({ fullPage: false, animations: 'disabled' })
