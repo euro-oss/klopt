@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { chooseOption, DATABASE_URL, enableAdvancedMode, hydrated, signIn, uniqueEmail } from './support'
+import { chooseOption, DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
 import { installFiscalYearBookingFakeClock } from './support/fiscal-year-booking-fake-clock'
 import { withPngSourceChunk } from './support/png-source-chunk.js'
 
@@ -47,26 +47,7 @@ async function aCustomer(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /Klant B\.V\./ })).toBeVisible()
 }
 
-async function enableAccountingDetails(page: Page): Promise<void> {
-  await page.goto('/settings')
-  const toggle = page.getByRole('switch', {
-    name: /Boekhouddetails|accounting details|Show accounting|Geavanceerd|Advanced/i,
-  })
-  await expect(toggle).toBeVisible({ timeout: 30_000 })
-  if ((await toggle.getAttribute('aria-checked')) !== 'true') {
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-checked', 'true', { timeout: 15_000 })
-  }
-}
-
 async function setBillDate(page: Page, isoDate: string): Promise<void> {
-  const field = page.getByLabel('Factuurdatum', { exact: true })
-  await field.click()
-  await field.fill(isoDate)
-  await expect(field).toHaveValue(isoDate)
-}
-
-async function setIssueDate(page: Page, isoDate: string): Promise<void> {
   const field = page.getByLabel('Factuurdatum', { exact: true })
   await field.click()
   await field.fill(isoDate)
@@ -114,6 +95,23 @@ async function shoot(page: Page, name: string, scrollTarget?: Locator): Promise<
       if (scrollTarget !== undefined) {
         await scrollTarget.scrollIntoViewIfNeeded()
         await expect(scrollTarget).toBeVisible()
+        const box = await scrollTarget.boundingBox()
+        if (box !== null) {
+          const png = await page.screenshot({
+            animations: 'disabled',
+            clip: {
+              x: Math.max(0, box.x - 12),
+              y: Math.max(0, box.y - 12),
+              width: box.width + 24,
+              height: box.height + 24,
+            },
+          })
+          writeFileSync(
+            join(OUT, `${name}-${theme}-${size.label}.png`),
+            withPngSourceChunk(png, SCREENSHOT_SOURCE),
+          )
+          continue
+        }
       } else {
         await page.evaluate(() => window.scrollTo(0, 0))
         await expect
@@ -128,6 +126,8 @@ async function shoot(page: Page, name: string, scrollTarget?: Locator): Promise<
       )
     }
   }
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.evaluate(() => window.scrollTo(0, 0))
 }
 
 async function openBookYear(page: Page, code: string): Promise<void> {
@@ -151,12 +151,19 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
 
   await shoot(page, 'purchase-date-hint', page.locator('#purchase-invoice-date-hint'))
 
-  await enableAdvancedMode(page)
   await page.goto('/invoices/new')
-  await expect(page.getByLabel('Factuurdatum', { exact: true })).toBeVisible({ timeout: 30_000 })
-  await setIssueDate(page, '2025-12-15')
-  await expect(page.getByText('Boekjaar 2025 is nog niet geopend.')).toBeVisible()
-  await shoot(page, 'invoice-blocked', page.locator('#sales-invoice-date-hint'))
+  await hydrated(page)
+  await page.locator('#cust-q').fill('Klant')
+  await page.getByRole('option', { name: 'Klant B.V.' }).click()
+  await expect(page.getByText(/We vullen alvast in:/)).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('button', { name: /Verder/ }).click()
+  await expect(page.getByText('Stap 2 van 4')).toBeVisible()
+  await page.locator('#inv-date').fill('15-12-2025')
+  await page.locator('#inv-date').blur()
+  await expect(page.locator('#guided-invoice-date-hint')).toContainText(
+    'Boekjaar 2025 is nog niet geopend.',
+  )
+  await shoot(page, 'invoice-blocked', page.locator('#guided-invoice-date-hint'))
 
   const owner = await browser.newContext()
   const auditor = await browser.newContext()
@@ -202,11 +209,7 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
 
   await page.getByRole('button', { name: 'Vorig boekjaar openen' }).click()
   await expect(page.getByTestId('open-prior-year')).toBeVisible()
-  await shoot(
-    page,
-    'fiscal-years-prior-expanded',
-    page.getByRole('button', { name: 'Boekjaar 2025 openen' }),
-  )
+  await shoot(page, 'fiscal-years-prior-expanded', page.getByTestId('fiscal-years-open-section'))
 
   await page.goto('/purchases/new')
   await hydrated(page)
@@ -222,23 +225,22 @@ test('capture #200 fiscal year booking gate screenshots', async ({ page, browser
 
   await page.getByRole('checkbox', { name: /Ik wil boekjaar 2025 openen/ }).check()
   await expect(page.getByRole('checkbox', { name: /Ik wil boekjaar 2025 openen/ })).toBeChecked()
-  await shoot(
-    page,
-    'fiscal-years-prior-confirm',
-    page.getByRole('button', { name: 'Boekjaar 2025 openen' }),
-  )
+  await shoot(page, 'fiscal-years-prior-confirm', page.getByTestId('open-prior-year'))
 
   await page.getByRole('button', { name: 'Boekjaar 2025 openen' }).click()
   await expect(page).toHaveURL(/\/purchases\/new/, { timeout: 30_000 })
   await expect(page.getByLabel('Factuurdatum', { exact: true })).toHaveValue('2025-12-15')
-  await shoot(page, 'purchase-returned', page.locator('#purchase-invoice-date-hint'))
+  await shoot(page, 'purchase-returned', page.getByLabel('Factuurdatum', { exact: true }))
 
   await openBookYear(page, '2024')
   await page.goto('/fiscal-years')
   await hydrated(page)
-  const hint = page.getByTestId('fiscal-year-prior-not-closed-hint')
-  await expect(hint).toContainText('de resultaten staan nog niet in de beginbalans van 2026')
-  await shoot(page, 'fiscal-years-list', hint.first())
+  const pluralHint = page.getByTestId('fiscal-year-prior-not-closed-hint').filter({
+    hasText:
+      'Boekjaren 2024 en 2025 zijn nog niet afgesloten; de resultaten staan nog niet in de beginbalans van 2026.',
+  })
+  await expect(pluralHint).toBeVisible()
+  await shoot(page, 'fiscal-years-list', pluralHint)
 
   await shoot(page, 'fiscal-years-next-card', page.getByTestId('derived-dates'))
 })
