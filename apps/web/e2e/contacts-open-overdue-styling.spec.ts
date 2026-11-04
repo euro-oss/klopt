@@ -301,6 +301,8 @@ test('supplier open amount: not-yet-due bill is ink; overdue bill is red (purcha
 })
 
 test.describe('fake wall clock — calendar-stable fixture dates', () => {
+  test.describe.configure({ mode: 'serial' })
+
   for (const asOf of CONTACTS_OVERDUE_CALENDAR_PROOF_DATES) {
     test.describe(`as-of ${asOf}`, () => {
       test.use({ extraHTTPHeaders: { 'X-Klopt-E2e-As-Of': asOf } })
