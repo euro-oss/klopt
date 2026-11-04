@@ -14,6 +14,8 @@
  * thing that should be tested by naming dates rather than by rendering a page.
  */
 
+import { isFiscalYearCodeInRange } from '@klopt/core'
+
 /** Where the chosen year is remembered. Read on the server, set from the shell. */
 export const REPORT_YEAR_COOKIE = 'klopt_report_year'
 
@@ -190,7 +192,7 @@ export function nextFiscalYear(years: readonly FiscalYearOption[]): FiscalYearOp
   if (latest === undefined) return null
 
   const code = String(Number(latest.code) + 1)
-  if (!isFiscalYearCode(code)) return null
+  if (!isFiscalYearCodeInRange(code)) return null
 
   return { ...plannedFiscalYear(code, startingMonth(latest)), status: 'open' }
 }

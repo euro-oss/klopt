@@ -205,6 +205,10 @@ describe('the next book year', () => {
     expect(nextFiscalYear([])).toBeNull()
   })
 
+  it('offers nothing beyond the configured book-year ceiling', () => {
+    expect(nextFiscalYear([calendar('2100')])).toBeNull()
+  })
+
   /**
    * The dates the screen shows read-only are the dates the server will create.
    *
