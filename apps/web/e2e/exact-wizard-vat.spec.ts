@@ -47,10 +47,15 @@ async function anAdministration(page: Page, name = 'Exact Wizard BV'): Promise<v
 }
 
 async function clickNext(page: Page): Promise<void> {
-  const next = page.locator('button[data-focus="next"]')
+  const wizard = page.locator('[data-slot="import-wizard"]')
+  const next = wizard.locator('button[data-focus="next"]')
   await expect
     .poll(
       async () => {
+        if (await page.getByRole('heading', { name: /Btw-codes uit Exact/ }).isVisible()) {
+          return true
+        }
+        if ((await next.count()) === 0) return false
         const disabled = await next.getAttribute('aria-disabled')
         const busy = await next.getAttribute('aria-busy')
         return disabled !== 'true' && disabled !== '' && busy !== 'true'
@@ -58,7 +63,18 @@ async function clickNext(page: Page): Promise<void> {
       { timeout: 60_000 },
     )
     .toBe(true)
+  if ((await next.count()) === 0) {
+    return
+  }
   await next.click()
+  try {
+    await page
+      .getByRole('heading', { name: /Btw-codes uit Exact/ })
+      .waitFor({ state: 'visible', timeout: 60_000 })
+    return
+  } catch {
+    // Not advancing to the read-only Btw stop.
+  }
   await expect
     .poll(
       async () => {
