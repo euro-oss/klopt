@@ -2131,6 +2131,7 @@ export const en: Record<MessageKey, string> = {
   'exactCallback.exactPage': 'Exact page',
 
   'nav.importWizard': 'Import',
+  'importWizard.saveFailed': "Saving didn't work. Try again.",
   'nav.exactAdvanced': 'Exact Online (legacy)',
   'moneybird.disconnect': 'Disconnect',
   'moneybird.apiToken': 'Personal API token',
@@ -2743,6 +2744,7 @@ export const en: Record<MessageKey, string> = {
   'wizard.step.importeren': 'Import',
   'wizard.step.klaar': 'Done',
   'wizard.next': 'Next',
+  'wizard.nextSaving': 'Saving…',
   'wizard.back': 'Back',
   'wizard.connect': 'Connect',
   'wizard.done': 'Done',

@@ -3,7 +3,7 @@
  * read-only btw. Later steps (rekeningen / openings / invoices) stay blocked.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import type { ExactVatMappingSummary } from '@klopt/core'
 import {
@@ -87,6 +87,10 @@ export function ExactWizardFlow({
   const hydrated = useHydrated()
   const connected = connection?.connected === true
   const [busy, setBusy] = useState(false)
+  const [advanceInFlight, setAdvanceInFlight] = useState(false)
+  const busyRef = useRef(false)
+  const advanceInFlightRef = useRef(false)
+  const advanceQueuedRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [disconnectOpen, setDisconnectOpen] = useState(false)
@@ -114,16 +118,21 @@ export function ExactWizardFlow({
   }, [toast])
 
   async function persistStep(next: ImportWizardStep) {
-    setStep(next)
-    await saveImportWizardState({
-      data: {
-        source: 'exact',
-        step: next,
-        administrationId: divisionCode !== null ? String(divisionCode) : null,
-        selectedYears: year !== '' ? [year] : [],
-        idempotencyKey: crypto.randomUUID(),
-      },
-    })
+    setBusy(true)
+    try {
+      setStep(next)
+      await saveImportWizardState({
+        data: {
+          source: 'exact',
+          step: next,
+          administrationId: divisionCode !== null ? String(divisionCode) : null,
+          selectedYears: year !== '' ? [year] : [],
+          idempotencyKey: crypto.randomUUID(),
+        },
+      })
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function goTo(next: ImportWizardStep) {
@@ -179,8 +188,25 @@ export function ExactWizardFlow({
     return t('wizard.status.exactLater')
   })()
 
-  async function handleNext() {
-    if (busy) return
+  useEffect(() => {
+    busyRef.current = busy
+    if (busy || advanceInFlight) return
+    if (!advanceQueuedRef.current) return
+    advanceQueuedRef.current = false
+    void handleNext()
+  }, [busy, advanceInFlight])
+
+  function clearAdvanceQueue() {
+    advanceQueuedRef.current = false
+  }
+
+  function queueAdvance() {
+    // Same gate as footer `nextSaving` (`busy || advanceInFlight`).
+    if (!(busyRef.current || advanceInFlightRef.current)) return
+    advanceQueuedRef.current = true
+  }
+
+  async function executeNextOnce() {
     if (step === 'btw') {
       // Phase 2 slice ends here — accounts / openings land in later PRs.
       if (nextReason !== null) setToast(nextReason)
@@ -228,6 +254,22 @@ export function ExactWizardFlow({
     if (step === 'voorbeeld') {
       if (preview === null) await runPreview()
       await goTo('btw')
+    }
+  }
+
+  async function handleNext() {
+    if (busyRef.current || advanceInFlightRef.current) {
+      queueAdvance()
+      return
+    }
+    advanceInFlightRef.current = true
+    setAdvanceInFlight(true)
+    try {
+      await executeNextOnce()
+      clearAdvanceQueue()
+    } finally {
+      advanceInFlightRef.current = false
+      setAdvanceInFlight(false)
     }
   }
 
@@ -289,16 +331,19 @@ export function ExactWizardFlow({
       }
       if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
         const target = event.target
-        if (
-          target instanceof HTMLElement &&
-          (target.tagName === 'INPUT' ||
+        if (target instanceof HTMLElement) {
+          if (
+            target.tagName === 'INPUT' ||
             target.tagName === 'TEXTAREA' ||
             target.tagName === 'SELECT' ||
             target.isContentEditable ||
-            target.tagName === 'BUTTON' ||
-            target.getAttribute('role') === 'radio')
-        ) {
-          return
+            target.getAttribute('role') === 'radio'
+          ) {
+            return
+          }
+          if (target.tagName === 'BUTTON' && target.getAttribute('data-focus') !== 'next') {
+            return
+          }
         }
         event.preventDefault()
         void handleNext()
@@ -519,7 +564,9 @@ export function ExactWizardFlow({
             showBack
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
-            nextDisabled={!canNext || busy}
+            nextDisabled={!canNext}
+            nextSaving={busy || advanceInFlight}
+            nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {
               if (nextReason !== null) setToast(nextReason)
@@ -570,7 +617,9 @@ export function ExactWizardFlow({
             showBack
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
-            nextDisabled={!canNext || busy}
+            nextDisabled={!canNext}
+            nextSaving={busy || advanceInFlight}
+            nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {
               if (nextReason !== null) setToast(nextReason)

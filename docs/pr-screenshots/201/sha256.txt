@@ -1,0 +1,8 @@
+01-pending-dark-desktop-1440.png: sha256:d80eabef763d1873ebc7b710900d33fc4e3e5886cf8d9d559a3090e23dd4c44b
+01-pending-dark-mobile-390.png: sha256:5822e695bc308d3c5b52d4937a5889a0e76682c42136c2c9ab65875b112c35ad
+01-pending-light-desktop-1440.png: sha256:9ff37c4770c89c475c09eb9a35c1ded6b06e98c78c6684dc54d07a02483aee79
+01-pending-light-mobile-390.png: sha256:faea0a5164d6d29c0438e27e47293959c51a5d7ec9cce0c8a135cd958c910548
+02-save-failed-dark-desktop-1440.png: sha256:5fd3d4d55bdc0d07ab09d0bdc1c13149a4a436384f4b274bd9ca60a604f02805
+02-save-failed-dark-mobile-390.png: sha256:cf8f2c54c2c9bbc8ab1a0ec154302fcd857f72d64aa6a0cfed2967345135895d
+02-save-failed-light-desktop-1440.png: sha256:ed19a6e176dcd19473d0affc8153337c4210e6abcb3018ba07e777b4578483a8
+02-save-failed-light-mobile-390.png: sha256:24bd11b398e236b0f3c161a601d2f49a014c7dfc9cce960699790a128190ba11

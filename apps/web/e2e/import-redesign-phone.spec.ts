@@ -11,6 +11,8 @@ import {
   startPreValidFromMoneybirdStandIn,
   type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
+import { installE2eRouteDelays } from './support/route-delays'
+import { installWizardStateSaveDelay } from './support/import-wizard-save-route'
 
 const IMPORT_WIZARD_ADVANCED_CHECKBOX = /Boekhouddetails|Accounting details/i
 
@@ -34,16 +36,7 @@ test.beforeAll(async () => {
 })
 
 test.beforeEach(async ({ page }) => {
-  const delayMs = process.env['KLOPT_E2E_API_DELAY_MS']
-  if (delayMs === undefined || delayMs === '') return
-  const ms = Number(delayMs)
-  await page.route(/\/api\//, async (route) => {
-    const nonGetOnly = process.env['KLOPT_E2E_API_DELAY_NON_GET_ONLY'] === '1'
-    if (!nonGetOnly || route.request().method() !== 'GET') {
-      await new Promise((resolve) => setTimeout(resolve, ms))
-    }
-    await route.continue()
-  })
+  await installE2eRouteDelays(page)
 })
 
 async function anAdministration(page: Page): Promise<void> {
@@ -230,10 +223,20 @@ async function clickNext(page: Page): Promise<void> {
   }
   const next = page.locator('button[data-focus="next"]')
   await expect
-    .poll(async () => (await next.getAttribute('aria-disabled')) !== 'true', { timeout: 60_000 })
+    .poll(
+      async () => {
+        const disabled = await next.getAttribute('aria-disabled')
+        const busy = await next.getAttribute('aria-busy')
+        return disabled !== 'true' && busy !== 'true'
+      },
+      { timeout: 60_000 },
+    )
     .toBe(true)
   const before = await visibleWizardStepMarker(page)
   await next.click()
+  await expect
+    .poll(async () => (await next.getAttribute('aria-busy')) !== 'true', { timeout: 60_000 })
+    .toBe(true)
   await expect
     .poll(
       async () => {
@@ -242,7 +245,7 @@ async function clickNext(page: Page): Promise<void> {
         if (before === '' && after !== '') return true
         return after !== before && after !== ''
       },
-      { timeout: 30_000 },
+      { timeout: 60_000 },
     )
     .toBe(true)
 }
@@ -459,8 +462,29 @@ async function tickMoneybirdImportWorker(): Promise<void> {
   }
 }
 
-async function drivePartialImportStop(_page: Page): Promise<void> {
-  await tickMoneybirdImportWorker()
+async function drivePartialImportStop(page: Page): Promise<void> {
+  const urlDelayMs = Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? 0)
+  const deadline = Date.now() + (urlDelayMs > 0 ? 240_000 : 30_000)
+  while (Date.now() < deadline) {
+    await tickMoneybirdImportWorker()
+    const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
+    if (
+      await bookedLine
+        .first()
+        .isVisible()
+        .catch(() => false)
+    )
+      return
+    const stopped = page.getByText(/staan al in Klopt|We hebben niets geboekt/i)
+    if (
+      await stopped
+        .first()
+        .isVisible()
+        .catch(() => false)
+    )
+      return
+    await page.waitForTimeout(urlDelayMs > 0 ? 2_000 : 500)
+  }
 }
 
 test('390 connect and VAT steps do not overflow in light and dark', async ({ page }) => {
@@ -605,6 +629,7 @@ test('390 stopped partway shows booked plural and one retry path in light and da
   test.setTimeout(180_000)
   const standIn = await startNullRateMoneybirdStandIn()
   try {
+    await installWizardStateSaveDelay(page)
     await anAdministration(page)
     await page.setViewportSize({ width: 390, height: 844 })
     await connectStandIn(page, standIn)
@@ -642,46 +667,45 @@ test('390 stopped partway shows booked plural and one retry path in light and da
   }
 })
 
-test.describe('390 stopped partial one booked (see #201)', () => {
-  test('390 stopped partial with one booked document shows singular bookedCount_one copy', async ({
-    page,
-  }) => {
-    test.fixme(true, 'Volgende click dropped while save in flight, #201')
-    test.setTimeout(180_000)
-    const standIn = await startOneDocumentMoneybirdStandIn()
+test('390 stopped partial with one booked document shows singular bookedCount_one copy', async ({
+  page,
+}) => {
+  const urlDelayMs = Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? 0)
+  test.setTimeout(urlDelayMs > 0 ? 360_000 : 180_000)
+  const standIn = await startOneDocumentMoneybirdStandIn()
+  try {
+    await installWizardStateSaveDelay(page)
+    await anAdministration(page)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await connectStandIn(page, standIn)
+    await advanceToOverzicht(page)
+    await clickNext(page)
+    const restore = await installPartialImportFinishHook('first-running')
     try {
-      await anAdministration(page)
-      await page.setViewportSize({ width: 390, height: 844 })
-      await connectStandIn(page, standIn)
-      await advanceToOverzicht(page)
-      await clickNext(page)
-      const restore = await installPartialImportFinishHook('first-running')
-      try {
-        await page
-          .getByRole('alertdialog')
-          .getByRole('button', { name: /Overzetten bevestigen/i })
-          .click()
-        await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
-          timeout: 60_000,
-        })
-        await drivePartialImportStop(page)
+      await page
+        .getByRole('alertdialog')
+        .getByRole('button', { name: /Overzetten bevestigen/i })
+        .click()
+      await expect(page.getByRole('heading', { name: /Bezig met overzetten/ })).toBeVisible({
+        timeout: 60_000,
+      })
+      await drivePartialImportStop(page)
 
-        const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
-        await expect(bookedLine.first()).toBeVisible({ timeout: 120_000 })
-        const bookedText = await bookedLine.first().innerText()
-        expect(bookedText).toMatch(/(\d+)/)
-        const bookedCount = Number(bookedText.match(/(\d+)/)![1]!)
-        expect(bookedCount, 'fixture must stop partial with exactly one booked document').toBe(1)
-        await expect(page.getByText('1 document staat al in Klopt')).toBeVisible()
-        for (const theme of ['light', 'dark'] as const) {
-          await setTheme(page, theme)
-          await assertPhoneWizardLayout(page, `${theme} stopped-partial-one`)
-        }
-      } finally {
-        restore()
+      const bookedLine = page.getByText(/document staat al in Klopt|documenten staan al in Klopt/)
+      await expect(bookedLine.first()).toBeVisible({ timeout: 120_000 })
+      const bookedText = await bookedLine.first().innerText()
+      expect(bookedText).toMatch(/(\d+)/)
+      const bookedCount = Number(bookedText.match(/(\d+)/)![1]!)
+      expect(bookedCount, 'fixture must stop partial with exactly one booked document').toBe(1)
+      await expect(page.getByText('1 document staat al in Klopt')).toBeVisible()
+      for (const theme of ['light', 'dark'] as const) {
+        await setTheme(page, theme)
+        await assertPhoneWizardLayout(page, `${theme} stopped-partial-one`)
       }
     } finally {
-      await standIn.close()
+      restore()
     }
-  })
+  } finally {
+    await standIn.close()
+  }
 })
