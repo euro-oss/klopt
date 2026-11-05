@@ -28,9 +28,19 @@ async function anAdministration(page: Page): Promise<void> {
 async function clickNext(page: Page): Promise<void> {
   const next = page.locator('button[data-focus="next"]')
   await expect
-    .poll(async () => (await next.getAttribute('aria-disabled')) !== 'true', { timeout: 60_000 })
+    .poll(
+      async () => {
+        const disabled = await next.getAttribute('aria-disabled')
+        const busy = await next.getAttribute('aria-busy')
+        return disabled !== 'true' && busy !== 'true'
+      },
+      { timeout: 60_000 },
+    )
     .toBe(true)
   await next.click()
+  await expect
+    .poll(async () => (await next.getAttribute('aria-busy')) !== 'true', { timeout: 60_000 })
+    .toBe(true)
 }
 
 async function expectVisibleStepOf(page: Page, pattern: RegExp): Promise<void> {

@@ -10,6 +10,7 @@ import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import type { MoneybirdImportDecisions, MoneybirdProblem } from '@klopt/core'
 import type { RankableAccount } from '@klopt/core/moneybird-account-ranker'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -189,6 +190,9 @@ function ImportWizardPage() {
   const mayLedgerImport = may(MAY_LEDGER_IMPORT, role)
   const auditFilePicker = useRef<HTMLInputElement>(null)
   const handleNextRef = useRef<() => void>(() => {})
+  const advanceQueuedRef = useRef(false)
+  const advanceInFlightRef = useRef(false)
+  const busyRef = useRef(false)
 
   const saved = wizard.ok ? (wizard.data.state as WizardStateRow | null) : null
   const conn = connection.ok ? connection.data.connection : null
@@ -223,6 +227,8 @@ function ImportWizardPage() {
   })
   const [showResume, setShowResume] = useState(resuming)
   const [busy, setBusy] = useState(false)
+  const [advanceInFlight, setAdvanceInFlight] = useState(false)
+  const [footerSaveError, setFooterSaveError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [apiToken, setApiToken] = useState('')
@@ -485,12 +491,27 @@ function ImportWizardPage() {
     toastTimer.current = setTimeout(() => setToast(null), 4000)
   }
 
+  function clearAdvanceQueue() {
+    advanceQueuedRef.current = false
+  }
+
+  function queueAdvance() {
+    // Same gate as `wizardVolgendePending.nextSaving` (`busy || advanceInFlight`).
+    if (!(busyRef.current || advanceInFlightRef.current)) return
+    advanceQueuedRef.current = true
+  }
+
+  function footerSaveErrorFromDetail(detail: string | null | undefined): string {
+    if (detail !== null && detail !== undefined && detail !== '') return detail
+    return t('importWizard.saveFailed')
+  }
+
   async function persistWizard(next: {
     step?: ImportWizardStep
     source?: ImportWizardSource | null
     administrationId?: string | null
     selectedYears?: string[]
-  }) {
+  }): Promise<boolean> {
     const body = {
       source: next.source !== undefined ? next.source : source,
       step: next.step ?? step,
@@ -499,23 +520,44 @@ function ImportWizardPage() {
       selectedYears: next.selectedYears ?? selectedYears,
       idempotencyKey: crypto.randomUUID(),
     }
-    await saveImportWizardState({ data: body })
+    setBusy(true)
+    try {
+      const result = await saveImportWizardState({ data: body })
+      if (result?.ok !== true) {
+        setFooterSaveError(footerSaveErrorFromDetail(result?.problem?.detail))
+        return false
+      }
+      return true
+    } catch {
+      setFooterSaveError(t('importWizard.saveFailed'))
+      return false
+    } finally {
+      setBusy(false)
+    }
   }
 
-  async function goTo(next: ImportWizardStep) {
-    setStep(next)
-    setShowResume(false)
-    setError(null)
-    await persistWizard({ step: next })
+  async function goTo(next: ImportWizardStep): Promise<boolean> {
+    setFooterSaveError(null)
+    const ok = await persistWizard({ step: next })
+    if (!ok) return false
+    flushSync(() => {
+      setStep(next)
+      setShowResume(false)
+      setError(null)
+    })
+    return true
   }
 
   async function runPreview() {
     setBusy(true)
     setError(null)
+    setFooterSaveError(null)
     const result = await previewMoneybirdImport()
     setBusy(false)
     if (!result.ok) {
-      setError(result.problem?.detail ?? t('common.unknownError'))
+      const message = result.problem?.detail ?? t('common.unknownError')
+      setError(message)
+      setFooterSaveError(message)
       return null
     }
     const report = result.data as Record<string, unknown>
@@ -557,17 +599,23 @@ function ImportWizardPage() {
     setTaxViolations({})
     setBusy(true)
     setError(null)
-    const result = await saveMoneybirdMappings({
-      data: {
-        accountMappings: next?.accountMappings ?? accountMappings,
-        taxMappings: attemptedTax,
-        importDecisions: next?.importDecisions ?? decisions,
-        idempotencyKey: crypto.randomUUID(),
-      },
-    })
-    setBusy(false)
+    let result: Awaited<ReturnType<typeof saveMoneybirdMappings>>
+    try {
+      result = await saveMoneybirdMappings({
+        data: {
+          accountMappings: next?.accountMappings ?? accountMappings,
+          taxMappings: attemptedTax,
+          importDecisions: next?.importDecisions ?? decisions,
+          idempotencyKey: crypto.randomUUID(),
+        },
+      })
+    } finally {
+      setBusy(false)
+    }
     if (!result.ok) {
-      setError(result.problem?.detail ?? t('common.unknownError'))
+      const message = result.problem?.detail ?? t('common.unknownError')
+      setError(message)
+      setFooterSaveError(footerSaveErrorFromDetail(result.problem?.detail))
       const applied = applyTaxMappingSaveFailure({
         previous: previousTax,
         attempted: attemptedTax,
@@ -776,79 +824,125 @@ function ImportWizardPage() {
     return null
   })()
 
-  async function handleNext() {
-    if (!mayLedgerImport || !canNext || busy) return
+  const canNextRef = useRef(canNext)
+  const stepRef = useRef(step)
+  const sourceRef = useRef(source)
+
+  useEffect(() => {
+    canNextRef.current = canNext
+    stepRef.current = step
+    sourceRef.current = source
+  })
+
+  async function executeAdvanceOnce(): Promise<boolean> {
+    if (!mayLedgerImport || !canNextRef.current) return false
+    const step = stepRef.current
+    const source = sourceRef.current
     if (step === 'bron' && (source === 'moneybird' || source === 'exact')) {
-      await goTo('verbinden')
-      return
+      return await goTo('verbinden')
     }
     if (step === 'verbinden') {
       if (!connected) {
         setBusy(true)
         setError(null)
-        const result = await connectMoneybird({
-          data: { baseUrl, apiToken, idempotencyKey: crypto.randomUUID() },
-        })
-        setBusy(false)
-        if (!result.ok) {
-          const codes = new Set((result.problem?.violations ?? []).map((row) => row.code))
-          const invalid = codes.has('invalid_token')
-          const unreachable = codes.has('moneybird_unreachable')
-          setError(
-            invalid
-              ? t('wizard.verbinden.tokenInvalid')
-              : unreachable
-                ? t('wizard.verbinden.unreachable')
-                : (result.problem?.detail ?? t('common.unknownError')),
-          )
-          // Auth or reachability failure — Volgende stays off until the field changes.
-          if (invalid || unreachable) setTokenRefused(true)
-          return
+        setFooterSaveError(null)
+        try {
+          const result = await connectMoneybird({
+            data: { baseUrl, apiToken, idempotencyKey: crypto.randomUUID() },
+          })
+          if (!result.ok) {
+            const codes = new Set((result.problem?.violations ?? []).map((row) => row.code))
+            const invalid = codes.has('invalid_token')
+            const unreachable = codes.has('moneybird_unreachable')
+            setError(
+              invalid
+                ? t('wizard.verbinden.tokenInvalid')
+                : unreachable
+                  ? t('wizard.verbinden.unreachable')
+                  : (result.problem?.detail ?? t('common.unknownError')),
+            )
+            // Auth or reachability failure — Volgende stays off until the field changes.
+            if (invalid || unreachable) setTokenRefused(true)
+            return false
+          }
+          setTokenRefused(false)
+          setApiToken('')
+          await router.invalidate()
+        } finally {
+          setBusy(false)
         }
-        setTokenRefused(false)
-        setApiToken('')
-        await router.invalidate()
       }
-      await goTo('administratie')
-      return
+      return await goTo('administratie')
     }
     if (step === 'administratie') {
       const years = previewYears.length > 0 ? previewYears : selectedYears
       const excludedYrs = excludedYearsFromSelection(years, selectedYears)
-      await persistMappings({
+      const mappingsOk = await persistMappings({
         importDecisions: withExcludedYears(decisions, excludedYrs),
       })
-      await persistWizard({ selectedYears, administrationId })
-      if (preview === null) await runPreview()
-      await goTo('voorbeeld')
-      return
+      if (!mappingsOk) return false
+      if (!(await persistWizard({ selectedYears, administrationId }))) return false
+      if (preview === null) {
+        const report = await runPreview()
+        if (report === null) return false
+      }
+      return await goTo('voorbeeld')
     }
     if (step === 'voorbeeld') {
-      if (preview === null) await runPreview()
-      await goTo('btw')
-      return
+      if (preview === null) {
+        const report = await runPreview()
+        if (report === null) return false
+      }
+      return await goTo('btw')
     }
     if (step === 'btw') {
-      await goTo('rekeningen')
-      return
+      return await goTo('rekeningen')
     }
     if (step === 'rekeningen') {
-      await persistMappings({})
-      await goTo('problemen')
-      return
+      const mappingsOk = await persistMappings({})
+      if (!mappingsOk) return false
+      return await goTo('problemen')
     }
     if (step === 'problemen') {
-      await goTo('overzicht')
-      return
+      return await goTo('overzicht')
     }
     if (step === 'overzicht') {
       setImportConfirmOpen(true)
-      return
+      return true
     }
     if (step === 'importeren') {
-      await goTo('klaar')
+      return await goTo('klaar')
+    }
+    return false
+  }
+
+  async function requestWizardAdvance() {
+    if (!mayLedgerImport) return
+    if (busyRef.current || advanceInFlightRef.current) {
+      queueAdvance()
+      return
+    }
+    advanceInFlightRef.current = true
+    setAdvanceInFlight(true)
+    setFooterSaveError(null)
+    try {
+      if (!(await executeAdvanceOnce())) {
+        clearAdvanceQueue()
+        return
+      }
+      clearAdvanceQueue()
+    } finally {
+      advanceInFlightRef.current = false
+      setAdvanceInFlight(false)
+      setBusy(false)
     }
   }
+
+  const wizardVolgendePending = {
+    nextSaving: busy || advanceInFlight,
+    nextSavingLabel: t('wizard.nextSaving'),
+    footerError: footerSaveError,
+  } as const
 
   async function pollUntilTerminal(): Promise<ImportRunStatusView | null> {
     for (let attempt = 0; attempt < 180; attempt += 1) {
@@ -904,9 +998,17 @@ function ImportWizardPage() {
 
   useEffect(() => {
     handleNextRef.current = () => {
-      void handleNext()
+      void requestWizardAdvance()
     }
   })
+
+  useEffect(() => {
+    busyRef.current = busy
+    if (busy || advanceInFlight) return
+    if (!advanceQueuedRef.current) return
+    advanceQueuedRef.current = false
+    void requestWizardAdvance()
+  }, [busy, advanceInFlight])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -1400,8 +1502,9 @@ function ImportWizardPage() {
                           if (nextReason !== null && nextReason !== '') showToast(nextReason)
                         },
                         onNext: () => {
-                          void handleNext()
+                          void requestWizardAdvance()
                         },
+                        ...wizardVolgendePending,
                       })}
                 />
                 <WizardHints
@@ -1485,7 +1588,7 @@ function ImportWizardPage() {
                 className={cn(wizardCardClass, 'max-w-lg space-y-5 p-6')}
                 onSubmit={(event) => {
                   event.preventDefault()
-                  void handleNext()
+                  void requestWizardAdvance()
                 }}
               >
                 <ol className="text-ink-2 list-decimal space-y-1 pl-5 text-sm leading-relaxed">
@@ -1547,13 +1650,12 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={connected ? t('wizard.next') : t('wizard.verbinden.checkToken')}
-              nextDisabled={
-                connected ? false : !canStoreSecrets || apiToken === '' || busy || tokenRefused
-              }
+              nextDisabled={connected ? false : !canStoreSecrets || apiToken === '' || tokenRefused}
+              {...wizardVolgendePending}
               // Token / reachability errors stay inline under the field only
               // (Designer r5) — do not also put them in the footer or toast.
               nextReason={!canStoreSecrets ? t('wizard.verbinden.noKeyTitle') : null}
-              onNext={() => void handleNext()}
+              onNext={() => void requestWizardAdvance()}
             />
           </>
         )}
@@ -1809,12 +1911,13 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={t('wizard.next')}
-              nextDisabled={!canNext || busy}
+              nextDisabled={!canNext}
               nextReason={nextReason}
               onNextBlocked={() => {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)
               }}
-              onNext={() => void handleNext()}
+              {...wizardVolgendePending}
+              onNext={() => void requestWizardAdvance()}
             />
           </>
         )}
@@ -1885,12 +1988,13 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={t('wizard.next')}
-              nextDisabled={!canNext || busy}
+              nextDisabled={!canNext}
               nextReason={nextReason}
               onNextBlocked={() => {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)
               }}
-              onNext={() => void handleNext()}
+              {...wizardVolgendePending}
+              onNext={() => void requestWizardAdvance()}
             />
           </>
         )}
@@ -2161,12 +2265,13 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={t('wizard.next')}
-              nextDisabled={!canNext || busy}
+              nextDisabled={!canNext}
               nextReason={nextReason}
               onNextBlocked={() => {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)
               }}
-              onNext={() => void handleNext()}
+              {...wizardVolgendePending}
+              onNext={() => void requestWizardAdvance()}
             />
             <WizardHints
               items={[
@@ -2267,8 +2372,9 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={t('wizard.next')}
-              nextDisabled={busy}
-              onNext={() => void handleNext()}
+              nextDisabled={!canNext}
+              {...wizardVolgendePending}
+              onNext={() => void requestWizardAdvance()}
             />
           </>
         )}
@@ -2432,12 +2538,13 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={t('wizard.next')}
-              nextDisabled={!canNext || busy}
+              nextDisabled={!canNext}
               nextReason={nextReason}
               onNextBlocked={() => {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)
               }}
-              onNext={() => void handleNext()}
+              {...wizardVolgendePending}
+              onNext={() => void requestWizardAdvance()}
             />
           </>
         )}
@@ -2553,7 +2660,8 @@ function ImportWizardPage() {
               showBack
               onBack={() => void handleBack()}
               nextLabel={t('wizard.overzicht.confirm')}
-              onNext={() => void handleNext()}
+              {...wizardVolgendePending}
+              onNext={() => void requestWizardAdvance()}
             />
           </>
         )}
@@ -2644,7 +2752,7 @@ function ImportWizardPage() {
                     ? t('wizard.importeren.tryAgain')
                     : t('wizard.next')
               }
-              nextDisabled={failureKind === 'none' ? !canNext : busy}
+              nextDisabled={failureKind === 'none' ? !canNext : false}
               nextReason={failureKind === 'none' ? nextReason : null}
               onNextBlocked={() => {
                 if (nextReason !== null && nextReason !== '') showToast(nextReason)
@@ -2654,7 +2762,7 @@ function ImportWizardPage() {
                   void startImport()
                   return
                 }
-                void handleNext()
+                void requestWizardAdvance()
               }}
             />
             <WizardHints

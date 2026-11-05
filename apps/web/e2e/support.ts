@@ -76,6 +76,22 @@ export async function hydrated(page: Page): Promise<void> {
 }
 
 /**
+ * True when this response is the boekhouddetails / Geavanceerd save POST
+ * finishing.
+ *
+ * TanStack Start serialises the payload; matching on `enabled` keeps us from
+ * racing an unrelated POST (language, theme, entity switch).
+ */
+function isAdvancedModeSaveResponse(response: {
+  request: () => { method: () => string; postData: () => string | null }
+  ok: () => boolean
+}): boolean {
+  if (response.request().method() !== 'POST') return false
+  const body = response.request().postData() ?? ''
+  return body.includes('enabled') && response.ok()
+}
+
+/**
  * Accessible name for the Settings hub display toggle
  * (`settings.accountingDetails`: Boekhouddetails tonen / Show accounting details).
  * Geavanceerd / Advanced remain as temporary fallbacks.
@@ -123,12 +139,15 @@ async function ensureConfiguredScriptDelay(page: Page): Promise<void> {
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
   await ensureConfiguredScriptDelay(page)
   await page.goto('/settings')
+  await hydrated(page)
   const toggle = advancedModeSwitch(page)
   await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
   await expect(toggle).toBeEnabled({ timeout: 30_000 })
   if ((await toggle.getAttribute('aria-checked')) !== want) {
+    const persisted = page.waitForResponse(isAdvancedModeSaveResponse, { timeout: 15_000 })
     await toggle.click()
+    await persisted
   }
   await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 10_000 })
   await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 10_000 })
@@ -142,16 +161,18 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
 /** Take a brand-new address all the way to a signed-in session. */
 export async function signIn(page: Page, email: string): Promise<void> {
   const sendCode = page.getByRole('button', { name: 'Stuur me een code' })
-  await expect(sendCode).toBeEnabled({ timeout: 15_000 })
+  const allUrlDelay = Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? '')
+  const enabledTimeout = Number.isFinite(allUrlDelay) && allUrlDelay > 0 ? 120_000 : 15_000
+  await expect(sendCode).toBeEnabled({ timeout: enabledTimeout })
   await page.getByLabel('E-mail').fill(email)
-  await expect(sendCode).toBeEnabled({ timeout: 15_000 })
+  await expect(sendCode).toBeEnabled({ timeout: enabledTimeout })
   await sendCode.click()
 
   await expect(page.getByLabel('Code')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Stuur een nieuwe code' })).toBeEnabled()
   // The 6th digit auto-submits (codeHelp). Do not click Aanmelden after fill.
   await page.getByLabel('Code').fill(await codeFor(email))
-  await expect(page.getByLabel('Code')).toHaveCount(0)
+  await expect(page.getByLabel('Code')).toHaveCount(0, { timeout: enabledTimeout })
 }
 
 /**
