@@ -67,7 +67,12 @@ export default defineConfig({
     locale: 'nl-NL',
   },
 
-  testIgnore: ['**/fiscal-year-booking-200.spec.ts', '**/pr-screenshots-200.spec.ts'],
+  testIgnore: [
+    '**/fiscal-year-booking-200.spec.ts',
+    '**/pr-screenshots-200.spec.ts',
+    // Needs the fake server clock; runs via playwright.contacts-midnight.config.ts.
+    '**/*-midnight.spec.ts',
+  ],
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 
   // Reuses a server if one is already listening, so a developer with `pnpm

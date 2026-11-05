@@ -67,4 +67,11 @@ describe('localTodayIso', () => {
     const { localTodayIso } = await loadLocalClock()
     expect(localTodayIso()).toBe('2026-03-15')
   })
+
+  it('uses Europe/Amsterdam when UTC is still yesterday (#121)', async () => {
+    vi.setSystemTime(new Date('2026-11-05T23:30:00.000Z'))
+    vi.resetModules()
+    const { localTodayIso } = await loadLocalClock()
+    expect(localTodayIso()).toBe('2026-11-06')
+  })
 })

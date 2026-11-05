@@ -32,7 +32,7 @@ import {
   updateContactBody,
 } from '~/api/schemas'
 import { isFiscalYearCode } from '~/lib/fiscal-year'
-import { contextFromRequest, reportYear, run, runWith } from './internal'
+import { contextFromRequest, reportYear, run, runWith, today } from './internal'
 
 /**
  * The sales screens' RPC surface. Same handlers as `/api/v1/sales-invoices`.
@@ -232,7 +232,7 @@ export const dunningQueue = createServerFn({ method: 'GET' })
       async () =>
         (
           await handleGetDunningQueue(await contextFromRequest(), {
-            asOf: data.asOf ?? new Date().toISOString().slice(0, 10),
+            asOf: data.asOf ?? today(),
           })
         ).body,
     ),
@@ -248,7 +248,7 @@ export const sendReminder = createServerFn({ method: 'POST' })
       sendReminderBody,
       {
         expectedStage: data.expectedStage,
-        asOf: data.asOf ?? new Date().toISOString().slice(0, 10),
+        asOf: data.asOf ?? today(),
       },
       async (body) =>
         (

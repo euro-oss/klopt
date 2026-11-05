@@ -16,7 +16,7 @@ import { debtorAgeing, type DebtorAgeingBucket } from '~/lib/ageing'
 import { pickOldestOverdue } from '~/lib/dashboard'
 import { buildWorkQueue, type WorkQueueItem } from '~/lib/work-queue'
 import { isFiscalYearCode, withinFiscalYear, type FiscalYearScope } from '~/lib/fiscal-year'
-import { contextFromRequest, reportYear, run } from './internal'
+import { contextFromRequest, reportYear, run, today } from './internal'
 
 /**
  * What the redesigned Home needs, for one book year (Phase 1 / #107).
@@ -97,7 +97,7 @@ async function loadDashboard(
   fiscalYear: string | null,
 ): Promise<DashboardPayload> {
   const { scope } = await reportYear(context, isFiscalYearCode(fiscalYear) ? fiscalYear : null)
-  const today = new Date().toISOString().slice(0, 10)
+  const todayDate = today()
   const priorCode = String(Number(scope.code) - 1)
 
   const [
@@ -172,7 +172,9 @@ async function loadDashboard(
     vatPeriods === null
       ? null
       : ([...vatPeriods.body.periods]
-          .filter((period) => !period.filed && period.to < today && period.from >= scope.startsOn)
+          .filter(
+            (period) => !period.filed && period.to < todayDate && period.from >= scope.startsOn,
+          )
           .at(-1) ?? null)
 
   const items = buildWorkQueue(

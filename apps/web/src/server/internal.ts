@@ -6,6 +6,7 @@ import { toProblem } from '~/api/errors'
 import { parse } from '~/api/runtime'
 import type { RequestContext, SetupContext } from '~/api/context'
 import { handleListFiscalYears } from '~/api/handlers/setup'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import {
   REPORT_YEAR_COOKIE,
   isFiscalYearCode,
@@ -80,9 +81,9 @@ export async function run<T>(
  * where a bad field comes back as a problem document with the path on it and
  * the form can point at the input that is wrong.
  */
-/** Today, as the books write it. */
+/** Today in Europe/Amsterdam, as the books write it (#121). */
 export function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayInAmsterdam()
 }
 
 /** The year the reader chose, as it arrived on the request. */

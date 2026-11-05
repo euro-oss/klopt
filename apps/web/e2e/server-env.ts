@@ -65,5 +65,8 @@ export function e2eWebServerEnv(
     environment['KLOPT_E2E_TODAY_ISO'] !== ''
       ? { KLOPT_E2E_TODAY_ISO: environment['KLOPT_E2E_TODAY_ISO'] }
       : {}),
+    ...(environment['KLOPT_E2E_NOW_ISO'] !== undefined && environment['KLOPT_E2E_NOW_ISO'] !== ''
+      ? { KLOPT_E2E_NOW_ISO: environment['KLOPT_E2E_NOW_ISO'] }
+      : {}),
   }
 }
