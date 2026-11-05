@@ -88,21 +88,50 @@ export function advancedModeSwitch(page: Page): Locator {
   return page.getByRole('switch', { name: ADVANCED_MODE_SWITCH_NAME })
 }
 
+const scriptDelayPages = new WeakSet<Page>()
+
+/**
+ * Delay the first client script on the page by `ms` (simulates a slow bundle).
+ * Later scripts are not delayed so hydration can finish.
+ */
+export async function delayClientScripts(page: Page, ms: number): Promise<void> {
+  if (scriptDelayPages.has(page)) return
+  scriptDelayPages.add(page)
+  let delayed = false
+  await page.route('**/*', async (route) => {
+    if (route.request().resourceType() === 'script' && !delayed) {
+      delayed = true
+      await new Promise((resolve) => setTimeout(resolve, ms))
+    }
+    await route.continue()
+  })
+}
+
+async function ensureConfiguredScriptDelay(page: Page): Promise<void> {
+  const ms = Number(process.env['KLOPT_E2E_SCRIPT_DELAY_MS'] ?? 0)
+  if (ms > 0) {
+    await delayClientScripts(page, ms)
+  }
+}
+
 /**
  * Flip boekhouddetails (Geavanceerd) to the given value from Settings.
  *
- * Always waits for the save POST response before returning, so a later reload
- * or fresh context sees the stored choice rather than the role default.
+ * Waits until the switch is enabled (hydrated and not saving), clicks at most
+ * once, then waits until the wanted value is saved.
  */
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
+  await ensureConfiguredScriptDelay(page)
   await page.goto('/settings')
   const toggle = advancedModeSwitch(page)
   await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
+  await expect(toggle).toBeEnabled({ timeout: 30_000 })
   if ((await toggle.getAttribute('aria-checked')) !== want) {
     await toggle.click()
   }
-  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 30_000 })
+  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 10_000 })
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 10_000 })
 }
 
 /** Turn boekhouddetails on from Settings (owner default is off). */
