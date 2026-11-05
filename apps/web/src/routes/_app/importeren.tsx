@@ -1148,7 +1148,7 @@ function ImportWizardPage() {
         <label className="mb-4 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
           <Checkbox
             checked={advanced}
-            disabled={!hydrated}
+            disabled={!hydrated || advancedSaving}
             aria-busy={advancedSaving || undefined}
             onCheckedChange={(value) => {
               void setAdvanced(value === true)

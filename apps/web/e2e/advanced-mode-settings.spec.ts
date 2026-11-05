@@ -80,3 +80,25 @@ test('delayed client bundle disables the switch until hydration', async ({ page 
   await hydrated(page)
   await expect(advancedModeSwitch(page)).toHaveAttribute('aria-checked', 'true')
 })
+
+test('import wizard boekhouddetails checkbox is disabled until hydration', async ({ page }) => {
+  await signedInOwner(page)
+  await delayClientScripts(page, 1_500)
+  await page.goto('/importeren?bron=moneybird', { waitUntil: 'domcontentloaded' })
+  const toggle = page.locator('[data-slot="import-wizard"]').getByRole('checkbox', {
+    name: /Boekhouddetails|Accounting details/i,
+  })
+  await expect(toggle).toBeDisabled()
+  await expect(toggle).toBeEnabled({ timeout: 30_000 })
+})
+
+test('lab import-findings Geavanceerd control is disabled until hydration', async ({ page }) => {
+  await signedInOwner(page)
+  await delayClientScripts(page, 1_500)
+  await page.goto('/lab/import-findings?source=moneybird&state=open', {
+    waitUntil: 'domcontentloaded',
+  })
+  const toggle = page.getByTestId('lab-advanced')
+  await expect(toggle).toBeDisabled()
+  await expect(toggle).toBeEnabled({ timeout: 30_000 })
+})
