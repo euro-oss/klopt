@@ -43,6 +43,8 @@ export default defineConfig({
               KLOPT_E2E_NOW_ISO: CONTACTS_OVERDUE_MIDNIGHT_NOW_ISO,
             }),
             NODE_OPTIONS: '--import ./e2e/fake-server-clock.js',
+            // UTC host, so the spec still catches a UTC-today regression on an Amsterdam-time machine.
+            TZ: 'UTC',
           },
         },
       }),
