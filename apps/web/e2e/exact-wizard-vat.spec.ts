@@ -5,7 +5,11 @@ import {
   clickImportWizardNextImmediate,
   expectImportWizardFooterOpslaan,
 } from './support/import-wizard-footer'
-import { installWizardStateSaveDelay, isWizardStateSave, routeWizardStateSave } from './support/import-wizard-save-route'
+import {
+  installWizardStateSaveDelay,
+  isWizardStateSave,
+  routeWizardStateSave,
+} from './support/import-wizard-save-route'
 import { startExactStandIn, type ExactStandIn } from './support/exact-stand-in'
 
 /**
@@ -192,8 +196,7 @@ test('Exact extra Volgende clicks while Opslaan footer add no step (#201)', asyn
 
     const next = page.locator('button[data-focus="next"]')
     const saveRequest = page.waitForRequest(
-      (req) =>
-        isWizardStateSave(req) && req.postData()?.includes('voorbeeld') === true,
+      (req) => isWizardStateSave(req) && req.postData()?.includes('voorbeeld') === true,
     )
 
     await expect
