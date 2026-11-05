@@ -121,6 +121,10 @@ export const VIOLATION_MESSAGES = {
     code: 'invalid_date',
     text: 'A fiscal year is labelled by its four-digit start year.',
   },
+  'invalid_date.fiscal_year_out_of_range': {
+    code: 'invalid_date',
+    text: 'A book year must be between {min} and {max}.',
+  },
   'invalid_date.starting_month': { code: 'invalid_date', text: 'The starting month is 1 to 12.' },
   'invalid_date.validfrom_date': { code: 'invalid_date', text: 'validFrom must be a date.' },
   'invalid_date.validity_window_end': {

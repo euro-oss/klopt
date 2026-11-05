@@ -494,6 +494,15 @@ export const nl = {
   // draaien, net zoals de bevestiging hierboven zegt.
   'fiscalYears.alreadyClosed':
     'Boekjaar {year} is al afgesloten. Afsluiten gebeurt één keer; hier zit geen knop om dat terug te draaien.',
+  'fiscalYears.openPriorAction': 'Vorig boekjaar openen',
+  'fiscalYears.openPriorOpeningNote':
+    'Er wordt geen beginbalans aangemaakt; alleen de twaalf periodes van dat boekjaar.',
+  'fiscalYears.openPriorAck': 'Ik wil boekjaar {year} openen.',
+  'fiscalYears.openSpecificTitle': 'Boekjaar {year} openen',
+  'fiscalYears.earlierOneNotClosed':
+    'Boekjaar {earlier} is nog niet afgesloten; het resultaat staat nog niet in de beginbalans van {year}.',
+  'fiscalYears.earlierManyNotClosed':
+    'Boekjaren {earlierList} zijn nog niet afgesloten; de resultaten staan nog niet in de beginbalans van {year}.',
 
   // Btw-codes: standaardcodes bekijken en ontbrekende toevoegen (#87 PR B / #88).
   'taxCodes.title': 'Btw-codes',
@@ -539,6 +548,10 @@ export const nl = {
   'taxCodes.notice.added': '{label} is toegevoegd.',
   'booking.taxCodeInvalidOnDate':
     'De btw-code van regel {n} geldt niet op deze datum. Kies een andere.',
+  'booking.fiscalYearNotOpen': 'Boekjaar {year} is nog niet geopend.',
+  'booking.fiscalYearClosed': 'Boekjaar {year} is afgesloten.',
+  'booking.fiscalYearOpenLink': 'Boekjaar {year} openen',
+  'booking.fiscalYearAskOwner': 'Een eigenaar, accountant of boekhouder kan het openen.',
   'taxCodes.error.exists': 'Deze code staat al in deze administratie.',
   'taxCodes.error.pairHalf':
     'Van dit paar staat al een helft in deze administratie. Voeg alleen toe als beide ontbreken.',
@@ -2815,6 +2828,8 @@ export const nl = {
     'De documentdatum moet een echte kalenderdatum zijn, jjjj-mm-dd.',
   'violation.invalid_date.fiscal_year_labelled':
     'Een boekjaar wordt aangeduid met het beginjaar van vier cijfers.',
+  'violation.invalid_date.fiscal_year_out_of_range':
+    'Een boekjaar moet tussen {min} en {max} liggen.',
   'violation.invalid_date.starting_month': 'De beginmaand is 1 tot en met 12.',
   'violation.invalid_date.validfrom_date': 'validFrom moet een datum zijn.',
   'violation.invalid_date.validity_window_end':

@@ -1,7 +1,9 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { assessDocumentFiscalYear } from '~/lib/booking-fiscal-year-gate'
 import { Check } from 'lucide-react'
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { AccountPicker } from '~/components/finance/account-picker'
+import { DocumentFiscalYearHint } from '~/components/finance/document-fiscal-year-hint'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { DropZone } from '~/components/ui/drop-zone'
@@ -16,14 +18,33 @@ import {
   defaultPurchaseBookingTaxCode,
   purchaseBookingTaxCodes,
 } from '~/lib/booking-tax-codes'
+import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from '~/lib/booking-draft-return'
+import { latestFiscalYear, startingMonth } from '~/lib/fiscal-year'
 import { formatMinorUnits, parseMinorUnits, percentOf } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple, isTypingInto } from '~/lib/keyboard'
+import { may, MAY_OPEN_YEAR } from '~/lib/roles'
 import { cn } from '~/lib/utils'
 import { receiveDocument } from '~/server/inbox'
 import { listAccounts } from '~/server/ledger'
 import { bookPurchaseInvoice, capturePurchaseInvoice } from '~/server/purchase'
 import { listContacts, listTaxCodes } from '~/server/sales'
+import { listFiscalYears } from '~/server/setup'
+
+const BOOKING_RETURN_TO = '/purchases/new'
+
+interface SavedPurchaseDraft {
+  contactNumber: string
+  supplierInvoiceNumber: string
+  kind: 'invoice' | 'credit_note'
+  invoiceDate: string
+  dueDate: string
+  paymentReference: string
+  statedNet: string
+  statedTax: string
+  statedTotal: string
+  lines: DraftLine[]
+}
 
 /**
  * BillNew — enter a supplier bill (#107 Phase 4 / #128).
@@ -35,10 +56,12 @@ import { listContacts, listTaxCodes } from '~/server/sales'
  */
 
 export const Route = createFileRoute('/_app/purchases/new')({
-  loader: async () => ({
+  loader: async ({ context }) => ({
     contacts: await listContacts({ data: { customersOnly: false } }),
     taxCodes: await listTaxCodes(),
     accounts: await listAccounts(),
+    fiscalYears: await listFiscalYears(),
+    role: context.session.memberships[0]?.role ?? '',
   }),
   component: NewPurchaseInvoice,
 })
@@ -68,11 +91,21 @@ function addDays(date: string, days: number): string {
 }
 
 function NewPurchaseInvoice() {
-  const { contacts, taxCodes, accounts } = Route.useLoaderData()
+  const { contacts, taxCodes, accounts, fiscalYears, role } = Route.useLoaderData()
   const navigate = useNavigate()
   const hydrated = useHydrated()
   const { t, plural } = useT()
   const modLabel = hydrated && isApple() ? '⌘' : 'Ctrl'
+
+  const fiscalYearRows = useMemo(
+    () => (fiscalYears.ok ? fiscalYears.data.fiscalYears : []),
+    [fiscalYears],
+  )
+  const fiscalStartMonth = useMemo(() => {
+    const latest = latestFiscalYear(fiscalYearRows)
+    return latest === undefined ? 1 : startingMonth(latest)
+  }, [fiscalYearRows])
+  const canOpenYear = may(MAY_OPEN_YEAR, role)
 
   const suppliers = contacts.ok
     ? contacts.data.contacts.filter((contact) => contact.isSupplier && !contact.isBlocked)
@@ -84,21 +117,28 @@ function NewPurchaseInvoice() {
     : []
 
   const defaultAccount = costAccounts[0]?.number ?? ''
-  const [contactNumber, setContactNumber] = useState(suppliers[0]?.number ?? '')
-  const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState('')
-  const [kind, setKind] = useState<'invoice' | 'credit_note'>('invoice')
-  const [invoiceDate, setInvoiceDate] = useState(today())
+  const savedDraft = useMemo(() => loadBookingDraft<SavedPurchaseDraft>(BOOKING_RETURN_TO), [])
+  const [contactNumber, setContactNumber] = useState(
+    savedDraft?.contactNumber ?? suppliers[0]?.number ?? '',
+  )
+  const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState(
+    savedDraft?.supplierInvoiceNumber ?? '',
+  )
+  const [kind, setKind] = useState<'invoice' | 'credit_note'>(savedDraft?.kind ?? 'invoice')
+  const [invoiceDate, setInvoiceDate] = useState(savedDraft?.invoiceDate ?? today())
   const inputCodes = useMemo(
     () => (taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes, invoiceDate) : []),
     [taxCodes, invoiceDate],
   )
   const defaultTax = defaultPurchaseBookingTaxCode(inputCodes)
-  const [dueDate, setDueDate] = useState(addDays(today(), 30))
-  const [paymentReference, setPaymentReference] = useState('')
-  const [statedNet, setStatedNet] = useState('')
-  const [statedTax, setStatedTax] = useState('')
-  const [statedTotal, setStatedTotal] = useState('')
-  const [lines, setLines] = useState<DraftLine[]>(() => [emptyLine(defaultAccount, defaultTax)])
+  const [dueDate, setDueDate] = useState(savedDraft?.dueDate ?? addDays(today(), 30))
+  const [paymentReference, setPaymentReference] = useState(savedDraft?.paymentReference ?? '')
+  const [statedNet, setStatedNet] = useState(savedDraft?.statedNet ?? '')
+  const [statedTax, setStatedTax] = useState(savedDraft?.statedTax ?? '')
+  const [statedTotal, setStatedTotal] = useState(savedDraft?.statedTotal ?? '')
+  const [lines, setLines] = useState<DraftLine[]>(
+    () => savedDraft?.lines ?? [emptyLine(defaultAccount, defaultTax)],
+  )
   const [busy, setBusy] = useState(false)
   const [problems, setProblems] = useState<string[]>([])
   const [dateNotice, setDateNotice] = useState<string | null>(null)
@@ -111,10 +151,40 @@ function NewPurchaseInvoice() {
   const key = useRef<string>(crypto.randomUUID())
   const dropKey = useRef<string>(crypto.randomUUID())
 
+  useEffect(() => {
+    if (savedDraft !== null) clearBookingDraft(BOOKING_RETURN_TO)
+  }, [savedDraft])
+
+  const fiscalGate = useMemo(
+    () => assessDocumentFiscalYear(fiscalYearRows, invoiceDate, fiscalStartMonth),
+    [fiscalYearRows, invoiceDate, fiscalStartMonth],
+  )
+  const fiscalYearBlocked = fiscalGate.kind === 'blocked'
+
   const selectedSupplier = suppliers.find((row) => row.number === contactNumber) ?? null
+
+  function persistDraftForReturn(): void {
+    saveBookingDraft<SavedPurchaseDraft>(BOOKING_RETURN_TO, {
+      contactNumber,
+      supplierInvoiceNumber,
+      kind,
+      invoiceDate,
+      dueDate,
+      paymentReference,
+      statedNet,
+      statedTax,
+      statedTotal,
+      lines,
+    })
+  }
 
   function changeInvoiceDate(next: string): void {
     setInvoiceDate(next)
+    const gate = assessDocumentFiscalYear(fiscalYearRows, next, fiscalStartMonth)
+    if (gate.kind === 'blocked') {
+      setDateNotice(null)
+      return
+    }
     const allowed = new Set(
       (taxCodes.ok ? purchaseBookingTaxCodes(taxCodes.data.taxCodes, next) : []).map(
         (code) => code.code,
@@ -515,6 +585,7 @@ function NewPurchaseInvoice() {
                 <Input
                   type="date"
                   aria-label={t('purchaseNew.billDate')}
+                  aria-describedby={fiscalYearBlocked ? 'purchase-invoice-date-hint' : undefined}
                   value={invoiceDate}
                   onChange={(event) => {
                     changeInvoiceDate(event.target.value)
@@ -523,6 +594,15 @@ function NewPurchaseInvoice() {
                     )
                   }}
                   className="font-mono"
+                />
+                <DocumentFiscalYearHint
+                  id="purchase-invoice-date-hint"
+                  years={fiscalYearRows}
+                  documentDate={invoiceDate}
+                  startMonth={fiscalStartMonth}
+                  canOpenYear={canOpenYear}
+                  returnTo={BOOKING_RETURN_TO}
+                  onNavigate={persistDraftForReturn}
                 />
               </label>
               <label className="block">
@@ -595,9 +675,11 @@ function NewPurchaseInvoice() {
             <p
               role="status"
               aria-live="polite"
-              className={dateNotice === null ? 'sr-only' : 'text-ink-muted text-sm'}
+              className={
+                dateNotice === null || fiscalYearBlocked ? 'sr-only' : 'text-ink-muted text-sm'
+              }
             >
-              {dateNotice ?? ''}
+              {fiscalYearBlocked ? '' : (dateNotice ?? '')}
             </p>
 
             {(!netMatches || !taxMatches || !totalMatches) && filled.length > 0 && (

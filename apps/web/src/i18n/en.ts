@@ -711,6 +711,15 @@ export const en: Record<MessageKey, string> = {
   'fiscalYears.closedNotice': 'Book year {year} is closed.',
   'fiscalYears.alreadyClosed':
     'Book year {year} is already closed. Closing happens once; there is no undo button here.',
+  'fiscalYears.openPriorAction': 'Open the prior book year',
+  'fiscalYears.openPriorOpeningNote':
+    'No opening balance is created; only the twelve periods of that book year.',
+  'fiscalYears.openPriorAck': 'I want to open book year {year}.',
+  'fiscalYears.openSpecificTitle': 'Open book year {year}',
+  'fiscalYears.earlierOneNotClosed':
+    'Book year {earlier} is not closed yet; its result is not yet in the opening balance of {year}.',
+  'fiscalYears.earlierManyNotClosed':
+    'Book years {earlierList} are not closed yet; their results are not yet in the opening balance of {year}.',
 
   // VAT codes: view standard codes and add missing ones (#87 PR B / #88).
   'taxCodes.title': 'VAT codes',
@@ -756,6 +765,10 @@ export const en: Record<MessageKey, string> = {
   'taxCodes.notice.added': '{label} has been added.',
   'booking.taxCodeInvalidOnDate':
     'The VAT code on line {n} is not valid on this date. Pick another.',
+  'booking.fiscalYearNotOpen': 'Book year {year} is not open yet.',
+  'booking.fiscalYearClosed': 'Book year {year} is closed.',
+  'booking.fiscalYearOpenLink': 'Open book year {year}',
+  'booking.fiscalYearAskOwner': 'An owner, accountant or bookkeeper can open it.',
   'taxCodes.error.exists': 'This code is already on this administration.',
   'taxCodes.error.pairHalf':
     'One half of this pair is already on this administration. Add only when both are missing.',
