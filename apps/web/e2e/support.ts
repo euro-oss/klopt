@@ -89,6 +89,46 @@ export function advancedModeSwitch(page: Page): Locator {
 }
 
 const scriptDelayPages = new WeakSet<Page>()
+const apiDelayPages = new WeakSet<Page>()
+
+/** POST that persists Geavanceerd / boekhouddetails (`enabled` in the JSON body). */
+export function isAdvancedModeSaveRequest(request: {
+  method: () => string
+  postData: () => string | null
+}): boolean {
+  return request.method() === 'POST' && (request.postData() ?? '').includes('enabled')
+}
+
+/** Resolves when a boekhouddetails save POST returns HTTP 200. */
+export function waitForAdvancedModeSaveResponse(
+  page: Page,
+  timeout = 30_000,
+): ReturnType<Page['waitForResponse']> {
+  return page.waitForResponse(
+    (response) => isAdvancedModeSaveRequest(response.request()) && response.status() === 200,
+    { timeout },
+  )
+}
+
+/**
+ * Optional slow-network simulation for non-GET requests (see import-redesign-phone).
+ * Controlled by `KLOPT_E2E_API_DELAY_MS` and `KLOPT_E2E_API_DELAY_NON_GET_ONLY=1`.
+ */
+export async function ensureConfiguredApiDelay(page: Page): Promise<void> {
+  const delayMs = process.env['KLOPT_E2E_API_DELAY_MS']
+  if (delayMs === undefined || delayMs === '') return
+  if (apiDelayPages.has(page)) return
+  apiDelayPages.add(page)
+  const ms = Number(delayMs)
+  const nonGetOnly = process.env['KLOPT_E2E_API_DELAY_NON_GET_ONLY'] === '1'
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (!nonGetOnly || request.method() !== 'GET') {
+      await new Promise((resolve) => setTimeout(resolve, ms))
+    }
+    await route.continue()
+  })
+}
 
 /**
  * Delay the first client script on the page by `ms` (simulates a slow bundle).
@@ -115,6 +155,35 @@ async function ensureConfiguredScriptDelay(page: Page): Promise<void> {
 }
 
 /**
+ * Click a native or Radix checkbox once and wait until the save POST returns 200.
+ * Assumes the control is hydrated and matches `enabled` only when a click is needed.
+ */
+export async function clickAdvancedCheckboxAndPersist(
+  page: Page,
+  toggle: Locator,
+  enabled: boolean,
+): Promise<void> {
+  await expect(toggle).toBeEnabled({ timeout: 30_000 })
+  const wantChecked = enabled
+  if ((await toggle.isChecked()) === wantChecked) return
+  const persisted = waitForAdvancedModeSaveResponse(page)
+  await toggle.click()
+  const response = await persisted
+  expect(response.status()).toBe(200)
+  if (wantChecked) {
+    await expect(toggle).toBeChecked()
+  } else {
+    await expect(toggle).not.toBeChecked()
+  }
+  await expect(toggle).toBeEnabled()
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 30_000 })
+}
+
+/** Copy on the Geavanceerd save-failure toast (nl default locale in playwright.config). */
+export const ADVANCED_MODE_SAVE_FAILED =
+  /Geavanceerd is niet opgeslagen|Boekhouddetails.*(niet opgeslagen|niet bewaard)|wasn't saved|not saved/i
+
+/**
  * Flip boekhouddetails (Geavanceerd) to the given value from Settings.
  *
  * Waits until the switch is enabled (hydrated and not saving), clicks at most
@@ -122,16 +191,20 @@ async function ensureConfiguredScriptDelay(page: Page): Promise<void> {
  */
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
   await ensureConfiguredScriptDelay(page)
+  await ensureConfiguredApiDelay(page)
   await page.goto('/settings')
   const toggle = advancedModeSwitch(page)
   await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
   await expect(toggle).toBeEnabled({ timeout: 30_000 })
   if ((await toggle.getAttribute('aria-checked')) !== want) {
+    const persisted = waitForAdvancedModeSaveResponse(page)
     await toggle.click()
+    const response = await persisted
+    expect(response.status()).toBe(200)
   }
-  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 10_000 })
-  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 10_000 })
+  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 30_000 })
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 30_000 })
 }
 
 /** Turn boekhouddetails on from Settings (owner default is off). */

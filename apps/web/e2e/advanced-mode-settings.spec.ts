@@ -4,14 +4,21 @@ import {
   advancedModeSwitch,
   DATABASE_URL,
   delayClientScripts,
+  ensureConfiguredApiDelay,
   hydrated,
+  isAdvancedModeSaveRequest,
   setAdvancedMode,
   signIn,
   uniqueEmail,
+  waitForAdvancedModeSaveResponse,
 } from './support'
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
+})
+
+test.beforeEach(async ({ page }) => {
+  await ensureConfiguredApiDelay(page)
 })
 
 async function signedInOwner(page: Page): Promise<void> {
@@ -32,7 +39,10 @@ test('one boekhouddetails click toggles once and persists after reload', async (
   const toggle = advancedModeSwitch(page)
   await expect(toggle).toBeEnabled()
   await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  const persisted = waitForAdvancedModeSaveResponse(page)
   await toggle.click()
+  const response = await persisted
+  expect(response.status()).toBe(200)
   await expect(toggle).toHaveAttribute('aria-checked', 'true')
   await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
 
@@ -47,7 +57,7 @@ test('double-click does not apply two toggles', async ({ page }) => {
   let posts = 0
   await page.route('**/*', async (route) => {
     const request = route.request()
-    if (request.method() === 'POST' && (request.postData() ?? '').includes('enabled')) {
+    if (isAdvancedModeSaveRequest(request)) {
       posts += 1
     }
     await route.continue()
@@ -57,8 +67,11 @@ test('double-click does not apply two toggles', async ({ page }) => {
   const toggle = advancedModeSwitch(page)
   await expect(toggle).toBeEnabled()
   await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  const persisted = waitForAdvancedModeSaveResponse(page)
   await toggle.dblclick()
-  await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+  const response = await persisted
+  expect(response.status()).toBe(200)
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 30_000 })
   await expect(toggle).toHaveAttribute('aria-checked', 'true')
   expect(posts).toBe(1)
 
