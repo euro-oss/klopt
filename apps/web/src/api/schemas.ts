@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES, normalizeFxRateInput } from '@klopt/core'
+import { todayInAmsterdam } from '../lib/amsterdam-date.js'
 import { clockDefault } from './clock-default.js'
 
 /**
@@ -51,7 +52,7 @@ export const isoDate = z
   .meta({ id: 'IsoDate', description: 'A calendar date, YYYY-MM-DD. No time, no zone.' })
 
 /**
- * A date parameter that falls back to today (UTC) when the caller omits it.
+ * A date parameter that falls back to today in Europe/Amsterdam when the caller omits it.
  *
  * The default is a function of the clock, which is right at parse time and wrong
  * in a published document: `z.toJSONSchema` evaluates it once and would bake the
@@ -61,7 +62,7 @@ export const isoDate = z
  * what happens when the parameter is left out.
  */
 export const asOfDefaultsToday = clockDefault(
-  isoDate.default(() => new Date().toISOString().slice(0, 10)),
+  isoDate.default(() => todayInAmsterdam()),
   'today',
 )
 

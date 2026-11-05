@@ -21,6 +21,7 @@ import {
   fetchEcbReferenceRates,
   readAdministration,
 } from '@klopt/adapters'
+import { todayInAmsterdam } from '../../lib/amsterdam-date.js'
 import {
   MoneybirdImportRepository,
   ReportingRepository,
@@ -598,7 +599,7 @@ export async function handleRefreshMoneybirdFxRate(
     return { status: 200, body: fxRateBody(currency, query.documentDate, cachedChoice) }
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayInAmsterdam()
   const needFullHistory = isOlderThanDays(query.documentDate, ECB_HIST_FULL_AFTER_DAYS, today)
   const feed = needFullHistory ? 'full' : '90d'
   const dateFrom = addCalendarDays(query.documentDate, -ECB_MAX_LOOKBACK_DAYS)
