@@ -13,7 +13,7 @@
     "dev": "vite dev",
     "dev:https": "portless klopt pnpm exec vite dev",
     "start": "node .output/server/index.mjs",
-    "test:e2e": "tsx scripts/prod-pdf-check.ts && playwright test",
+    "test:e2e": "tsx scripts/prod-pdf-check.ts && playwright test && playwright test --config playwright.contacts-midnight.config.ts",
     "test:prod-pdf": "tsx scripts/prod-pdf-check.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
+    "@sinonjs/fake-timers": "15.0.0",
     "@readme/openapi-parser": "^9.0.0",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.13.3",
