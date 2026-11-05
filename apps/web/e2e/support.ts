@@ -91,18 +91,26 @@ export function advancedModeSwitch(page: Page): Locator {
 /**
  * Flip boekhouddetails (Geavanceerd) to the given value from Settings.
  *
- * Always waits for the save POST response before returning, so a later reload
- * or fresh context sees the stored choice rather than the role default.
+ * A click can land before the page has hydrated (the SSR switch ignores it) or
+ * while a save is still in flight, so the click is retried until the switch
+ * shows the wanted value and is no longer saving. Returning only once the save
+ * is done means a later reload or fresh context sees the stored choice rather
+ * than the role default.
  */
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
   await page.goto('/settings')
   const toggle = advancedModeSwitch(page)
   await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
-  if ((await toggle.getAttribute('aria-checked')) !== want) {
-    await toggle.click()
-  }
-  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 30_000 })
+  await expect(async () => {
+    await expect(toggle).toBeEnabled({ timeout: 5_000 })
+    if ((await toggle.getAttribute('aria-checked')) !== want) {
+      await toggle.click()
+    }
+    await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 3_000 })
+    await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 10_000 })
+    await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 1_000 })
+  }).toPass({ timeout: 45_000 })
 }
 
 /** Turn boekhouddetails on from Settings (owner default is off). */
