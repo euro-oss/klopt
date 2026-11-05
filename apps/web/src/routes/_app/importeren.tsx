@@ -192,7 +192,7 @@ function ImportWizardPage() {
   const handleNextRef = useRef<() => void>(() => {})
   const advanceQueuedRef = useRef(false)
   const advanceInFlightRef = useRef(false)
-  const advanceAfterFlightRef = useRef(false)
+  const busyRef = useRef(false)
 
   const saved = wizard.ok ? (wizard.data.state as WizardStateRow | null) : null
   const conn = connection.ok ? connection.data.connection : null
@@ -493,16 +493,12 @@ function ImportWizardPage() {
 
   function clearAdvanceQueue() {
     advanceQueuedRef.current = false
-    advanceAfterFlightRef.current = false
   }
 
   function queueAdvance() {
+    // Same gate as `wizardVolgendePending.nextSaving` (`busy || advanceInFlight`).
+    if (!(busyRef.current || advanceInFlightRef.current)) return
     advanceQueuedRef.current = true
-    // Clicks while the footer looks idle (no step save) but goTo is still running
-    // need one follow-up step after this flight — not coalesced save double-clicks.
-    if (advanceInFlightRef.current && !busy) {
-      advanceAfterFlightRef.current = true
-    }
   }
 
   function footerSaveErrorFromDetail(detail: string | null | undefined): string {
@@ -922,7 +918,7 @@ function ImportWizardPage() {
 
   async function requestWizardAdvance() {
     if (!mayLedgerImport) return
-    if (advanceInFlightRef.current || busy) {
+    if (busyRef.current || advanceInFlightRef.current) {
       queueAdvance()
       return
     }
@@ -933,14 +929,6 @@ function ImportWizardPage() {
       if (!(await executeAdvanceOnce())) {
         clearAdvanceQueue()
         return
-      }
-      if (advanceAfterFlightRef.current && advanceQueuedRef.current) {
-        advanceAfterFlightRef.current = false
-        advanceQueuedRef.current = false
-        if (!(await executeAdvanceOnce())) {
-          clearAdvanceQueue()
-          return
-        }
       }
       clearAdvanceQueue()
     } finally {
@@ -1015,11 +1003,12 @@ function ImportWizardPage() {
   })
 
   useEffect(() => {
-    if (busy || advanceInFlightRef.current) return
+    busyRef.current = busy
+    if (busy || advanceInFlight) return
     if (!advanceQueuedRef.current) return
     advanceQueuedRef.current = false
     void requestWizardAdvance()
-  }, [busy])
+  }, [busy, advanceInFlight])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {

@@ -3,7 +3,7 @@
  * read-only btw. Later steps (rekeningen / openings / invoices) stay blocked.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import type { ExactVatMappingSummary } from '@klopt/core'
 import {
@@ -87,6 +87,10 @@ export function ExactWizardFlow({
   const hydrated = useHydrated()
   const connected = connection?.connected === true
   const [busy, setBusy] = useState(false)
+  const [advanceInFlight, setAdvanceInFlight] = useState(false)
+  const busyRef = useRef(false)
+  const advanceInFlightRef = useRef(false)
+  const advanceQueuedRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [disconnectOpen, setDisconnectOpen] = useState(false)
@@ -184,8 +188,25 @@ export function ExactWizardFlow({
     return t('wizard.status.exactLater')
   })()
 
-  async function handleNext() {
-    if (busy) return
+  useEffect(() => {
+    busyRef.current = busy
+    if (busy || advanceInFlight) return
+    if (!advanceQueuedRef.current) return
+    advanceQueuedRef.current = false
+    void handleNext()
+  }, [busy, advanceInFlight])
+
+  function clearAdvanceQueue() {
+    advanceQueuedRef.current = false
+  }
+
+  function queueAdvance() {
+    // Same gate as footer `nextSaving` (`busy || advanceInFlight`).
+    if (!(busyRef.current || advanceInFlightRef.current)) return
+    advanceQueuedRef.current = true
+  }
+
+  async function executeNextOnce() {
     if (step === 'btw') {
       // Phase 2 slice ends here — accounts / openings land in later PRs.
       if (nextReason !== null) setToast(nextReason)
@@ -233,6 +254,22 @@ export function ExactWizardFlow({
     if (step === 'voorbeeld') {
       if (preview === null) await runPreview()
       await goTo('btw')
+    }
+  }
+
+  async function handleNext() {
+    if (busyRef.current || advanceInFlightRef.current) {
+      queueAdvance()
+      return
+    }
+    advanceInFlightRef.current = true
+    setAdvanceInFlight(true)
+    try {
+      await executeNextOnce()
+      clearAdvanceQueue()
+    } finally {
+      advanceInFlightRef.current = false
+      setAdvanceInFlight(false)
     }
   }
 
@@ -528,7 +565,7 @@ export function ExactWizardFlow({
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
             nextDisabled={!canNext}
-            nextSaving={busy}
+            nextSaving={busy || advanceInFlight}
             nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {
@@ -581,7 +618,7 @@ export function ExactWizardFlow({
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
             nextDisabled={!canNext}
-            nextSaving={busy}
+            nextSaving={busy || advanceInFlight}
             nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {

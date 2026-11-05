@@ -5,6 +5,11 @@ import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
 import {
+  clickImportWizardNextImmediate,
+  expectImportWizardFooterOpslaan,
+  expectNoImportWizardConfirm,
+} from './support/import-wizard-footer'
+import {
   installWizardStateSaveDelay,
   isWizardStateSave,
   routeWizardStateSave,
@@ -177,6 +182,10 @@ function wizardStatePost(page: Page) {
   )
 }
 
+async function clickNextWhenReady(page: Page): Promise<void> {
+  await clickNext(page)
+}
+
 test('Volgende pending state queues one advance after delayed wizard save (#201)', async ({
   page,
 }) => {
@@ -272,6 +281,93 @@ test('failed wizard save shows footer error and stays on the step (#201)', async
     await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toHaveCount(0)
     await expect(page.getByText('Opslaan is niet gelukt. Probeer het opnieuw.')).toBeVisible()
     await shootFooter(page, '02-save-failed')
+  } finally {
+    await standIn.close()
+  }
+})
+
+test('Moneybird extra Volgende clicks while Opslaan footer add no step (#201)', async ({
+  page,
+}) => {
+  test.setTimeout(180_000)
+  const standIn = await startNullRateMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await connectStandIn(page, standIn)
+    await advanceToProblemen(page)
+
+    let releaseSave: (() => void) | null = null
+    const saveGate = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    await routeWizardStateSave(page, async (route) => {
+      await saveGate
+      const delayMs = Number(process.env['KLOPT_E2E_WIZARD_SAVE_DELAY_MS'] ?? 800)
+      if (Number.isFinite(delayMs) && delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+      await route.continue()
+    })
+
+    const next = page.locator('button[data-focus="next"]')
+    const saveRequest = wizardStatePost(page)
+
+    await waitImportWizardHydrated(page)
+    await expect
+      .poll(
+        async () => {
+          const disabled = await next.getAttribute('aria-disabled')
+          const busyAttr = await next.getAttribute('aria-busy')
+          return disabled !== 'true' && busyAttr !== 'true'
+        },
+        { timeout: 60_000 },
+      )
+      .toBe(true)
+    await clickImportWizardNextImmediate(page)
+    await expectImportWizardFooterOpslaan(page)
+    await clickImportWizardNextImmediate(page)
+    await clickImportWizardNextImmediate(page)
+    await clickImportWizardNextImmediate(page)
+    await clickImportWizardNextImmediate(page)
+
+    releaseSave!()
+    await saveRequest
+    await expect
+      .poll(async () => (await next.getAttribute('aria-busy')) === 'true', { timeout: 15_000 })
+      .toBe(true)
+    await clickImportWizardNextImmediate(page)
+    await clickImportWizardNextImmediate(page)
+    await clickImportWizardNextImmediate(page)
+
+    await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible({
+      timeout: 60_000,
+    })
+    await expect(
+      page.getByRole('heading', { name: /Wat we nog moeten oplossen|Niets houdt/ }),
+    ).toHaveCount(0)
+    await expectNoImportWizardConfirm(page)
+  } finally {
+    await standIn.close()
+  }
+})
+
+test('one Volgende click when footer ready advances once (#201)', async ({ page }) => {
+  test.setTimeout(120_000)
+  const standIn = await startNullRateMoneybirdStandIn()
+  try {
+    await anAdministration(page)
+    await connectStandIn(page, standIn)
+    await advanceToProblemen(page)
+
+    await clickNextWhenReady(page)
+
+    await expect(page.getByRole('heading', { name: /Klaar om over te zetten/ })).toBeVisible({
+      timeout: 30_000,
+    })
+    await expect(
+      page.getByRole('heading', { name: /Wat we nog moeten oplossen|Niets houdt/ }),
+    ).toHaveCount(0)
+    await expectNoImportWizardConfirm(page)
   } finally {
     await standIn.close()
   }
