@@ -114,16 +114,21 @@ export function ExactWizardFlow({
   }, [toast])
 
   async function persistStep(next: ImportWizardStep) {
-    setStep(next)
-    await saveImportWizardState({
-      data: {
-        source: 'exact',
-        step: next,
-        administrationId: divisionCode !== null ? String(divisionCode) : null,
-        selectedYears: year !== '' ? [year] : [],
-        idempotencyKey: crypto.randomUUID(),
-      },
-    })
+    setBusy(true)
+    try {
+      setStep(next)
+      await saveImportWizardState({
+        data: {
+          source: 'exact',
+          step: next,
+          administrationId: divisionCode !== null ? String(divisionCode) : null,
+          selectedYears: year !== '' ? [year] : [],
+          idempotencyKey: crypto.randomUUID(),
+        },
+      })
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function goTo(next: ImportWizardStep) {
@@ -289,16 +294,19 @@ export function ExactWizardFlow({
       }
       if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
         const target = event.target
-        if (
-          target instanceof HTMLElement &&
-          (target.tagName === 'INPUT' ||
+        if (target instanceof HTMLElement) {
+          if (
+            target.tagName === 'INPUT' ||
             target.tagName === 'TEXTAREA' ||
             target.tagName === 'SELECT' ||
             target.isContentEditable ||
-            target.tagName === 'BUTTON' ||
-            target.getAttribute('role') === 'radio')
-        ) {
-          return
+            target.getAttribute('role') === 'radio'
+          ) {
+            return
+          }
+          if (target.tagName === 'BUTTON' && target.getAttribute('data-focus') !== 'next') {
+            return
+          }
         }
         event.preventDefault()
         void handleNext()
@@ -519,7 +527,8 @@ export function ExactWizardFlow({
             showBack
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
-            nextDisabled={!canNext || busy}
+            nextDisabled={!canNext}
+            nextSaving={busy}
             nextReason={nextReason}
             onNextBlocked={() => {
               if (nextReason !== null) setToast(nextReason)
@@ -570,7 +579,8 @@ export function ExactWizardFlow({
             showBack
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
-            nextDisabled={!canNext || busy}
+            nextDisabled={!canNext}
+            nextSaving={busy}
             nextReason={nextReason}
             onNextBlocked={() => {
               if (nextReason !== null) setToast(nextReason)

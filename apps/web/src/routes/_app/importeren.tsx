@@ -822,11 +822,14 @@ function ImportWizardPage() {
   })()
 
   const canNextRef = useRef(canNext)
-  canNextRef.current = canNext
   const stepRef = useRef(step)
-  stepRef.current = step
   const sourceRef = useRef(source)
-  sourceRef.current = source
+
+  useEffect(() => {
+    canNextRef.current = canNext
+    stepRef.current = step
+    sourceRef.current = source
+  })
 
   async function executeAdvanceOnce(): Promise<boolean> {
     if (!mayLedgerImport || !canNextRef.current) return false
@@ -920,20 +923,11 @@ function ImportWizardPage() {
     setAdvanceInFlight(true)
     setFooterSaveError(null)
     try {
-      for (;;) {
-        const stepBefore = stepRef.current
-        const ok = await executeAdvanceOnce()
-        if (!ok) {
-          clearAdvanceQueue()
-          return
-        }
-        if (!advanceQueuedRef.current) break
-        if (stepRef.current === stepBefore) {
-          clearAdvanceQueue()
-          break
-        }
-        advanceQueuedRef.current = false
+      if (!(await executeAdvanceOnce())) {
+        clearAdvanceQueue()
+        return
       }
+      clearAdvanceQueue()
     } finally {
       advanceInFlightRef.current = false
       setAdvanceInFlight(false)

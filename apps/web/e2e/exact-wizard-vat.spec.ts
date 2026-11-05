@@ -46,13 +46,23 @@ async function clickNext(page: Page): Promise<void> {
   await expect
     .poll(
       async () => {
-        const aria = await next.getAttribute('aria-disabled')
-        return aria !== 'true' && aria !== ''
+        const disabled = await next.getAttribute('aria-disabled')
+        const busy = await next.getAttribute('aria-busy')
+        return disabled !== 'true' && disabled !== '' && busy !== 'true'
       },
       { timeout: 60_000 },
     )
     .toBe(true)
   await next.click()
+  await expect
+    .poll(
+      async () => {
+        if ((await next.count()) === 0) return true
+        return (await next.getAttribute('aria-busy')) !== 'true'
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true)
 }
 
 async function openExactFromSidebar(page: Page): Promise<void> {
@@ -236,7 +246,11 @@ test('Exact VAT read-only preview: seeded mapping, rail stop, resume, keyboard (
     await expect(page.getByRole('term').filter({ hasText: 'Btw-codes' })).toBeVisible({
       timeout: 60_000,
     })
-    await page.locator('main').click()
+    const next = page.locator('button[data-focus="next"]')
+    await expect
+      .poll(async () => (await next.getAttribute('aria-busy')) !== 'true', { timeout: 60_000 })
+      .toBe(true)
+    await next.focus()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('heading', { name: /Btw-codes uit Exact/ })).toBeVisible({
       timeout: 30_000,
