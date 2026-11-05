@@ -305,17 +305,57 @@ export class SetupRepository {
 
     const layout = planFiscalYear(code, entity?.startMonth ?? 1)
 
-    const [present] = await this.database
+    const existing = await this.database
       .select({ startsOn: fiscalYears.startsOn, endsOn: fiscalYears.endsOn })
       .from(fiscalYears)
       .where(and(eq(fiscalYears.entityId, entityId), eq(fiscalYears.code, code)))
       .limit(1)
 
-    if (present !== undefined) {
+    if (existing[0] !== undefined) {
+      const present = existing[0]
       return { code, startsOn: present.startsOn, endsOn: present.endsOn, created: false }
     }
 
-    await this.writeFiscalYear(entityId, layout)
+    // ON CONFLICT DO NOTHING instead of catching 23505: inside a transaction a
+    // caught unique violation leaves it aborted (25P02), so the re-select would
+    // fail. A concurrent loser waits for the winner, inserts nothing, and then
+    // sees the committed year.
+    const fiscalYearId = uuidv7()
+    const inserted = await this.database
+      .insert(fiscalYears)
+      .values({
+        id: fiscalYearId,
+        entityId,
+        code: layout.code,
+        startsOn: layout.startsOn,
+        endsOn: layout.endsOn,
+      })
+      .onConflictDoNothing({ target: [fiscalYears.entityId, fiscalYears.code] })
+      .returning({ id: fiscalYears.id })
+
+    if (inserted.length === 0) {
+      const [present] = await this.database
+        .select({ startsOn: fiscalYears.startsOn, endsOn: fiscalYears.endsOn })
+        .from(fiscalYears)
+        .where(and(eq(fiscalYears.entityId, entityId), eq(fiscalYears.code, code)))
+        .limit(1)
+
+      if (present === undefined) {
+        throw new Error(`Book year ${code} conflicted but could not be read back`)
+      }
+      return { code, startsOn: present.startsOn, endsOn: present.endsOn, created: false }
+    }
+
+    await this.database.insert(periods).values(
+      layout.periods.map((period) => ({
+        id: uuidv7(),
+        entityId,
+        fiscalYearId,
+        sequence: period.sequence,
+        startsOn: period.startsOn,
+        endsOn: period.endsOn,
+      })),
+    )
     return { code, startsOn: layout.startsOn, endsOn: layout.endsOn, created: true }
   }
 

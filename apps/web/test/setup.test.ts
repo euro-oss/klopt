@@ -417,6 +417,47 @@ describe('opening the next book year', () => {
     expect(years.every((year) => year.periods.length === 12)).toBe(true)
   })
 
+  it('refuses book years outside the sane range', async () => {
+    const { cookie } = await signUp()
+    const entityId = uuidv7()
+    await handleCreateEntity(
+      await resolveSetupContext({ database, request: request({ cookie }) }),
+      entityId,
+      body(),
+    )
+    const context = await resolveRequestContext({ database, request: request({ cookie }) })
+    await expect(handleCreateFiscalYear(context, { code: '1925' })).rejects.toThrow()
+    await expect(handleCreateFiscalYear(context, { code: '1959' })).rejects.toThrow()
+    await expect(handleCreateFiscalYear(context, { code: '2205' })).rejects.toThrow()
+  })
+
+  it('creates one prior book year with twelve periods when asked twice', async () => {
+    const { cookie } = await signUp()
+    const entityId = uuidv7()
+    await handleCreateEntity(
+      await resolveSetupContext({ database, request: request({ cookie }) }),
+      entityId,
+      body(),
+    )
+    const context = await resolveRequestContext({ database, request: request({ cookie }) })
+
+    const [first, second] = await Promise.all([
+      handleCreateFiscalYear(context, { code: '2025' }),
+      handleCreateFiscalYear(context, { code: '2025' }),
+    ])
+    expect([first.status, second.status].sort()).toEqual([200, 201])
+
+    const listed = await handleListFiscalYears(context)
+    const year2025 = listed.body.fiscalYears.filter((year) => year.code === '2025')
+    expect(year2025).toHaveLength(1)
+    expect(year2025[0]?.periods).toHaveLength(12)
+
+    const entries = await database.execute<{ count: string }>(
+      `select count(*)::text as count from klopt.journal_entries where entity_id = '${entityId}'`,
+    )
+    expect(entries[0]?.count).toBe('0')
+  })
+
   it('follows a non-calendar book year (spec 6.4)', async () => {
     const { cookie } = await signUp()
     const entityId = uuidv7()
