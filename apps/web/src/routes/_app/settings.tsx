@@ -246,7 +246,7 @@ function Settings() {
             </span>
             <Switch
               checked={advanced}
-              disabled={advancedSaving}
+              disabled={!hydrated || advancedSaving}
               aria-busy={advancedSaving || undefined}
               aria-label={t('settings.accountingDetails')}
               onCheckedChange={(checked) => {
