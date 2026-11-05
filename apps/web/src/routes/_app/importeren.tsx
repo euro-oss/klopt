@@ -192,6 +192,7 @@ function ImportWizardPage() {
   const handleNextRef = useRef<() => void>(() => {})
   const advanceQueuedRef = useRef(false)
   const advanceInFlightRef = useRef(false)
+  const advanceAfterFlightRef = useRef(false)
 
   const saved = wizard.ok ? (wizard.data.state as WizardStateRow | null) : null
   const conn = connection.ok ? connection.data.connection : null
@@ -492,10 +493,16 @@ function ImportWizardPage() {
 
   function clearAdvanceQueue() {
     advanceQueuedRef.current = false
+    advanceAfterFlightRef.current = false
   }
 
   function queueAdvance() {
     advanceQueuedRef.current = true
+    // Clicks while the footer looks idle (no step save) but goTo is still running
+    // need one follow-up step after this flight — not coalesced save double-clicks.
+    if (advanceInFlightRef.current && !busy) {
+      advanceAfterFlightRef.current = true
+    }
   }
 
   function footerSaveErrorFromDetail(detail: string | null | undefined): string {
@@ -926,6 +933,14 @@ function ImportWizardPage() {
       if (!(await executeAdvanceOnce())) {
         clearAdvanceQueue()
         return
+      }
+      if (advanceAfterFlightRef.current && advanceQueuedRef.current) {
+        advanceAfterFlightRef.current = false
+        advanceQueuedRef.current = false
+        if (!(await executeAdvanceOnce())) {
+          clearAdvanceQueue()
+          return
+        }
       }
       clearAdvanceQueue()
     } finally {

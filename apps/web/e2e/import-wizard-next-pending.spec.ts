@@ -4,7 +4,11 @@ import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, signIn, uniqueEmail } from './support'
-import { isWizardStateSave, routeWizardStateSave } from './support/import-wizard-save-route'
+import {
+  installWizardStateSaveDelay,
+  isWizardStateSave,
+  routeWizardStateSave,
+} from './support/import-wizard-save-route'
 import { withPngSourceChunk } from './support/png-source-chunk.js'
 import { startNullRateMoneybirdStandIn, type MoneybirdStandIn } from './support/moneybird-stand-in'
 
@@ -217,6 +221,7 @@ test('Enter during pending wizard save advances once (#201)', async ({ page }) =
   test.setTimeout(120_000)
   const standIn = await startNullRateMoneybirdStandIn()
   try {
+    await installWizardStateSaveDelay(page)
     await anAdministration(page)
     await connectStandIn(page, standIn)
     await advanceToProblemen(page)

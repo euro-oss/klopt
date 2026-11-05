@@ -12,6 +12,7 @@ import {
   type MoneybirdStandIn,
 } from './support/moneybird-stand-in'
 import { installE2eRouteDelays } from './support/route-delays'
+import { installWizardStateSaveDelay } from './support/import-wizard-save-route'
 
 const IMPORT_WIZARD_ADVANCED_CHECKBOX = /Boekhouddetails|Accounting details/i
 
@@ -628,6 +629,7 @@ test('390 stopped partway shows booked plural and one retry path in light and da
   test.setTimeout(180_000)
   const standIn = await startNullRateMoneybirdStandIn()
   try {
+    await installWizardStateSaveDelay(page)
     await anAdministration(page)
     await page.setViewportSize({ width: 390, height: 844 })
     await connectStandIn(page, standIn)
@@ -672,6 +674,7 @@ test('390 stopped partial with one booked document shows singular bookedCount_on
   test.setTimeout(urlDelayMs > 0 ? 360_000 : 180_000)
   const standIn = await startOneDocumentMoneybirdStandIn()
   try {
+    await installWizardStateSaveDelay(page)
     await anAdministration(page)
     await page.setViewportSize({ width: 390, height: 844 })
     await connectStandIn(page, standIn)

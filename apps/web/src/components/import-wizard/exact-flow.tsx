@@ -529,6 +529,7 @@ export function ExactWizardFlow({
             nextLabel={t('wizard.next')}
             nextDisabled={!canNext}
             nextSaving={busy}
+            nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {
               if (nextReason !== null) setToast(nextReason)
@@ -581,6 +582,7 @@ export function ExactWizardFlow({
             nextLabel={t('wizard.next')}
             nextDisabled={!canNext}
             nextSaving={busy}
+            nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {
               if (nextReason !== null) setToast(nextReason)

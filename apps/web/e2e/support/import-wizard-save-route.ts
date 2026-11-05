@@ -22,3 +22,17 @@ export async function routeWizardStateSave(
     await handler(route)
   })
 }
+
+/** Optional per-save delay for flake gates (`KLOPT_E2E_WIZARD_SAVE_DELAY_MS`). */
+export async function installWizardStateSaveDelay(page: Page): Promise<void> {
+  const delayMs = Number(process.env['KLOPT_E2E_WIZARD_SAVE_DELAY_MS'] ?? 0)
+  if (!Number.isFinite(delayMs) || delayMs <= 0) return
+  await page.route('**/*', async (route) => {
+    if (!isWizardStateSave(route.request())) {
+      await route.continue()
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+    await route.continue()
+  })
+}
