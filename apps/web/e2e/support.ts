@@ -88,29 +88,45 @@ export function advancedModeSwitch(page: Page): Locator {
   return page.getByRole('switch', { name: ADVANCED_MODE_SWITCH_NAME })
 }
 
+const scriptDelayPages = new WeakSet<Page>()
+
+/** Delay every external script response (e.g. hold hydration back in e2e). */
+export async function delayClientScripts(page: Page, ms: number): Promise<void> {
+  if (scriptDelayPages.has(page)) return
+  scriptDelayPages.add(page)
+  await page.route('**/*', async (route) => {
+    if (route.request().resourceType() === 'script') {
+      await new Promise((resolve) => setTimeout(resolve, ms))
+    }
+    await route.continue()
+  })
+}
+
+async function ensureConfiguredScriptDelay(page: Page): Promise<void> {
+  const ms = Number(process.env['KLOPT_E2E_SCRIPT_DELAY_MS'] ?? 0)
+  if (ms > 0) {
+    await delayClientScripts(page, ms)
+  }
+}
+
 /**
  * Flip boekhouddetails (Geavanceerd) to the given value from Settings.
  *
- * A click can land before the page has hydrated (the SSR switch ignores it) or
- * while a save is still in flight, so the click is retried until the switch
- * shows the wanted value and is no longer saving. Returning only once the save
- * is done means a later reload or fresh context sees the stored choice rather
- * than the role default.
+ * Waits until the switch is enabled (hydrated and not saving), clicks at most
+ * once, then waits until the wanted value is saved.
  */
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
+  await ensureConfiguredScriptDelay(page)
   await page.goto('/settings')
   const toggle = advancedModeSwitch(page)
   await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
-  await expect(async () => {
-    await expect(toggle).toBeEnabled({ timeout: 5_000 })
-    if ((await toggle.getAttribute('aria-checked')) !== want) {
-      await toggle.click()
-    }
-    await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 3_000 })
-    await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 10_000 })
-    await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 1_000 })
-  }).toPass({ timeout: 45_000 })
+  await expect(toggle).toBeEnabled({ timeout: 30_000 })
+  if ((await toggle.getAttribute('aria-checked')) !== want) {
+    await toggle.click()
+  }
+  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 10_000 })
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 10_000 })
 }
 
 /** Turn boekhouddetails on from Settings (owner default is off). */
