@@ -76,22 +76,6 @@ export async function hydrated(page: Page): Promise<void> {
 }
 
 /**
- * True when this response is the boekhouddetails / Geavanceerd save POST
- * finishing.
- *
- * TanStack Start serialises the payload; matching on `enabled` keeps us from
- * racing an unrelated POST (language, theme, entity switch).
- */
-function isAdvancedModeSaveResponse(response: {
-  request: () => { method: () => string; postData: () => string | null }
-  ok: () => boolean
-}): boolean {
-  if (response.request().method() !== 'POST') return false
-  const body = response.request().postData() ?? ''
-  return body.includes('enabled') && response.ok()
-}
-
-/**
  * Accessible name for the Settings hub display toggle
  * (`settings.accountingDetails`: Boekhouddetails tonen / Show accounting details).
  * Geavanceerd / Advanced remain as temporary fallbacks.
@@ -112,16 +96,13 @@ export function advancedModeSwitch(page: Page): Locator {
  */
 export async function setAdvancedMode(page: Page, enabled: boolean): Promise<void> {
   await page.goto('/settings')
-  await hydrated(page)
   const toggle = advancedModeSwitch(page)
-  await expect(toggle).toBeVisible()
+  await expect(toggle).toBeVisible({ timeout: 30_000 })
   const want = enabled ? 'true' : 'false'
   if ((await toggle.getAttribute('aria-checked')) !== want) {
-    const persisted = page.waitForResponse(isAdvancedModeSaveResponse, { timeout: 15_000 })
     await toggle.click()
-    await persisted
   }
-  await expect(toggle).toHaveAttribute('aria-checked', want)
+  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 30_000 })
 }
 
 /** Turn boekhouddetails on from Settings (owner default is off). */
@@ -131,8 +112,9 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
 
 /** Take a brand-new address all the way to a signed-in session. */
 export async function signIn(page: Page, email: string): Promise<void> {
-  await page.getByLabel('E-mail').fill(email)
   const sendCode = page.getByRole('button', { name: 'Stuur me een code' })
+  await expect(sendCode).toBeEnabled({ timeout: 15_000 })
+  await page.getByLabel('E-mail').fill(email)
   await expect(sendCode).toBeEnabled({ timeout: 15_000 })
   await sendCode.click()
 

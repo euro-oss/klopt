@@ -18,6 +18,17 @@ the ADR is where the reasoning is.
 
 ## Unreleased
 
+### Book years: dates outside an open year are blocked (#200)
+
+A sales or purchase document dated outside every open book year can't be
+saved, and the date field says so. Boekjaren offers to open the year just before
+the oldest or just after the latest open year, as "Boekjaar {year} openen";
+opening a year creates its twelve periods only; no opening balance is
+posted. `?openYear=`
+prefills that confirm only for one of those two years. Opening a book year
+outside 1960–2100 is refused with the new violation
+`invalid_date.fiscal_year_out_of_range`.
+
 ### Bank: reversing a match releases the line
 
 Reversing the journal entry for a matched bank line now runs in one

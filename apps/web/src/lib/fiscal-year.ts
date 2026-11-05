@@ -14,6 +14,13 @@
  * thing that should be tested by naming dates rather than by rendering a page.
  */
 
+import {
+  earliestOpenFiscalYear,
+  isFiscalYearCodeInRange,
+  priorFiscalYearCodeToOpen,
+  type FiscalYearGateInput,
+} from '@klopt/core/setup/fiscal-year'
+
 /** Where the chosen year is remembered. Read on the server, set from the shell. */
 export const REPORT_YEAR_COOKIE = 'klopt_report_year'
 
@@ -190,7 +197,7 @@ export function nextFiscalYear(years: readonly FiscalYearOption[]): FiscalYearOp
   if (latest === undefined) return null
 
   const code = String(Number(latest.code) + 1)
-  if (!isFiscalYearCode(code)) return null
+  if (!isFiscalYearCodeInRange(code)) return null
 
   return { ...plannedFiscalYear(code, startingMonth(latest)), status: 'open' }
 }
@@ -249,4 +256,81 @@ export function dayAfter(date: string): string {
 export function hasYearAfter(years: readonly FiscalYearOption[], year: FiscalYearOption): boolean {
   const opening = dayAfter(year.endsOn)
   return years.some((other) => other.startsOn <= opening && opening <= other.endsOn)
+}
+
+/**
+ * Book-year labels before `year` that exist on the administration and are not
+ * closed yet, oldest first. Used for the muted row on Boekjaren (#200 / #209).
+ */
+export function earlierUnclosedBookYearCodes(
+  years: readonly FiscalYearOption[],
+  year: FiscalYearOption,
+): readonly string[] {
+  const yearNum = Number(year.code)
+  if (!Number.isFinite(yearNum)) return []
+
+  return years
+    .filter((candidate) => {
+      const candidateNum = Number(candidate.code)
+      return (
+        Number.isFinite(candidateNum) && candidateNum < yearNum && candidate.status !== 'closed'
+      )
+    })
+    .sort((left, right) => left.code.localeCompare(right.code))
+    .map((candidate) => candidate.code)
+}
+
+/** Dutch/English list: `2024 en 2025` or `2023, 2024 en 2025`. */
+export function formatBookYearCodeList(codes: readonly string[], language: 'nl' | 'en'): string {
+  if (codes.length <= 1) return codes[0] ?? ''
+  const last = codes.at(-1)!
+  const conj = language === 'nl' ? ' en ' : ' and '
+  if (codes.length === 2) return `${codes[0]}${conj}${last}`
+  return `${codes.slice(0, -1).join(', ')}${conj}${last}`
+}
+
+/** The two book-year labels Boekjaren may offer to open: prior and next. */
+export function offeredFiscalYearCodesToOpen(years: readonly FiscalYearGateInput[]): {
+  readonly prior: string | null
+  readonly next: string | null
+} {
+  const earliest = earliestOpenFiscalYear(years)
+  const priorRaw = earliest === undefined ? null : priorFiscalYearCodeToOpen(earliest.code)
+  const prior = priorRaw !== null && !years.some((year) => year.code === priorRaw) ? priorRaw : null
+  const next = nextFiscalYear(years)?.code ?? null
+  return { prior, next }
+}
+
+/** Whether this label is one of the two offered opens and inside 1960–2100. */
+export function isOfferedFiscalYearToOpen(
+  years: readonly FiscalYearGateInput[],
+  code: string,
+): boolean {
+  if (!isFiscalYearCodeInRange(code)) return false
+  const { prior, next } = offeredFiscalYearCodesToOpen(years)
+  return code === prior || code === next
+}
+
+export type BookYearOpenSearch = {
+  readonly openYear?: string
+  readonly returnTo?: string
+  readonly focus?: 'confirm'
+}
+
+/** Drop ?openYear= and ?focus= when the year is not one of the two offered opens. */
+export function sanitizeBookYearOpenSearch(
+  years: readonly FiscalYearGateInput[],
+  search: BookYearOpenSearch,
+): BookYearOpenSearch {
+  const base =
+    search.returnTo === undefined
+      ? {}
+      : ({ returnTo: search.returnTo } satisfies BookYearOpenSearch)
+  if (search.openYear === undefined) return base
+  if (!isOfferedFiscalYearToOpen(years, search.openYear)) return base
+  return {
+    ...base,
+    openYear: search.openYear,
+    ...(search.focus === 'confirm' ? { focus: 'confirm' as const } : {}),
+  }
 }
