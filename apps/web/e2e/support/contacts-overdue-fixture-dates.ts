@@ -3,6 +3,9 @@ import { expect } from '@playwright/test'
 import { addCalendarDays } from '../../src/lib/amsterdam-date.js'
 import { chooseOption, hydrated } from '../support.js'
 
+/** Amsterdam/UTC midnight boundary exercised by `playwright.contacts-midnight.config.ts` (#121). */
+export const CONTACTS_OVERDUE_MIDNIGHT_NOW_ISO = '2026-11-05T23:30:00.000Z'
+
 /** Calendar dates exercised by `e2e/scripts/contacts-calendar-proof.sh`. */
 export const CONTACTS_OVERDUE_CALENDAR_PROOF_DATES = [
   '2026-11-04',
@@ -106,6 +109,12 @@ export function wallClockInstantForIsoDate(isoDate: string): Date {
 /** Align the browser clock with the server’s fixed `KLOPT_E2E_TODAY_ISO` (calendar proof only). */
 export async function installWallClock(page: Page, isoDate: string): Promise<void> {
   const instant = wallClockInstantForIsoDate(isoDate)
+  await page.clock.install({ time: instant })
+  await page.clock.setFixedTime(instant)
+}
+
+/** Pin Playwright’s clock to an exact instant (midnight-boundary regression). */
+export async function installBrowserClockAtInstant(page: Page, instant: Date): Promise<void> {
   await page.clock.install({ time: instant })
   await page.clock.setFixedTime(instant)
 }

@@ -9,6 +9,7 @@ import {
   supportsWorm,
   versionOf,
 } from '@klopt/core'
+import { todayInAmsterdam } from '../../lib/amsterdam-date.js'
 import {
   applyRetention,
   withRetention,
@@ -53,7 +54,7 @@ function requirePermission(context: RequestContext, permission: string): void {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayInAmsterdam()
 }
 
 function serialise(row: RetentionDocumentRow, asOf: string, entityLegalHold: boolean) {

@@ -8,6 +8,7 @@
  * forbidding the greeting.
  */
 
+import { todayInAmsterdam } from './amsterdam-date'
 import { dayPartAt, type DayPart } from './dashboard'
 import { parseCalendarIsoDate } from './calendar-iso-date'
 
@@ -26,8 +27,7 @@ const e2eTodayAtProcessStart = readE2eTodayAtProcessStart()
 /** Local calendar date as `YYYY-MM-DD`. */
 export function localTodayIso(): string {
   if (e2eTodayAtProcessStart !== null) return e2eTodayAtProcessStart
-  const now = new Date()
-  return `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  return todayInAmsterdam()
 }
 
 /** Morning / afternoon / evening from the local hour. */
