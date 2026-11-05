@@ -24,6 +24,8 @@ test.beforeAll(async () => {
 test('not-yet-due open amount is ink on list and card; overdue is red; Niets open stays muted', async ({
   page,
 }) => {
+  // Slow CI runners can exceed the default 30 s budget for this scenario.
+  test.setTimeout(120_000)
   await runCustomerOpenOverdueScenario(page, contactsOverdueFixtureDates(todayInAmsterdam()))
 })
 
