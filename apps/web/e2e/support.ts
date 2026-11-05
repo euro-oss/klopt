@@ -90,12 +90,17 @@ export function advancedModeSwitch(page: Page): Locator {
 
 const scriptDelayPages = new WeakSet<Page>()
 
-/** Delay every external script response (e.g. hold hydration back in e2e). */
+/**
+ * Delay the first client script on the page by `ms` (simulates a slow bundle).
+ * Later scripts are not delayed so hydration can finish.
+ */
 export async function delayClientScripts(page: Page, ms: number): Promise<void> {
   if (scriptDelayPages.has(page)) return
   scriptDelayPages.add(page)
+  let delayed = false
   await page.route('**/*', async (route) => {
-    if (route.request().resourceType() === 'script') {
+    if (route.request().resourceType() === 'script' && !delayed) {
+      delayed = true
       await new Promise((resolve) => setTimeout(resolve, ms))
     }
     await route.continue()
