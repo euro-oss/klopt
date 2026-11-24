@@ -3,10 +3,10 @@ import type { Request } from '@playwright/test'
 const PREVIEW_EXACT_HANDLER = 'previewExactImport_createServerFn_handler'
 
 function exportFromServerFnUrl(url: string): string | null {
-  const match = url.match(/\/_serverFn\/([^?]+)/)
-  if (match === null) return null
+  const encoded = url.match(/\/_serverFn\/([^?]+)/)?.[1]
+  if (encoded === undefined) return null
   try {
-    const meta = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8')) as {
+    const meta = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8')) as {
       export?: string
     }
     return meta.export ?? null
