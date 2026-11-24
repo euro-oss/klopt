@@ -56,7 +56,8 @@ jobs:
 
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Healthy verify is ~4.5 min; 20 min caps hung runs without cancelling slow runners.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
