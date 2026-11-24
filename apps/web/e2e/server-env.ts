@@ -36,6 +36,10 @@ export function e2eWebServerEnv(
   environment: Record<string, string | undefined> = process.env,
 ): Record<string, string> {
   return {
+    // The built server bundle is production, but Nitro defaults NODE_ENV to
+    // production at runtime. `resolveBaseUrl()` refuses http:// with production
+    // (session cookie Secure audit), which breaks sign-in on localhost:3399.
+    NODE_ENV: 'development',
     DATABASE_URL:
       environment['TEST_DATABASE_URL'] ??
       environment['DATABASE_URL'] ??
