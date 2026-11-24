@@ -47,7 +47,12 @@ export { OUTBOX }
 
 const pointingAtExternalServer = process.env['KLOPT_E2E_BASE_URL'] !== undefined
 
-/** CI may point at a built server (`node .output/server/index.mjs`); default stays vite dev. */
+/**
+ * CI runs the four main e2e shards on **vite dev** for now. Pointing the matrix
+ * at the built server (`node .output/server/index.mjs`) needs self-signed HTTPS
+ * on localhost and Playwright `ignoreHTTPSErrors` (CI-only); that work is a
+ * follow-up under #228 (see #230 discussion).
+ */
 const e2eViteCommand = process.env['KLOPT_E2E_VITE_COMMAND'] ?? 'vite dev --port 3399'
 
 export default defineConfig({

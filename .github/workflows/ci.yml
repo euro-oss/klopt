@@ -286,14 +286,12 @@ jobs:
         run: pnpm --filter @klopt/web exec playwright install --with-deps chromium
 
       # Main suite only (midnight + fiscal-year run in their own jobs). Shard 1
-      # still runs prod-pdf-check. Built server on 3399; midnight/fiscal keep
-      # vite dev (fake-server-clock refuses NODE_ENV=production).
+      # still runs prod-pdf-check. All matrix jobs use vite dev (playwright.config
+      # default); built-server matrix e2e is tracked in #228.
       - name: Playwright main suite (shard ${{ matrix.shard }}/4)
         working-directory: apps/web
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
-          PORT: '3399'
-          KLOPT_E2E_VITE_COMMAND: node .output/server/index.mjs
         run: |
           set -euo pipefail
           if [ "${{ matrix.shard }}" = "1" ]; then
