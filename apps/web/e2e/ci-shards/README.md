@@ -10,4 +10,5 @@ Lists were built from merged main CI run
 (2026-11-24): per-spec durations from shard job logs, plus 8 s per-file overhead
 and `scripts/prod-pdf-check.ts` on shard 1 only. Regenerate with a bin-packing
 script when the suite grows materially; every main-suite spec must appear in
-exactly one `shard-*.txt`.
+exactly one `shard-*.txt`. `test/unit/e2e-ci-shards.test.ts` (verify job)
+fails on any main-suite spec that is missing, listed twice, or not a spec.
