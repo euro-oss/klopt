@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createEntityBody, listVatPeriodsQuery } from '../../src/api/schemas.js'
-import { calendarYearStartInAmsterdam, todayInAmsterdam } from '../../src/lib/amsterdam-date.js'
+import {
+  calendarYearInAmsterdam,
+  calendarYearStartInAmsterdam,
+  todayInAmsterdam,
+} from '../../src/lib/amsterdam-date.js'
 
 /**
  * 2027-01-01 00:30 Amsterdam (CET) while UTC is still 2026-12-31 (#217).
@@ -58,6 +62,22 @@ describe('server default year from Amsterdam date (#217)', () => {
     it('keeps an explicit year', () => {
       vi.setSystemTime(NEW_YEAR_AMSTERDAM_MIDNIGHT)
       expect(listVatPeriodsQuery.parse({ year: 2019 }).year).toBe(2019)
+    })
+  })
+
+  describe('calendarYearInAmsterdam', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    it('matches todayInAmsterdam at the New Year boundary', () => {
+      vi.setSystemTime(NEW_YEAR_AMSTERDAM_MIDNIGHT)
+      expect(calendarYearInAmsterdam()).toBe(2027)
+    })
+
+    it('matches todayInAmsterdam late on 31 December', () => {
+      vi.setSystemTime(OLD_YEAR_AMSTERDAM_EVE)
+      expect(calendarYearInAmsterdam()).toBe(2026)
     })
   })
 
