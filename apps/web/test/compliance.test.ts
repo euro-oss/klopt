@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -154,7 +153,6 @@ async function postTradingYear(token: string) {
 }
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 }, 60_000)
 

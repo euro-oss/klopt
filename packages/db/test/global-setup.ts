@@ -7,7 +7,8 @@ const databaseUrl =
 
 /**
  * Runs once before any db/web worker starts so parallel `beforeAll` hooks do
- * not race on first migrate. Per-file hooks call `assertTestMigrationsApplied`
+ * not race on first migrate. DB package tests that use `fixture.ts` still call
+ * `assertTestMigrationsApplied`; web/db heavy suites rely on this setup only.
  * instead, which verifies checksums without the advisory lock.
  */
 export default async function globalSetup(): Promise<void> {

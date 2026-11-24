@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { assertTestMigrationsApplied } from './support/ensure-test-migrations.js'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -47,7 +46,6 @@ const NEW_CODES = [
 let database: Database
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 })
 

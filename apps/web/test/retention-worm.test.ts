@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { uuidv7 } from '@klopt/core'
 import { createS3DocumentStore } from '@klopt/adapters'
 import { startFakeS3, type FakeS3 } from '@klopt/adapters/testing'
@@ -146,8 +145,6 @@ beforeAll(async () => {
       )
     }
   }
-
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

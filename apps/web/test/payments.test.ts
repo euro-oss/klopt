@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import {
@@ -111,7 +110,6 @@ async function withPayment(cookie: string, batchId: string, overrides = {}) {
 }
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

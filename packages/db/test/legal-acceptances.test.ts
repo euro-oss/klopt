@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { assertTestMigrationsApplied } from './support/ensure-test-migrations.js'
 import { uuidv7 } from '@klopt/core'
 import { closeDatabase, createDatabase, type Database } from '../src/index.js'
 import { LegalAcceptancesRepository } from '../src/repositories/legal-acceptances.js'
@@ -17,7 +16,6 @@ const DATABASE_URL =
 let database: Database
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
 })
 

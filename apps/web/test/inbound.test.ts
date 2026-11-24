@@ -1,5 +1,4 @@
 import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -167,7 +166,6 @@ async function aDropDirectory(files: Record<string, string>): Promise<string> {
 }
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   directory = await mkdtemp(join(tmpdir(), 'klopt-inbound-'))

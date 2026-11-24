@@ -1,5 +1,4 @@
 import { mkdtempSync } from 'node:fs'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -118,7 +117,6 @@ async function choose(token: string, administrationId = '123456') {
 
 beforeAll(async () => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
-  await assertTestMigrationsApplied(DATABASE_URL)
   setDatabaseForTest(database)
 })
 

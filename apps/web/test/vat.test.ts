@@ -1,5 +1,4 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { uuidv7, type VatNumberCheck, type VatNumberValidator } from '@klopt/core'
 import {
   closeDatabase,
@@ -184,7 +183,6 @@ function box(body: Awaited<ReturnType<typeof handleGetVatReturn>>['body'], id: s
 }
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 60_000)

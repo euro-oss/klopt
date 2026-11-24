@@ -6,7 +6,6 @@
  */
 
 import { existsSync } from 'node:fs'
-import { assertTestMigrationsApplied } from './support/ensure-test-migrations.js'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -69,7 +68,6 @@ describe('demo seeder', () => {
   let database: Database
 
   beforeAll(async () => {
-    await assertTestMigrationsApplied(TEST_DATABASE_URL)
     database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 4 })
   }, 120_000)
 

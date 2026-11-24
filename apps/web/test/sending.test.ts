@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import { closeDatabase, createDatabase, issueToken, type Database } from '@klopt/db'
@@ -104,7 +103,6 @@ async function anIssuedInvoice(contactNumber: string, issueDate = '2026-03-15'):
 }
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   setEInvoiceTransportForTest(createEmailEInvoiceTransport({ email: mailbox }))

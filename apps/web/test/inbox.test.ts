@@ -1,5 +1,4 @@
 import { mkdtempSync, rmSync } from 'node:fs'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -135,7 +134,6 @@ const receive = (
   )
 
 beforeAll(async () => {
-  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   documentDirectory = mkdtempSync(join(tmpdir(), 'klopt-documents-'))

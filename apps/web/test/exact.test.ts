@@ -1,5 +1,4 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import {
   closeDatabase,
   createDatabase,
@@ -110,7 +109,6 @@ async function connect(token: string, exact: FakeExact) {
 
 beforeAll(async () => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
-  await assertTestMigrationsApplied(DATABASE_URL)
   setDatabaseForTest(database)
 })
 
