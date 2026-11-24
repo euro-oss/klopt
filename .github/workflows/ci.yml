@@ -205,6 +205,11 @@ jobs:
   # design/docs skip the heavy work but keep that gate green.
   e2e-changes:
     runs-on: ubuntu-latest
+    # paths-filter lists PR files via the API; private forks' default token
+    # omits pull-requests: read unless declared here.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       run: ${{ steps.set.outputs.run }}
     steps:
