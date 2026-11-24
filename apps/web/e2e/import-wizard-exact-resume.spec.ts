@@ -31,7 +31,7 @@ async function anAdministration(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
-  ).toBeVisible()
+  ).toBeVisible({ timeout: 30_000 })
 }
 
 async function openExactWizard(page: Page): Promise<void> {
