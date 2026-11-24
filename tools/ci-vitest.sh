@@ -14,7 +14,7 @@ dump_pg_diagnostics() {
     return 0
   fi
   echo "--- Postgres diagnostics ($label) ---"
-  PGPASSWORD=klopt psql -h localhost -U klopt -d klopt -v ON_ERROR_STOP=0 <<'SQL' || true
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=0 <<'SQL' || true
 \echo '::group::pg_stat_activity (all states)'
 SELECT pid,
        usename,

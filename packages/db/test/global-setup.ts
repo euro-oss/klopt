@@ -1,5 +1,8 @@
 import { runMigrations } from '../src/migrate.js'
-import { installAuditReleaseMatchBlockTrigger } from './support/audit-release-match-block-ddl.js'
+import {
+  installAuditReleaseMatchBlockTrigger,
+  teardownAuditReleaseMatchBlockTrigger,
+} from './support/audit-release-match-block-ddl.js'
 
 const databaseUrl =
   process.env['TEST_DATABASE_URL'] ??
@@ -11,9 +14,11 @@ const databaseUrl =
  * not race on first migrate. Heavy web/db suites rely on this setup only.
  *
  * Also installs the GUC-gated `bank.releaseMatch` audit block trigger used by
- * `matching.test.ts` (no per-test DDL on klopt.audit_log during the suite).
+ * `matching.test.ts` (no per-test DDL on klopt.audit_log during the suite),
+ * and returns the teardown that drops it again.
  */
-export default async function globalSetup(): Promise<void> {
+export default async function globalSetup(): Promise<() => Promise<void>> {
   await runMigrations(databaseUrl)
   await installAuditReleaseMatchBlockTrigger(databaseUrl)
+  return () => teardownAuditReleaseMatchBlockTrigger(databaseUrl)
 }

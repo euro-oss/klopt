@@ -27,7 +27,7 @@ DROP FUNCTION IF EXISTS klopt.test_block_release_match_audit();
 `
 
 export async function installAuditReleaseMatchBlockTrigger(databaseUrl: string): Promise<void> {
-  const sql = postgres(databaseUrl, { max: 1, connect_timeout: 10 })
+  const sql = postgres(databaseUrl, { max: 1, connect_timeout: 10, onnotice: () => undefined })
   try {
     await sql.unsafe(INSTALL_SQL)
   } finally {
@@ -36,7 +36,7 @@ export async function installAuditReleaseMatchBlockTrigger(databaseUrl: string):
 }
 
 export async function teardownAuditReleaseMatchBlockTrigger(databaseUrl: string): Promise<void> {
-  const sql = postgres(databaseUrl, { max: 1, connect_timeout: 10 })
+  const sql = postgres(databaseUrl, { max: 1, connect_timeout: 10, onnotice: () => undefined })
   try {
     await sql.unsafe(TEARDOWN_SQL)
   } finally {
