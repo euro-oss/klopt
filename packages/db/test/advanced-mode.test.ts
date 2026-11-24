@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { assertTestMigrationsApplied } from './support/ensure-test-migrations.js'
 import { eq } from 'drizzle-orm'
-import { closeDatabase, createDatabase, runMigrations, type Database } from '../src/index.js'
+import { closeDatabase, createDatabase, type Database } from '../src/index.js'
 import { advancedModeFor, setAdvancedModeFor } from '../src/repositories/advanced-mode.js'
 import { users } from '../src/schema/auth.js'
 
@@ -29,7 +30,7 @@ async function insertUser(id: string, email: string): Promise<void> {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 })
 

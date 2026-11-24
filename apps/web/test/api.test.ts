@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { uuidv7 } from '@klopt/core'
-import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
+import { closeDatabase, createDatabase, issueToken, type Database } from '@klopt/db'
 import { seedEntity, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { ApiError } from '../src/api/errors.js'
@@ -65,7 +66,7 @@ const entryBody = (overrides: Record<string, unknown> = {}) =>
   })
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   entityId = await seedEntity(database)
 

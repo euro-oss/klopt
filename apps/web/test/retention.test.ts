@@ -1,16 +1,10 @@
 import { mkdtemp, rm } from 'node:fs/promises'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
-import {
-  closeDatabase,
-  createDatabase,
-  issueToken,
-  runMigrations,
-  withInbox,
-  type Database,
-} from '@klopt/db'
+import { closeDatabase, createDatabase, issueToken, withInbox, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { createFilesystemDocumentStore } from '@klopt/adapters'
 import { resolveRequestContext } from '../src/api/auth.js'
@@ -219,7 +213,7 @@ const retention = async (token: string, asOf?: string) =>
   ).body
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

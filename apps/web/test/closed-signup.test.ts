@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { challengeFor, uuidv7 } from '@klopt/core'
 import {
@@ -6,7 +7,6 @@ import {
   createAuth,
   createDatabase,
   membershipsFor,
-  runMigrations,
   setActiveEntity,
   withOAuth,
   type Auth,
@@ -160,7 +160,7 @@ function clearClosedEnv(): void {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   setEmailTransportForTest(invitations)

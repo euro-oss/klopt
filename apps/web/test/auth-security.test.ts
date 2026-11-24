@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   RATE_LIMIT,
@@ -6,7 +7,6 @@ import {
   closeDatabase,
   createAuth,
   createDatabase,
-  runMigrations,
   type Auth,
   type Database,
 } from '@klopt/db'
@@ -55,7 +55,7 @@ async function auditFor(email: string) {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 }, 60_000)
 

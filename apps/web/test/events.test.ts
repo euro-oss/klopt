@@ -1,17 +1,11 @@
 import { readFileSync, readdirSync } from 'node:fs'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { EVENT_TYPES, uuidv7 } from '@klopt/core'
-import {
-  closeDatabase,
-  createDatabase,
-  issueToken,
-  runMigrations,
-  withSales,
-  type Database,
-} from '@klopt/db'
+import { closeDatabase, createDatabase, issueToken, withSales, type Database } from '@klopt/db'
 import { cleanupSeededBackgroundWork, seedEntity, seedSalesConfiguration } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -91,7 +85,7 @@ async function anIssuedInvoice(): Promise<string> {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

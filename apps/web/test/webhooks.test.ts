@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7, verifyWebhook } from '@klopt/core'
 import {
@@ -6,7 +7,6 @@ import {
   createDatabase,
   deliverWebhooks,
   issueToken,
-  runMigrations,
   withSales,
   type Database,
 } from '@klopt/db'
@@ -116,7 +116,7 @@ beforeAll(async () => {
   // Delivery and registration tests use synthetic hosts; the real check is
   // covered by the private-URL case below and by packages/core outbound tests.
   process.env['KLOPT_ALLOW_PRIVATE_OUTBOUND'] = '1'
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

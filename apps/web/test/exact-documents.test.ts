@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { randomBytes } from 'node:crypto'
 import {
   closeDatabase,
   createDatabase,
   runExactDocumentBatch,
-  runMigrations,
   withExactDocuments,
   type Database,
   type DocumentRunRow,
@@ -123,7 +123,7 @@ async function newRun(): Promise<DocumentRunRow> {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 120_000)

@@ -7,9 +7,8 @@ const databaseUrl =
 
 /**
  * Runs once before any db/web worker starts so parallel `beforeAll` hooks do
- * not race on first migrate. Per-file `runMigrations` still runs, but the fast
- * path in migrate.ts returns without the advisory lock when CI (or this setup)
- * has already applied everything.
+ * not race on first migrate. Per-file hooks call `assertTestMigrationsApplied`
+ * instead, which verifies checksums without the advisory lock.
  */
 export default async function globalSetup(): Promise<void> {
   await runMigrations(databaseUrl)

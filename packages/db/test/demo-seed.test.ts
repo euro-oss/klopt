@@ -6,6 +6,7 @@
  */
 
 import { existsSync } from 'node:fs'
+import { assertTestMigrationsApplied } from './support/ensure-test-migrations.js'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -38,7 +39,6 @@ import {
   seedDemo,
 } from '../src/demo/index.js'
 import { DemoPiiError } from '../src/demo/pii.js'
-import { runMigrations } from '../src/migrate.js'
 import { entities, salesInvoices } from '../src/schema/index.js'
 import {
   withBankRead,
@@ -69,7 +69,7 @@ describe('demo seeder', () => {
   let database: Database
 
   beforeAll(async () => {
-    await runMigrations(TEST_DATABASE_URL)
+    await assertTestMigrationsApplied(TEST_DATABASE_URL)
     database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 4 })
   }, 120_000)
 

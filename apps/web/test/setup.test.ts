@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
 import {
@@ -8,7 +9,6 @@ import {
   issueToken,
   LegalAcceptancesRepository,
   membershipsFor,
-  runMigrations,
   withSetup,
   type Auth,
   type Database,
@@ -74,7 +74,7 @@ const body = (overrides: Record<string, unknown> = {}) =>
   createEntityBody.parse({ name: 'Nieuwe Zaak', firstFiscalYear: '2026', ...overrides })
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

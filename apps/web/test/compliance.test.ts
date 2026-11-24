@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process'
+import { assertTestMigrationsApplied } from '../../../packages/db/test/support/ensure-test-migrations.js'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { encodeWarningMessagesHeader, parseXaf, uuidv7, validateXafDocument } from '@klopt/core'
-import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
+import { closeDatabase, createDatabase, issueToken, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { handlePostJournalEntry } from '../src/api/handlers/ledger.js'
@@ -153,7 +154,7 @@ async function postTradingYear(token: string) {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+  await assertTestMigrationsApplied(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 }, 60_000)
 
