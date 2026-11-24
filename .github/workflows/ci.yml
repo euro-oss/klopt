@@ -450,7 +450,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p merged-blob-input
-          find "$GITHUB_WORKSPACE/blob-reports" -type f \( -name '*.zip' -o -name '*.jsonl' \) -exec cp -t merged-blob-input {} +
+          # Avoid clobbering duplicate blob names (e.g. midnight/fiscal both emit report.zip).
+          i=0
+          while IFS= read -r -d '' f; do
+            i=$((i + 1))
+            cp "$f" "merged-blob-input/${i}-$(basename "$f")"
+          done < <(find "$GITHUB_WORKSPACE/blob-reports" -type f \( -name '*.zip' -o -name '*.jsonl' \) -print0 | sort -z)
           pnpm exec playwright merge-reports --reporter html merged-blob-input
 
       - name: Upload merged Playwright report
