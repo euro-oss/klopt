@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomInt, randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   RATE_LIMIT,
@@ -259,7 +259,8 @@ describe('authentication is rate limited', () => {
     // endpoint stayed wide open.
     const auth = limitedAuth()
     const email = `flooded-${randomUUID()}@example.test`
-    const ip = `198.51.100.${String(1 + (Date.now() % 200))}`
+    // RFC 5737 TEST-NET-2: one address per run so DB rate-limit rows never collide.
+    const ip = `198.51.100.${randomInt(1, 255)}`
 
     const send = async (): Promise<number> => {
       const response = await auth.handler(
