@@ -1,4 +1,5 @@
 import { runMigrations } from '../src/migrate.js'
+import { installAuditReleaseMatchBlockTrigger } from './support/audit-release-match-block-ddl.js'
 
 const databaseUrl =
   process.env['TEST_DATABASE_URL'] ??
@@ -7,10 +8,12 @@ const databaseUrl =
 
 /**
  * Runs once before any db/web worker starts so parallel `beforeAll` hooks do
- * not race on first migrate. DB package tests that use `fixture.ts` still call
- * `assertTestMigrationsApplied`; web/db heavy suites rely on this setup only.
- * instead, which verifies checksums without the advisory lock.
+ * not race on first migrate. Heavy web/db suites rely on this setup only.
+ *
+ * Also installs the GUC-gated `bank.releaseMatch` audit block trigger used by
+ * `matching.test.ts` (no per-test DDL on klopt.audit_log during the suite).
  */
 export default async function globalSetup(): Promise<void> {
   await runMigrations(databaseUrl)
+  await installAuditReleaseMatchBlockTrigger(databaseUrl)
 }

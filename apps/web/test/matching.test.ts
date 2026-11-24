@@ -21,8 +21,11 @@ import {
   cleanupSeededBackgroundWork,
   insertBankTransactionAllocationForTest,
   setPeriodStatus,
-  withBlockedReleaseMatchAudit,
 } from '@klopt/db/testing'
+import {
+  wrapDatabaseForAuditBlockTests,
+  withBlockedReleaseMatchAudit,
+} from '../../../packages/db/test/support/release-match-audit-block.js'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
 import { ApiError } from '../src/api/errors.js'
@@ -389,7 +392,9 @@ async function matchPurchasePayment(transactionId: string, invoiceId: string): P
 }
 
 beforeAll(async () => {
-  database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
+  database = wrapDatabaseForAuditBlockTests(
+    createDatabase({ url: DATABASE_URL, maxConnections: 4 }),
+  )
   setDatabaseForTest(database)
 
   entityId = await seedEntity(database)
@@ -1080,8 +1085,10 @@ describe('reversing a bank match', () => {
     })
     const matchEntryId = await matchPurchasePayment(transactionId, purchase.invoiceId)
 
-    await withBlockedReleaseMatchAudit(database, async () => {
-      await expect(reverseMatchEntry(matchEntryId)).rejects.toThrow(/audit_log/)
+    await withBlockedReleaseMatchAudit(async () => {
+      await expect(reverseMatchEntry(matchEntryId)).rejects.toThrow(
+        /test_block_release_match_audit/,
+      )
     })
 
     const reversalId = await withLedger(database, (ledger) =>

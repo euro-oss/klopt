@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     name: 'web',
     include: ['test/**/*.test.ts'],
+    exclude: ['test/matching.test.ts'],
     environment: 'node',
     globalSetup: ['../../packages/db/test/global-setup.ts'],
     maxWorkers: 3,
