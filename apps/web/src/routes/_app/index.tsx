@@ -53,7 +53,6 @@ import { cn } from '~/lib/utils'
 import type { WorkQueueItem, WorkQueueKind } from '~/lib/work-queue'
 import { getDashboard, type DashboardAgeing, type DashboardFigures } from '~/server/dashboard'
 import { getEntity } from '~/server/entity'
-import { getSession } from '~/server/context'
 
 /**
  * Home — Main / PhoneHome / HomeDark (redesign Phase 1 / #107).
@@ -67,14 +66,16 @@ import { getSession } from '~/server/context'
 export const Route = createFileRoute('/_app/')({
   validateSearch: fiscalYearSearch,
   loaderDeps: ({ search }) => ({ fiscalYear: search.fiscalYear }),
-  loader: async ({ deps }) => {
+  loader: async ({ context, deps }) => {
     const year = deps.fiscalYear === undefined ? {} : { fiscalYear: String(deps.fiscalYear) }
-    const [dashboard, entity, session] = await Promise.all([
+    const [dashboard, entity] = await Promise.all([
       getDashboard({ data: year }),
       getEntity(),
-      getSession(),
     ])
-    return { dashboard, entity, session }
+    // `_app` beforeLoad already resolved the session; a second `getSession()` here
+    // can come back null on the built Nitro server during `reloadDocument`, which
+    // leaves the dashboard without a greeting h1 while Playwright waits for one.
+    return { dashboard, entity, session: context.session }
   },
   pendingComponent: DashboardPending,
   component: Dashboard,
