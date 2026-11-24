@@ -1086,7 +1086,7 @@ describe('reversing a bank match', () => {
     const matchEntryId = await matchPurchasePayment(transactionId, purchase.invoiceId)
 
     await withBlockedReleaseMatchAudit(async () => {
-      await expect(reverseMatchEntry(matchEntryId)).rejects.toThrow(/audit/)
+      await expect(reverseMatchEntry(matchEntryId)).rejects.toThrow(/audit_log/)
     })
 
     const reversalId = await withLedger(database, (ledger) =>
