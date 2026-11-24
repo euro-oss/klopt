@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runMigrations } from '@klopt/db'
+import { calendarYearInAmsterdam } from '../src/lib/amsterdam-date.js'
 
 /**
  * Invoice PDF against the built server, not `vite dev`.
@@ -242,7 +243,7 @@ async function main(): Promise<void> {
   const stamp = `${Date.now().toString()}-${randomUUID().slice(0, 8)}`
   const signer = `prod-pdf-${stamp}@example.test`
   const buyer = `inkoop-${stamp}@example.test`
-  const year = String(new Date().getUTCFullYear())
+  const year = String(calendarYearInAmsterdam())
 
   try {
     await waitForServer(child)

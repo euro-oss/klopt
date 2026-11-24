@@ -1,3 +1,4 @@
+import { calendarYearInAmsterdam } from '../amsterdam-date.js'
 import type { Command } from './registry.js'
 import { optionOf } from './registry.js'
 
@@ -30,7 +31,7 @@ export const check: Command = {
       return 1
     }
 
-    const year = optionOf(args, 'year') ?? String(new Date().getUTCFullYear())
+    const year = optionOf(args, 'year') ?? String(calendarYearInAmsterdam())
     let failed = false
 
     const chain = (await client.get('/ledger/chain-verification')) as {

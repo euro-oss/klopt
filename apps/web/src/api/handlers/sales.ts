@@ -33,6 +33,7 @@ import {
 import { hasPermission, mayPostToSoftClosedPeriod, type RequestContext } from '../context.js'
 import { ApiError, requireIfMatch } from '../errors.js'
 import { isUniqueViolation } from '../../lib/db-error.js'
+import { calendarYearStartInAmsterdam } from '../../lib/amsterdam-date.js'
 import { recordAudit } from '../audit.js'
 import { invoiceRenderer } from '../documents.js'
 import { documentStore } from '../document-store.js'
@@ -441,7 +442,7 @@ export async function handleCreateTaxCodes(context: RequestContext, body: Create
     const validFrom =
       (await sales.taxCodeAnchorValidFrom(context.entityId)) ??
       existing[0]?.validFrom ??
-      `${new Date().getUTCFullYear()}-01-01`
+      calendarYearStartInAmsterdam()
 
     let ids: readonly string[]
     try {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   canSubmitElectronically,
   collapseEmptyRubrieken,
@@ -8,10 +8,17 @@ import {
   groupPeriodsByYear,
   manualFilingSummaryText,
   pickDefaultVatPeriod,
+  vatPeriodListYears,
   vatPeriodShortLabel,
   vatPeriodStatus,
   type VatPeriodRow,
 } from '../../src/lib/vat-screen.js'
+
+/** 2027-01-01 00:30 Amsterdam (CET) while UTC is still 2026-12-31 (#217). */
+const NEW_YEAR_AMSTERDAM_MIDNIGHT = new Date('2026-12-31T23:30:00.000Z')
+
+/** 2026-12-31 23:30 Amsterdam while UTC is still 2026-12-31 22:30. */
+const OLD_YEAR_AMSTERDAM_EVE = new Date('2026-12-31T22:30:00.000Z')
 
 function period(overrides: Partial<VatPeriodRow> & Pick<VatPeriodRow, 'code'>): VatPeriodRow {
   const code = overrides.code
@@ -188,5 +195,29 @@ describe('vatPeriodShortLabel / group / download / electronic', () => {
 
   it('counts whole days between ISO dates', () => {
     expect(daysBetweenIso('2026-01-30', '2026-01-31')).toBe(1)
+  })
+})
+
+describe('vatPeriodListYears (#217)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('keeps the year from a normal period code', () => {
+    expect(vatPeriodListYears('2025-Q4')).toEqual({ current: 2025, previous: 2024 })
+  })
+
+  it('falls back to the new Amsterdam year just after local midnight on 1 January', () => {
+    vi.setSystemTime(NEW_YEAR_AMSTERDAM_MIDNIGHT)
+    expect(vatPeriodListYears('no-year')).toEqual({ current: 2027, previous: 2026 })
+  })
+
+  it('falls back to the old Amsterdam year late on 31 December', () => {
+    vi.setSystemTime(OLD_YEAR_AMSTERDAM_EVE)
+    expect(vatPeriodListYears('not-a-year')).toEqual({ current: 2026, previous: 2025 })
   })
 })

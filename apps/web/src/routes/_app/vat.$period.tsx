@@ -18,6 +18,7 @@ import { localTodayIso } from '~/lib/local-clock'
 import {
   canSubmitElectronically,
   collapseEmptyRubrieken,
+  vatPeriodListYears,
   formatVatHeaderDate,
   groupPeriodsByYear,
   manualFilingSummaryText,
@@ -42,15 +43,15 @@ import {
  */
 export const Route = createFileRoute('/_app/vat/$period')({
   loader: async ({ params }) => {
-    const year = Number(params.period.slice(0, 4))
+    const { current, previous } = vatPeriodListYears(params.period)
     const aangifte = await getVatReturn({ data: { period: params.period } })
     const filingId = aangifte.ok ? aangifte.data.filing?.id : undefined
     const [currentYear, previousYear, submissions] = await Promise.all([
       listVatPeriods({
-        data: { year: Number.isFinite(year) ? year : new Date().getUTCFullYear() },
+        data: { year: current },
       }),
       listVatPeriods({
-        data: { year: (Number.isFinite(year) ? year : new Date().getUTCFullYear()) - 1 },
+        data: { year: previous },
       }),
       filingId === undefined
         ? Promise.resolve(null)
