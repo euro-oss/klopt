@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { clickImportWizardNext } from './support/import-wizard-click-next'
+import { isExactPreviewRequest } from './support/import-wizard-exact-preview-route'
 import { isWizardStateSave, routeWizardStateSave } from './support/import-wizard-save-route'
 import { startExactStandIn, type ExactStandIn } from './support/exact-stand-in'
 
@@ -10,12 +12,6 @@ const PREVIEW_READ_DELAY_MS = 2000
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
 })
-
-function isExactPreviewRequest(request: { method(): string; url(): string }): boolean {
-  if (request.method() !== 'GET') return false
-  const url = request.url()
-  return url.includes('previewExactImport') || url.includes('previewExact')
-}
 
 async function installNonGetDelay(page: Page): Promise<void> {
   await page.route('**/*', async (route) => {
@@ -38,50 +34,10 @@ async function anAdministration(page: Page): Promise<void> {
   ).toBeVisible()
 }
 
-async function clickNext(page: Page): Promise<void> {
-  const wizard = page.locator('[data-slot="import-wizard"]')
-  const next = wizard.locator('button[data-focus="next"]')
-  await expect
-    .poll(
-      async () => {
-        if (await page.getByRole('heading', { name: /Btw-codes uit Exact/ }).isVisible()) {
-          return true
-        }
-        if ((await next.count()) === 0) return false
-        const disabled = await next.getAttribute('aria-disabled')
-        const busy = await next.getAttribute('aria-busy')
-        return disabled !== 'true' && disabled !== '' && busy !== 'true'
-      },
-      { timeout: 120_000 },
-    )
-    .toBe(true)
-  if ((await next.count()) === 0) {
-    return
-  }
-  await next.click()
-  try {
-    await page
-      .getByRole('heading', { name: /Btw-codes uit Exact/ })
-      .waitFor({ state: 'visible', timeout: 120_000 })
-    return
-  } catch {
-    // Not advancing to the read-only Btw stop.
-  }
-  await expect
-    .poll(
-      async () => {
-        if ((await next.count()) === 0) return true
-        return (await next.getAttribute('aria-busy')) !== 'true'
-      },
-      { timeout: 120_000 },
-    )
-    .toBe(true)
-}
-
 async function openExactWizard(page: Page): Promise<void> {
   await page.goto('/importeren')
   await page.getByRole('radio', { name: /Exact Online/ }).click()
-  await clickNext(page)
+  await clickImportWizardNext(page, { readyTimeoutMs: 120_000 })
 }
 
 async function connectExactStandIn(page: Page, standIn: ExactStandIn): Promise<void> {
@@ -95,7 +51,7 @@ async function connectExactStandIn(page: Page, standIn: ExactStandIn): Promise<v
   await page.getByLabel('Client ID').fill(standIn.clientId)
   await page.getByLabel('Client secret').fill(standIn.clientSecret)
   await page.getByLabel('Redirect-URI').fill(`${new URL(page.url()).origin}/exact/callback`)
-  await clickNext(page)
+  await clickImportWizardNext(page, { readyTimeoutMs: 120_000 })
   await expect(
     page.getByRole('heading', { name: /Welke administratie en welk boekjaar/ }),
   ).toBeVisible({ timeout: 120_000 })
@@ -111,7 +67,7 @@ async function reachVoorbeeld(page: Page, standIn: ExactStandIn): Promise<void> 
   await page.getByRole('button', { name: /Voorbeeld BV/ }).click()
   await expect(page.getByText(/Gekozen: Voorbeeld BV/)).toBeVisible()
   await page.getByLabel(/Boekjaar om te importeren/).fill('2026')
-  await clickNext(page)
+  await clickImportWizardNext(page, { readyTimeoutMs: 120_000 })
   await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
     timeout: 120_000,
   })
@@ -198,9 +154,11 @@ test.describe('Exact wizard resume under slow network (#223)', () => {
   test('Doorgaan after reload: preview re-read shows Opslaan not needPreview', async ({ page }) => {
     const standIn = await startExactStandIn()
     try {
+      let previewDelayHits = 0
       await page.route('**/*', async (route) => {
         const req = route.request()
         if (isExactPreviewRequest(req)) {
+          previewDelayHits += 1
           await new Promise((resolve) => setTimeout(resolve, PREVIEW_READ_DELAY_MS))
         } else if (req.method() !== 'GET') {
           await new Promise((resolve) => setTimeout(resolve, NON_GET_DELAY_MS))
@@ -237,6 +195,11 @@ test.describe('Exact wizard resume under slow network (#223)', () => {
           { timeout: PREVIEW_READ_DELAY_MS + 15_000 },
         )
         .toBe('ready')
+
+      expect(
+        previewDelayHits,
+        'previewExactImport delay handler must run at least once on resume re-read',
+      ).toBeGreaterThanOrEqual(1)
     } finally {
       await standIn.close()
     }
@@ -255,7 +218,7 @@ test.describe('Exact wizard resume under slow network (#223)', () => {
           (res.request().postData()?.includes('btw') ?? false),
         { timeout: 120_000 },
       )
-      await clickNext(page)
+      await clickImportWizardNext(page, { readyTimeoutMs: 120_000 })
       await saveDone
 
       await page.reload()
