@@ -14,6 +14,7 @@ import { isApple } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
 import { getSession } from '~/server/context'
 import { getLegalConfig } from '~/server/legal'
+import { suggestedFirstFiscalYearLabel } from '~/lib/amsterdam-date'
 import { beginSetup, createAdministration } from '~/server/setup'
 
 /**
@@ -173,7 +174,7 @@ function Setup() {
     }
   }, [hydrated, busy])
 
-  const thisYear = String(new Date().getUTCFullYear())
+  const thisYear = suggestedFirstFiscalYearLabel()
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()

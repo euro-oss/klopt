@@ -406,15 +406,8 @@ export function createAuth(config: AuthConfig) {
     },
 
     advanced: {
-      // Driven by `config.baseUrl` (runtime), not `process.env` — esbuild drops env
-      // branches when bundling `@klopt/db`. http origins (incl. e2e on :3399) must not
-      // get `__Secure-` session cookies when Nitro runs with production NODE_ENV.
-      useSecureCookies: config.baseUrl.startsWith('https://'),
       // A bookkeeping system is same-site by construction.
-      defaultCookieAttributes: {
-        sameSite: 'lax',
-        httpOnly: true,
-      },
+      defaultCookieAttributes: { sameSite: 'lax', httpOnly: true },
     },
   })
 }

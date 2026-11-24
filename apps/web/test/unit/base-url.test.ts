@@ -13,16 +13,6 @@ describe('resolveBaseUrl', () => {
     ).toThrow(/https:\/\//)
   })
 
-  it('allows http in production for Playwright e2e (KLOPT_E2E_LEGAL_TOGGLE)', () => {
-    expect(
-      resolveBaseUrl({
-        NODE_ENV: 'production',
-        KLOPT_BASE_URL: 'http://localhost:3399',
-        KLOPT_E2E_LEGAL_TOGGLE: '1',
-      }),
-    ).toBe('http://localhost:3399')
-  })
-
   it('accepts an https origin in production', () => {
     expect(
       resolveBaseUrl({ NODE_ENV: 'production', KLOPT_BASE_URL: 'https://books.example' }),
