@@ -9,13 +9,7 @@ export default defineConfig({
     environment: 'node',
     globalSetup: ['../../packages/db/test/global-setup.ts'],
     maxWorkers: 3,
-    minWorkers: 1,
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        isolate: false,
-      },
-    },
+    isolate: false,
     teardownTimeout: 15_000,
     // DB-heavy suites run against a real Postgres; on a busy CI runner the
     // default hook budget timed out in beforeAll on slow verify (24) jobs.
