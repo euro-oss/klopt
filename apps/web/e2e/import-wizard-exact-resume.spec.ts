@@ -1,7 +1,17 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
-import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import {
+  DATABASE_URL,
+  ensureConfiguredApiDelay,
+  e2eInteractionTimeout,
+  hydrated,
+  signIn,
+  uniqueEmail,
+  waitSetupHydrated,
+  waitSignInHydrated,
+} from './support'
 import { clickImportWizardNext } from './support/import-wizard-click-next'
+import { waitImportWizardHydrated } from './support/import-wizard-hydration'
 import { isExactPreviewRequest } from './support/import-wizard-exact-preview-route'
 import { isWizardStateSave, routeWizardStateSave } from './support/import-wizard-save-route'
 import { startExactStandIn, type ExactStandIn } from './support/exact-stand-in'
@@ -23,21 +33,29 @@ async function installNonGetDelay(page: Page): Promise<void> {
 }
 
 async function anAdministration(page: Page): Promise<void> {
+  const timeout = e2eInteractionTimeout(30_000)
   await page.goto('/sign-in')
+  await waitSignInHydrated(page)
   await signIn(page, uniqueEmail())
-  await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nog geen administratie' })).toBeVisible({
+    timeout,
+  })
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+  await waitSetupHydrated(page)
   await page.getByLabel('Naam', { exact: true }).fill('Exact Resume BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
-  ).toBeVisible({ timeout: 30_000 })
+  ).toBeVisible({ timeout })
 }
 
 async function openExactWizard(page: Page): Promise<void> {
   await page.goto('/importeren')
-  await page.getByRole('radio', { name: /Exact Online/ }).click()
-  await clickImportWizardNext(page, { readyTimeoutMs: 120_000 })
+  await waitImportWizardHydrated(page)
+  const exact = page.getByRole('radio', { name: /Exact Online/ })
+  await expect(exact).toBeEnabled({ timeout: e2eInteractionTimeout() })
+  await exact.click()
+  await clickImportWizardNext(page, { readyTimeoutMs: e2eInteractionTimeout(120_000) })
 }
 
 async function connectExactStandIn(page: Page, standIn: ExactStandIn): Promise<void> {
@@ -65,7 +83,9 @@ async function reachVoorbeeld(page: Page, standIn: ExactStandIn): Promise<void> 
     timeout: 60_000,
   })
   await page.getByRole('button', { name: /Voorbeeld BV/ }).click()
-  await expect(page.getByText(/Gekozen: Voorbeeld BV/)).toBeVisible()
+  await expect(page.getByText(/Gekozen: Voorbeeld BV/)).toBeVisible({
+    timeout: e2eInteractionTimeout(),
+  })
   await page.getByLabel(/Boekjaar om te importeren/).fill('2026')
   await clickImportWizardNext(page, { readyTimeoutMs: 120_000 })
   await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
@@ -91,7 +111,10 @@ test.describe('Exact wizard resume under slow network (#223)', () => {
   test.describe.configure({ timeout: 600_000 })
 
   test.beforeEach(async ({ page }) => {
-    await installNonGetDelay(page)
+    await ensureConfiguredApiDelay(page)
+    if (process.env['KLOPT_E2E_API_DELAY_MS'] === undefined) {
+      await installNonGetDelay(page)
+    }
   })
 
   test('Doorgaan after reload before btw save: Volgende pending, not silent', async ({ page }) => {
