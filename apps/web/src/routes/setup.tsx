@@ -14,7 +14,7 @@ import { isApple } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
 import { getSession } from '~/server/context'
 import { getLegalConfig } from '~/server/legal'
-import { calendarYearInAmsterdam } from '~/lib/amsterdam-date'
+import { suggestedFirstFiscalYearLabel } from '~/lib/amsterdam-date'
 import { beginSetup, createAdministration } from '~/server/setup'
 
 /**
@@ -174,7 +174,7 @@ function Setup() {
     }
   }, [hydrated, busy])
 
-  const thisYear = String(calendarYearInAmsterdam())
+  const thisYear = suggestedFirstFiscalYearLabel()
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()

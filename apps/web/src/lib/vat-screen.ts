@@ -224,10 +224,6 @@ export function collapseEmptyRubrieken(
 }
 
 /**
- * Which period `/vat` should open: most recent ended unfiled, else the period
- * that contains today, else the last period of the year.
- */
-/**
  * Calendar years to list alongside a `/vat/$period` route when the param does
  * not start with a numeric year (#217).
  */
@@ -240,6 +236,10 @@ export function vatPeriodListYears(
   return { current, previous: current - 1 }
 }
 
+/**
+ * Which period `/vat` should open: most recent ended unfiled, else the period
+ * that contains today, else the last period of the year.
+ */
 export function pickDefaultVatPeriod(
   periods: readonly VatPeriodRow[],
   todayIso: string,

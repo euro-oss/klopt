@@ -3,6 +3,7 @@ import { createEntityBody, listVatPeriodsQuery } from '../../src/api/schemas.js'
 import {
   calendarYearInAmsterdam,
   calendarYearStartInAmsterdam,
+  suggestedFirstFiscalYearLabel,
   todayInAmsterdam,
 } from '../../src/lib/amsterdam-date.js'
 
@@ -38,9 +39,25 @@ describe('server default year from Amsterdam date (#217)', () => {
 
     it('keeps an explicit firstFiscalYear', () => {
       vi.setSystemTime(NEW_YEAR_AMSTERDAM_MIDNIGHT)
-      expect(createEntityBody.parse({ name: 'Vast BV', firstFiscalYear: '2020' }).firstFiscalYear).toBe(
-        '2020',
-      )
+      expect(
+        createEntityBody.parse({ name: 'Vast BV', firstFiscalYear: '2020' }).firstFiscalYear,
+      ).toBe('2020')
+    })
+  })
+
+  describe('setup suggestedFirstFiscalYearLabel', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    it('suggests the new Amsterdam year just after local midnight on 1 January', () => {
+      vi.setSystemTime(NEW_YEAR_AMSTERDAM_MIDNIGHT)
+      expect(suggestedFirstFiscalYearLabel()).toBe('2027')
+    })
+
+    it('suggests the old Amsterdam year late on 31 December', () => {
+      vi.setSystemTime(OLD_YEAR_AMSTERDAM_EVE)
+      expect(suggestedFirstFiscalYearLabel()).toBe('2026')
     })
   })
 
