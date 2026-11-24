@@ -103,7 +103,6 @@ import {
   listMoneybirdAdministrations,
   moneybirdImportStatus,
   previewMoneybirdImport,
-  previewExactImport,
   runMoneybirdImport,
   saveMoneybirdMappings,
 } from '~/server/ledger'
@@ -1301,10 +1300,6 @@ function ImportWizardPage() {
                       setShowResume(false)
                       void (async () => {
                         if (saved.source === 'exact') {
-                          const yearStr = saved.selectedYears?.[0]
-                          if (yearStr !== undefined && yearStr !== '') {
-                            await previewExactImport({ data: { year: Number(yearStr) } })
-                          }
                           if (isImportWizardStep(saved.step)) await goTo(saved.step)
                           return
                         }

@@ -155,10 +155,13 @@ test.describe('Exact wizard resume under slow network (#223)', () => {
     const standIn = await startExactStandIn()
     try {
       let previewDelayHits = 0
+      let countResumePreviews = false
+      let resumePreviewHits = 0
       await page.route('**/*', async (route) => {
         const req = route.request()
         if (isExactPreviewRequest(req)) {
           previewDelayHits += 1
+          if (countResumePreviews) resumePreviewHits += 1
           await new Promise((resolve) => setTimeout(resolve, PREVIEW_READ_DELAY_MS))
         } else if (req.method() !== 'GET') {
           await new Promise((resolve) => setTimeout(resolve, NON_GET_DELAY_MS))
@@ -169,6 +172,7 @@ test.describe('Exact wizard resume under slow network (#223)', () => {
       await anAdministration(page)
       await reachVoorbeeld(page, standIn)
       await page.reload()
+      countResumePreviews = true
       await resumeDoorgaan(page)
 
       await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
@@ -200,6 +204,10 @@ test.describe('Exact wizard resume under slow network (#223)', () => {
         previewDelayHits,
         'previewExactImport delay handler must run at least once on resume re-read',
       ).toBeGreaterThanOrEqual(1)
+      expect(
+        resumePreviewHits,
+        'Doorgaan resume must trigger exactly one Exact preview request (exact-flow re-read only)',
+      ).toBe(1)
     } finally {
       await standIn.close()
     }
