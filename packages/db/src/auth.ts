@@ -407,7 +407,15 @@ export function createAuth(config: AuthConfig) {
 
     advanced: {
       // A bookkeeping system is same-site by construction.
-      defaultCookieAttributes: { sameSite: 'lax', httpOnly: true },
+      defaultCookieAttributes: {
+        sameSite: 'lax',
+        httpOnly: true,
+        // Playwright hits `http://localhost:3399` against the built server; the
+        // library would otherwise mark session cookies Secure whenever it treats
+        // the process as production, and `reloadDocument` after setup would
+        // then load `/` with no session (dashboard renders null — no greeting h1).
+        ...(process.env['KLOPT_E2E_LEGAL_TOGGLE'] === '1' ? { secure: false } : {}),
+      },
     },
   })
 }
