@@ -2,6 +2,105 @@
 
 Boards Hidde did not draw, derived by Design from his v2 system on his request. They use only `tokens.css`, `components/bundle.css` and the existing `.k-*` components, in the same `.dc.html` format, and are registered in `screens/canvas.json` with `"derived": true`. Batch 1 leaves Hidde's own boards unchanged, apart from the keymap fix, the XAF copy and the Sidebar fixture below.
 
+## Invoice editor: dark and phone (#151)
+
+Hidde's desktop-light `Editor` board (new invoice, one page, live preview) gets a dark 1440 board and a phone 390 board in light and dark. His file is not edited. Screenshots are in `derived-shots/editor-151/`.
+
+| Board | What it is | Screenshots in `derived-shots/editor-151/` |
+| --- | --- | --- |
+| `EditorDark.dc.html`, `theme` prop (default dark) | Own file: Hidde's `Editor` at 1440 with bordered line cells, underlined ink links, no `ink-faint`, self-hosted fonts | `Editor-dark-1440` |
+| `PhoneEditor.dc.html`, `theme` and `view` props | The editor at 390. `view` = `edit` (default: the form, one card per line) or `preview` (the PDF/UBL preview as a full-screen sheet) | `Editor-{edit,preview}-light-390` |
+| `PhoneEditorDark.dc.html`, `view` prop | `PhoneEditor` with `theme="dark"`, passes `view` on | `Editor-{edit,preview}-dark-390` |
+
+All three are registered in `canvas.json` (note `t151` at y 44800, boards at y 45100): `EditorDark` at x 0 (1440 × 1040, Hidde's size), the phone boards at x 1520 and 1990. Each entry has `"derived": true` and a `derivedNote`. On `PhoneEditor`, tapping Preview opens the sheet and Close goes back to the form.
+
+### Why the dark board is a copy
+
+A `theme="dark"` wrapper (like `HomeDark`) would keep four things the derived boards don't allow:
+
+- **Line cells without a border.** Hidde's `.cell` has only a `--line-soft` divider on the right (about 1.2:1). As on `EntryNewDark`, each cell is a bordered input inside the row, on `--line-control` remapped to `--ink-muted`. The VAT column is 112px (Hidde: 92px) so the select fits with its border.
+- **`ink-faint` text.** The breadcrumb slash, and the paper's `[your address]` and `[KvK number]` placeholders (`#a1a1aa`, 2.56:1 on the white paper). The slash is `--ink-muted`; the placeholders use the paper's own muted grey `#63636b` (5.95:1), the colour of "Number given when sent".
+- **Links.** The Sales crumb had no underline. Sales, "change" and "Fill in now" are now underlined ink links (`.lnk`).
+- **Google Fonts.** A wrapper can't drop Hidde's link; the copy loads `fonts.css`.
+
+Also in the copy: key hints in the primary button are outlined in `--on-primary` in dark (as on `EntryNewDark`), amounts get `nowrap`, and links go to `InvoicesDark` and `SettingsCompanyDark`. Everything else is Hidde's: the customer field keeps his 2px yellow `selection-edge` focus border (10.65:1 in dark), line 2's description keeps its focus state, and the keycaps stay `.k-kbd` (JetBrains Mono). The paper stays white.
+
+### Phone: how lines are added
+
+- **One card per line**, in the pattern of `PhoneEntryNew`: "Line 1" as the card title with the line amount (`€ 760,00`) and a 44px remove button (×, `aria-label="Remove line 1"`) in the head. Below it Description (full width), then Qty, Price and VAT in one row, all with visible labels and 44px controls. Qty and Price open the decimal keypad (`inputmode="decimal"`).
+- **"+ Add a line"** is a full-width 44px dashed button under the last card (Hidde's `k-btn--dashed`). It adds an empty card at the end. "Booked to 8000 Omzet" and its "change" link (44px) sit under the "What you are invoicing" heading.
+- **Totals** follow in their own card (Excluding VAT, 21% VAT, Total), then Hidde's warn callout with "Fill in now" (44px, to `PhoneSettingsCompany`).
+- **No key hints.** `Tab`, `↵` on the last cell, `⌘⌫`, `⌘D`, `Esc`, `⌘↵` and "type to search ↓" are hidden. The back link "‹ Sales" replaces Close (as on `PhoneInvoice`), and the customer field is drawn at rest with the `--ink-muted` border instead of Hidde's yellow focus border.
+
+### Phone: how the preview opens
+
+- **Preview is a button, not a pane.** At 390 the live preview can't sit next to the form, so Preview (secondary) and Review and send (primary) share a sticky bar above the tab bar, 48px each, as on `PhoneEntryNew`.
+- **Full-screen sheet.** Preview opens the paper as a sheet over the tab bar, the same way `PhoneCommand` covers it. The top bar has the title "Preview", "As your customer sees it · PDF · UBL" and Close (44px). Review and send stays at the bottom, padded for the home indicator with `max(22px, env(safe-area-inset-bottom))` (22px is the tab bar's bottom padding).
+- **The paper is the same document** as on desktop, at phone width: the five columns stay, the payment line wraps by words (IBAN, amount and date never break). It stays white in dark.
+- **Motion.** The sheet slides up 24px and fades in over 180ms, so it reads as a layer that Close dismisses. With `prefers-reduced-motion: reduce` it just appears.
+- **Markup.** The sheet is a `<dialog>`, drawn open on the board. The app opens it modal (`showModal()`) and returns focus to Preview on Close.
+
+### Not built yet
+
+| On the boards | State in the app |
+| --- | --- |
+| `↵` on the last cell adds a line, `⌘⌫` removes it, `⌘D` duplicates it (`EditorDark`, as on Hidde's `Editor`) | Not bound for the invoice form. `keyboard.ts` has `invoiceForm.save` (⌘↵) and `invoiceForm.cancel` (Esc); `⌘D` and `⌘⌫` exist only for journal entries (`entry.duplicateLine`, `entry.deleteLine`). The editor work in #127 adds them. |
+
+### Rules for these boards
+
+- Control borders: `.k-root[data-theme]{--line-control:var(--ink-muted)}`, the same rule as #145 to #149. Inputs, selects, line cells, the customer field and secondary buttons use it.
+- Links are ink and underlined, 44px tall on phone ("change", "Fill in now"). No yellow text. Yellow stays an accent: the warn callout, the desktop focus states and the Bank badge.
+- Targets are 44px or more on phone (fields 44px, the customer field 56px or more with a 44px input, remove 44 × 44, Add a line 44px, Preview and Review and send 48px, Close 44px). No `ink-faint` for text. No new status colours.
+- Amounts and dates are Inter with tabular figures (`.k-num`, `nw` on amounts). JetBrains Mono is only on the desktop keycaps.
+- `shoot.mjs` printed no QA warnings for the five shots. Its "blocked Google Fonts requests" count comes from the `@import` in `bundle.css`, which every board loads; the shots use the self-hosted fonts.
+
+### Invented, for Hidde to check
+
+- **Preview as a sheet from the bottom bar**, with Review and send repeated at the bottom of the sheet. Hidde's board has no phone layout.
+- **The line card**: amount in the head, Qty · Price · VAT in one row (72px, flexible, 96px). There is no Duplicate on phone; see the open question below.
+- **"Fill in now"** goes to Company settings (`SettingsCompanyDark`, `PhoneSettingsCompany`), where the address and KvK number are. Hidde's link goes to the Settings hub.
+- **Sales is the active tab** on the phone editor, since invoices live under Sales.
+
+### Still open for Hidde
+
+- **Duplicate a line on phone.** Desktop has `⌘D`. The phone card has only remove. Either it stays desktop-only, or the card head gets a 44px "More actions" menu (Duplicate, Remove), as on `PhoneInvoice`.
+- **Board language.** The phone boards reuse the English strings and demo data of Hidde's `Editor` (Zandbank Advies (demo), Demo BV), like every derived board; the Dutch is in the table below.
+
+### Contrast (WCAG 2.x)
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| Control and line-cell border (`ink-muted`) on `surface` | 5.95:1 | 6.77:1 |
+| v2 `line-control` on `surface` (replaced) | 1.68:1 | 1.98:1 |
+| Muted text (`ink-muted`) on `ground` ("Saved a moment ago", "Booked to…") | 5.45:1 | 7.36:1 |
+| Links (`ink`) on `surface` | 17.72:1 | 15.80:1 |
+| Callout text and "Fill in now" (`ink`) on `brand-tint` | 16.33:1 | 13.07:1 |
+| Desktop customer focus border (`selection-edge`) on `surface` | 1.90:1 (Hidde's, focus state) | 10.65:1 |
+| Paper placeholders `#63636b` on white (Hidde: `#a1a1aa`, 2.56:1) | 5.95:1 | 5.95:1 |
+| Primary button text (`on-primary` on `primary`) | 17.72:1 | 16.12:1 |
+
+### Shooting
+
+From `design/redesign-2026-10/`:
+
+```sh
+O=derived-shots/editor-151
+node derived-shots/render/shoot.mjs $O --width=1440 'EditorDark.dc.html?theme=dark=Editor-dark-1440'
+node derived-shots/render/shoot.mjs $O --width=390 \
+  $(for v in edit preview; do echo "PhoneEditor.dc.html?view=$v=Editor-$v-light-390" "PhoneEditorDark.dc.html?theme=dark&view=$v=Editor-$v-dark-390"; done)
+```
+
+### Copy, English and Dutch
+
+Strings Hidde already has on `Editor` (and "‹ Sales" from `PhoneInvoice`) are not repeated here.
+
+| English (board) | Nederlands |
+| --- | --- |
+| Preview (button and sheet title) | Voorbeeld |
+| As your customer sees it · PDF · UBL | Zoals je klant het ziet · pdf · UBL |
+| Line 1 / Line 2 | Regel 1 / Regel 2 |
+| Invoice preview (paper `aria-label`) | Voorbeeld van de factuur |
+
 ## Phone search entry: Search button in the Home and More top bars (#150)
 
 Follow-up to #150 and #149 (Hidde's comment on #150): on phone the command bar is the `PhoneCommand` search sheet, and nothing opened it. A 44px Search button now sits at the right of the top bar on Home and More, and opens the sheet in the `start` view. Screenshots are in `derived-shots/search-150/`.
