@@ -8,7 +8,6 @@ import {
   issueToken,
   LegalAcceptancesRepository,
   membershipsFor,
-  runMigrations,
   withSetup,
   type Auth,
   type Database,
@@ -73,8 +72,7 @@ const request = (headers: Record<string, string>): Request =>
 const body = (overrides: Record<string, unknown> = {}) =>
   createEntityBody.parse({ name: 'Nieuwe Zaak', firstFiscalYear: '2026', ...overrides })
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

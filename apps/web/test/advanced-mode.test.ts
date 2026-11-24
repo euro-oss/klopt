@@ -44,9 +44,7 @@ async function signUp(): Promise<{ userId: string }> {
   return { userId: body.user.id }
 }
 
-beforeAll(async () => {
-  const { runMigrations } = await import('@klopt/db')
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

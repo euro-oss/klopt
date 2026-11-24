@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
+import { closeDatabase, createDatabase, issueToken, type Database } from '@klopt/db'
 import { seedEntity, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { resolveRequestContext } from '../src/api/auth.js'
 import { setDatabaseForTest } from '../src/api/database.js'
@@ -49,7 +49,6 @@ const entry = (description: string, accountNumber = '1300') => ({
 })
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   const entityId = await seedEntity(database)

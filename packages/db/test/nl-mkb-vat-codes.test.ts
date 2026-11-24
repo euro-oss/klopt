@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { uuidv7 } from '@klopt/core'
-import { closeDatabase, createDatabase, runMigrations, type Database } from '../src/index.js'
+import { closeDatabase, createDatabase, type Database } from '../src/index.js'
 import { withXafExport } from '../src/unit-of-work.js'
 import { accounts, taxCodes } from '../src/schema/index.js'
 import { seedEntity } from '../src/testing.js'
@@ -45,8 +45,7 @@ const NEW_CODES = [
 
 let database: Database
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 })
 

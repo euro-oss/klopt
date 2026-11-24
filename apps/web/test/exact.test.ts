@@ -3,7 +3,6 @@ import {
   closeDatabase,
   createDatabase,
   issueToken,
-  runMigrations,
   withExactConnection,
   type Database,
 } from '@klopt/db'
@@ -108,9 +107,8 @@ async function connect(token: string, exact: FakeExact) {
   return { state, issued: exact.issued }
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
-  await runMigrations(DATABASE_URL)
   setDatabaseForTest(database)
 })
 

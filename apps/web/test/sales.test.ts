@@ -5,7 +5,6 @@ import {
   createDatabase,
   issueToken,
   priceDraft,
-  runMigrations,
   withSalesRead,
   withSales,
   type Database,
@@ -154,8 +153,7 @@ const draft = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   })
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 60_000)

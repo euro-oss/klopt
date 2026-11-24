@@ -38,7 +38,6 @@ import {
   seedDemo,
 } from '../src/demo/index.js'
 import { DemoPiiError } from '../src/demo/pii.js'
-import { runMigrations } from '../src/migrate.js'
 import { entities, salesInvoices } from '../src/schema/index.js'
 import {
   withBankRead,
@@ -68,8 +67,7 @@ const hasPeppolSchematron = REQUIRED_PEPPOL_SCHEMATRON_FILES.every((name) =>
 describe('demo seeder', () => {
   let database: Database
 
-  beforeAll(async () => {
-    await runMigrations(TEST_DATABASE_URL)
+  beforeAll(() => {
     database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 4 })
   }, 120_000)
 

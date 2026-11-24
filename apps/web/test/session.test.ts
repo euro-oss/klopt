@@ -7,7 +7,6 @@ import {
   createAuth,
   createDatabase,
   membershipsFor,
-  runMigrations,
   setActiveEntity,
   type Auth,
   type Database,
@@ -85,8 +84,7 @@ const entryBody = () =>
     ],
   })
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

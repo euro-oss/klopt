@@ -6,7 +6,6 @@ import {
   createAuth,
   createDatabase,
   membershipsFor,
-  runMigrations,
   setActiveEntity,
   withOAuth,
   type Auth,
@@ -159,8 +158,7 @@ function clearClosedEnv(): void {
   delete process.env['KLOPT_INSTANCE_ADMINS']
 }
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   setEmailTransportForTest(invitations)

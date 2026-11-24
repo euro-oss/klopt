@@ -1,5 +1,5 @@
 import { closeDatabase, createDatabase, type Database } from '../../src/client.js'
-import { runMigrations } from '../../src/migrate.js'
+import { assertTestMigrationsApplied } from './ensure-test-migrations.js'
 import { seedEntity, type SeedOptions } from '../../src/testing.js'
 
 /**
@@ -26,11 +26,11 @@ let migrated = false
 
 export async function createFixture(options: SeedOptions = {}): Promise<Fixture> {
   if (!migrated) {
-    await runMigrations(TEST_DATABASE_URL)
+    await assertTestMigrationsApplied(TEST_DATABASE_URL)
     migrated = true
   }
 
-  const database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 4 })
+  const database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 2 })
   const entityId = await seedEntity(database, options)
 
   return { database, entityId, close: () => closeDatabase(database) }

@@ -6,7 +6,6 @@ import {
   closeDatabase,
   createAuth,
   createDatabase,
-  runMigrations,
   type Auth,
   type Database,
 } from '@klopt/db'
@@ -54,8 +53,7 @@ async function auditFor(email: string) {
   return readAuditLogForActor(database, email)
 }
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 }, 60_000)
 

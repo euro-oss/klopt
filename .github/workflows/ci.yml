@@ -144,8 +144,14 @@ jobs:
       # KLOPT_S3_ENDPOINT set, not a container on every push, twice, across the
       # Node matrix. See
       # docs/decisions/0059-a-bucket-close-enough-to-test-against.md.
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      # tools/ci-vitest.sh caps wall time and dumps pg_stat_activity on failure
+      # so a hung suite fails with diagnostics instead of the job timeout (#232).
       - name: Test
-        run: pnpm run test
+        timeout-minutes: 14
+        run: bash tools/ci-vitest.sh
 
       - name: Architecture boundaries
         run: pnpm run lint:boundaries

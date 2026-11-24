@@ -7,7 +7,6 @@ import {
   createDatabase,
   issueToken,
   membershipsFor,
-  runMigrations,
   type Auth,
   type Database,
 } from '@klopt/db'
@@ -87,8 +86,7 @@ async function anOwner(): Promise<{
   return { entityId, cookie, userId, email }
 }
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   setEmailTransportForTest(invitations)

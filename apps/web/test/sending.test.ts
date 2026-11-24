@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@klopt/core'
-import { closeDatabase, createDatabase, issueToken, runMigrations, type Database } from '@klopt/db'
+import { closeDatabase, createDatabase, issueToken, type Database } from '@klopt/db'
 import { seedEntity, seedSalesConfiguration, cleanupSeededBackgroundWork } from '@klopt/db/testing'
 import { createEmailEInvoiceTransport, createMemoryEmailTransport } from '@klopt/adapters'
 import { resolveRequestContext } from '../src/api/auth.js'
@@ -103,7 +103,6 @@ async function anIssuedInvoice(contactNumber: string, issueDate = '2026-03-15'):
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   setEInvoiceTransportForTest(createEmailEInvoiceTransport({ email: mailbox }))

@@ -4,7 +4,6 @@ import {
   closeDatabase,
   createDatabase,
   runExactDocumentBatch,
-  runMigrations,
   withExactDocuments,
   type Database,
   type DocumentRunRow,
@@ -122,8 +121,7 @@ async function newRun(): Promise<DocumentRunRow> {
   )
 }
 
-beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 120_000)

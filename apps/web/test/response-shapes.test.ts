@@ -9,7 +9,6 @@ import {
   closeDatabase,
   createDatabase,
   issueToken,
-  runMigrations,
   withOAuth,
   type Auth,
   type Database,
@@ -346,7 +345,6 @@ async function signIn(
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   documentDirectory = mkdtempSync(join(tmpdir(), 'klopt-shapes-'))

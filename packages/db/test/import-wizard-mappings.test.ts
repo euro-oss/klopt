@@ -9,7 +9,6 @@ import {
   closeDatabase,
   createDatabase,
   encryptSecret,
-  runMigrations,
   type Database,
 } from '../src/index.js'
 import { seedEntity } from '../src/testing.js'
@@ -18,8 +17,7 @@ import { TEST_DATABASE_URL } from './support/fixture.js'
 describe('import administration mappings (#100)', () => {
   let database: Database
 
-  beforeAll(async () => {
-    await runMigrations(TEST_DATABASE_URL)
+  beforeAll(() => {
     database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 4 })
     // Ensure encryptSecret works for connection rows in this process.
     if (process.env['KLOPT_ENCRYPTION_KEY'] === undefined) {

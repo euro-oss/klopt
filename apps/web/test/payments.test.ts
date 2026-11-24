@@ -7,7 +7,6 @@ import {
   createAuth,
   createDatabase,
   issueToken,
-  runMigrations,
   type Auth,
   type Database,
 } from '@klopt/db'
@@ -111,7 +110,6 @@ async function withPayment(cookie: string, batchId: string, overrides = {}) {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

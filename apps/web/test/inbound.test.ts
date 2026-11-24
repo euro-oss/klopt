@@ -10,7 +10,6 @@ import {
   createDatabase,
   issueToken,
   runInboundPoll,
-  runMigrations,
   withInboundSources,
   type Database,
 } from '@klopt/db'
@@ -167,7 +166,6 @@ async function aDropDirectory(files: Record<string, string>): Promise<string> {
 }
 
 beforeAll(async () => {
-  await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   directory = await mkdtemp(join(tmpdir(), 'klopt-inbound-'))

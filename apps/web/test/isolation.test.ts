@@ -8,7 +8,6 @@ import {
   closeDatabase,
   createDatabase,
   issueToken,
-  runMigrations,
   withExactConnection,
   type Database,
 } from '@klopt/db'
@@ -383,7 +382,6 @@ let b: Administration
 beforeAll(async () => {
   // The Exact connection in each fixture holds an encrypted client secret;
   // the vitest setup file supplies KLOPT_ENCRYPTION_KEY.
-  await runMigrations(DATABASE_URL)
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 
