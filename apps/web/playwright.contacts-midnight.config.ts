@@ -12,6 +12,8 @@ const pointingAtExternalServer = process.env['KLOPT_E2E_BASE_URL'] !== undefined
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/contacts-open-overdue-styling-midnight.spec.ts',
+  // Cold dev server plus fake clock on a slow CI runner; the default 30 s per-test budget is too tight.
+  timeout: 120_000,
   fullyParallel: false,
   forbidOnly: process.env['CI'] === 'true',
   retries: process.env['CI'] === 'true' ? 1 : 0,
