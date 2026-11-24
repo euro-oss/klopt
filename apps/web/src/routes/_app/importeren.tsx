@@ -103,6 +103,7 @@ import {
   listMoneybirdAdministrations,
   moneybirdImportStatus,
   previewMoneybirdImport,
+  previewExactImport,
   runMoneybirdImport,
   saveMoneybirdMappings,
 } from '~/server/ledger'
@@ -1300,6 +1301,10 @@ function ImportWizardPage() {
                       setShowResume(false)
                       void (async () => {
                         if (saved.source === 'exact') {
+                          const yearStr = saved.selectedYears?.[0]
+                          if (yearStr !== undefined && yearStr !== '') {
+                            await previewExactImport({ data: { year: Number(yearStr) } })
+                          }
                           if (isImportWizardStep(saved.step)) await goTo(saved.step)
                           return
                         }
@@ -1544,7 +1549,10 @@ function ImportWizardPage() {
               exactConnection.ok ? Boolean(exactConnection.data.canStoreSecrets) : false
             }
             defaultYear={
-              reportYear.ok ? String(reportYear.data.scope.code) : String(new Date().getFullYear())
+              selectedYears[0] ??
+              (reportYear.ok
+                ? String(reportYear.data.scope.code)
+                : String(new Date().getFullYear()))
             }
             titleId={titleId}
           />
