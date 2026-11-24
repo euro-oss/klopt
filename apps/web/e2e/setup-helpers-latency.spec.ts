@@ -24,8 +24,10 @@ import { openAdmin } from './support/contacts-open-overdue-scenarios'
  * `import-advanced-hydration.spec.ts` for 20/20 at:
  *
  *   KLOPT_E2E_API_DELAY_MS=1500 KLOPT_E2E_API_DELAY_NON_GET_ONLY=1 \\
- *   pnpm exec playwright test e2e/import-advanced-hydration.spec.ts \\
- *     e2e/setup-helpers-latency.spec.ts --reporter=line
+ *     bash e2e/scripts/latency-gate-proof.sh 20
+ *
+ * (35 tests per run: setup-helpers, import-advanced-hydration,
+ * import-wizard-exact-resume, setup, account-menu, signin-setup-redesign.)
  */
 
 test.beforeAll(async () => {
