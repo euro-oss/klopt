@@ -1,7 +1,12 @@
 import { expect, type Page } from '@playwright/test'
+import { e2eInteractionTimeout } from '../support.js'
+import { waitImportWizardHydrated } from './import-wizard-hydration.js'
 
 export async function clickImportWizardNextImmediate(page: Page): Promise<void> {
-  await page.locator('button[data-focus="next"]').click()
+  await waitImportWizardHydrated(page)
+  const next = page.locator('button[data-focus="next"]')
+  await expect(next).toBeEnabled({ timeout: e2eInteractionTimeout() })
+  await next.click()
 }
 
 /** Footer shows `wizardVolgendePending.nextSaving` (Opslaan… + aria-busy). */

@@ -71,8 +71,36 @@ export async function codeFor(email: string): Promise<string> {
  * Waits on Home (v2 rail label for the dashboard chord). Home is always in the
  * nav; shortcut chips print only once the keys work.
  */
+/** Default Playwright timeout for clicks and hydration under optional e2e latency simulation. */
+export function e2eInteractionTimeout(baseMs = 15_000): number {
+  const delayMs = Math.max(
+    Number(process.env['KLOPT_E2E_API_DELAY_MS'] ?? 0),
+    Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? 0),
+  )
+  if (!Number.isFinite(delayMs) || delayMs <= 0) return baseMs
+  return Math.max(baseMs, delayMs * 8 + 60_000)
+}
+
+/** React has attached on `/sign-in` (submit control is disabled until then). */
+export async function waitSignInHydrated(page: Page): Promise<void> {
+  const timeout = e2eInteractionTimeout()
+  await expect(page.getByRole('button', { name: 'Stuur me een code' })).toBeEnabled({ timeout })
+}
+
+/** React has attached on `/setup`. */
+export async function waitSetupHydrated(page: Page): Promise<void> {
+  const timeout = e2eInteractionTimeout()
+  await expect(page.getByRole('button', { name: 'Administratie aanmaken' })).toBeEnabled({
+    timeout,
+  })
+}
+
+/** App shell is live (`AppShell` prints shortcut hints only once keys work). */
 export async function hydrated(page: Page): Promise<void> {
-  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible()
+  const timeout = e2eInteractionTimeout()
+  await expect(page.getByRole('link', { name: /^Home/ }).locator('kbd').first()).toBeVisible({
+    timeout,
+  })
 }
 
 /**
@@ -120,12 +148,26 @@ export async function ensureConfiguredApiDelay(page: Page): Promise<void> {
   if (apiDelayPages.has(page)) return
   apiDelayPages.add(page)
   const ms = Number(delayMs)
+  if (!Number.isFinite(ms) || ms <= 0) return
   const nonGetOnly = process.env['KLOPT_E2E_API_DELAY_NON_GET_ONLY'] === '1'
   await page.route('**/*', async (route) => {
     const request = route.request()
-    if (!nonGetOnly || request.method() !== 'GET') {
-      await new Promise((resolve) => setTimeout(resolve, ms))
+    const url = request.url()
+    if (nonGetOnly && request.method() === 'GET') {
+      await route.continue()
+      return
     }
+    // Static assets stay fast so the bundle can load and hydrate under latency gates.
+    try {
+      const pathname = new URL(url).pathname
+      if (/\.(js|css|map|woff2?|ttf|ico|png|svg|webp)$/i.test(pathname)) {
+        await route.continue()
+        return
+      }
+    } catch {
+      /* relative URLs are rare; delay non-GET anyway */
+    }
+    await new Promise((resolve) => setTimeout(resolve, ms))
     await route.continue()
   })
 }
@@ -195,17 +237,18 @@ export async function setAdvancedMode(page: Page, enabled: boolean): Promise<voi
   await page.goto('/settings')
   await hydrated(page)
   const toggle = advancedModeSwitch(page)
-  await expect(toggle).toBeVisible({ timeout: 30_000 })
+  const interactionTimeout = e2eInteractionTimeout(30_000)
+  await expect(toggle).toBeVisible({ timeout: interactionTimeout })
   const want = enabled ? 'true' : 'false'
-  await expect(toggle).toBeEnabled({ timeout: 30_000 })
+  await expect(toggle).toBeEnabled({ timeout: interactionTimeout })
   if ((await toggle.getAttribute('aria-checked')) !== want) {
     const persisted = waitForAdvancedModeSaveResponse(page)
     await toggle.click()
     const response = await persisted
     expect(response.status()).toBe(200)
   }
-  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: 30_000 })
-  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: 30_000 })
+  await expect(toggle).toHaveAttribute('aria-checked', want, { timeout: interactionTimeout })
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true', { timeout: interactionTimeout })
 }
 
 /** Turn boekhouddetails on from Settings (owner default is off). */
@@ -216,9 +259,8 @@ export async function enableAdvancedMode(page: Page): Promise<void> {
 /** Take a brand-new address all the way to a signed-in session. */
 export async function signIn(page: Page, email: string): Promise<void> {
   const sendCode = page.getByRole('button', { name: 'Stuur me een code' })
-  const allUrlDelay = Number(process.env['KLOPT_E2E_ALL_URL_DELAY_MS'] ?? '')
-  const enabledTimeout = Number.isFinite(allUrlDelay) && allUrlDelay > 0 ? 120_000 : 15_000
-  await expect(sendCode).toBeEnabled({ timeout: enabledTimeout })
+  const enabledTimeout = e2eInteractionTimeout()
+  await waitSignInHydrated(page)
   await page.getByLabel('E-mail').fill(email)
   await expect(sendCode).toBeEnabled({ timeout: enabledTimeout })
   await sendCode.click()
@@ -253,7 +295,8 @@ export async function openAccountMenu(page: Page): Promise<void> {
 
   // Disabled until React attaches: the menu is a Radix popover, so before
   // hydration the row is a button that opens nothing.
-  await expect(trigger).toBeEnabled()
+  const timeout = e2eInteractionTimeout()
+  await expect(trigger).toBeEnabled({ timeout })
   await trigger.click()
   // Pin the account menu open via Language/Theme or sign-out (boekhouddetails
   // lives on Settings, not here).
@@ -278,17 +321,18 @@ export async function openAccountMenu(page: Page): Promise<void> {
  * `Administratie` or `Boekjaar` opens this first.
  */
 export async function openEntitySwitcher(page: Page): Promise<void> {
+  const timeout = e2eInteractionTimeout()
   const trigger = page.getByRole('button', {
     name: /Administratie en boekjaar|Administration and book year/,
   })
-  await expect(trigger).toBeEnabled()
+  await expect(trigger).toBeEnabled({ timeout })
   if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
     await trigger.click()
   }
   // Comboboxes, not the trigger's aria-label (which also contains "boekjaar").
   await expect(
     page.getByRole('combobox', { name: /^(Administratie|Administration)$/ }),
-  ).toBeVisible()
+  ).toBeVisible({ timeout })
 }
 
 export async function chooseOption(
@@ -297,6 +341,7 @@ export async function chooseOption(
   option: string | RegExp,
   within?: Locator,
 ): Promise<void> {
+  const timeout = e2eInteractionTimeout()
   const shellLabel =
     typeof label === 'string' && /^(Administratie|Boekjaar|Administration|Book year)$/.test(label)
   if (shellLabel) {
@@ -305,15 +350,20 @@ export async function chooseOption(
     if (!(await field.isVisible().catch(() => false))) {
       await openEntitySwitcher(page)
     }
+    await expect(field).toBeEnabled({ timeout })
     await field.click()
   } else {
-    await (within ?? page).getByLabel(label).click()
+    const control = (within ?? page).getByLabel(label)
+    await expect(control).toBeEnabled({ timeout })
+    await control.click()
   }
-  await page.getByRole('option', { name: option }).click()
+  const listOption = page.getByRole('option', { name: option })
+  await expect(listOption).toBeVisible({ timeout })
+  await listOption.click()
 
   // The listbox animates out. Waiting for it to go means the next interaction
   // cannot land on an overlay that is still swallowing clicks.
-  await expect(page.getByRole('listbox')).toBeHidden()
+  await expect(page.getByRole('listbox')).toBeHidden({ timeout })
 }
 
 /** Sign out from the shell, which is now one click inside the account menu. */
@@ -339,9 +389,12 @@ export async function chooseInAccountMenu(
   label: string | RegExp,
   option: string | RegExp,
 ): Promise<void> {
+  const timeout = e2eInteractionTimeout()
   await openAccountMenu(page)
-  await page.getByRole('group', { name: label }).getByRole('button', { name: option }).click()
+  const choice = page.getByRole('group', { name: label }).getByRole('button', { name: option })
+  await expect(choice).toBeEnabled({ timeout })
+  await choice.click()
 
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('button', { name: /Uitloggen|Sign out/ })).toBeHidden()
+  await expect(page.getByRole('button', { name: /Uitloggen|Sign out/ })).toBeHidden({ timeout })
 }
