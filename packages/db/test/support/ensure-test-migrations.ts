@@ -7,7 +7,7 @@ import { runMigrations } from '../../src/migrate.js'
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '../../migrations')
 
-async function sha256(text: string): Promise<string> {
+function sha256(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex')
 }
 
@@ -47,7 +47,7 @@ export async function assertTestMigrationsApplied(databaseUrl: string): Promise<
       fullyApplied = true
       for (const name of files) {
         const source = await readFile(join(MIGRATIONS_DIR, name), 'utf8')
-        const checksum = await sha256(source)
+        const checksum = sha256(source)
         const previous = appliedChecksums.get(name)
         if (previous === undefined || previous !== checksum) {
           fullyApplied = false
