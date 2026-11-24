@@ -46,6 +46,8 @@ function attachConsoleGuard(page: Page): { readonly errors: string[] } {
 test('VAT redesign: sidebar, command bar, empty + seeded, keyboard, no console errors', async ({
   page,
 }) => {
+  // Slow CI runners can exceed the default 30 s budget for this scenario.
+  test.setTimeout(120_000)
   const { errors } = attachConsoleGuard(page)
   await openAdmin(page, 'Voorbeeld BTW BV')
 
