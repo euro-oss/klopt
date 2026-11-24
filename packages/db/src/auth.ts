@@ -406,12 +406,10 @@ export function createAuth(config: AuthConfig) {
     },
 
     advanced: {
-      // Playwright hits `http://localhost:3399` on the built Nitro bundle (`NODE_ENV`
-      // production). better-auth then prefixes cookies with `__Secure-` and sets
-      // Secure; browsers ignore those on http, so `reloadDocument` after setup loads
-      // `/` without a session (dashboard null — no greeting h1). `useSecureCookies`
-      // is the switch that controls the prefix, not `defaultCookieAttributes.secure`.
-      ...(process.env['KLOPT_E2E_LEGAL_TOGGLE'] === '1' ? { useSecureCookies: false } : {}),
+      // Driven by `config.baseUrl` (runtime), not `process.env` — esbuild drops env
+      // branches when bundling `@klopt/db`. http origins (incl. e2e on :3399) must not
+      // get `__Secure-` session cookies when Nitro runs with production NODE_ENV.
+      useSecureCookies: config.baseUrl.startsWith('https://'),
       // A bookkeeping system is same-site by construction.
       defaultCookieAttributes: {
         sameSite: 'lax',
