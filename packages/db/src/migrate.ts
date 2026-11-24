@@ -40,7 +40,59 @@ async function sha256(text: string): Promise<string> {
   return createHash('sha256').update(text, 'utf8').digest('hex')
 }
 
+async function listMigrationFiles(): Promise<readonly string[]> {
+  return (await readdir(MIGRATIONS_DIR))
+    .filter((name) => name.endsWith('.sql'))
+    .sort((a, b) => a.localeCompare(b))
+}
+
+/**
+ * When every migration file is already recorded, verify checksums without
+ * taking the advisory lock. Vitest runs dozens of suites in parallel and each
+ * file's `beforeAll` used to queue on `pg_advisory_lock`, holding a connection
+ * until its turn — that starved the shared CI Postgres pool and cascaded into
+ * 30 s test timeouts (verify #232).
+ */
+async function tryReturnWhenFullyMigrated(databaseUrl: string): Promise<MigrationResult | null> {
+  const sql = postgres(databaseUrl, {
+    max: 1,
+    connect_timeout: 10,
+    onnotice: () => undefined,
+  })
+
+  try {
+    const files = await listMigrationFiles()
+    const rows = await sql<{ name: string; checksum: string }[]>`
+      select name, checksum from klopt_meta.migrations
+    `.catch(() => null)
+
+    if (rows === null || rows.length < files.length) {
+      return null
+    }
+
+    const appliedChecksums = new Map(rows.map((row) => [row.name, row.checksum]))
+
+    for (const name of files) {
+      const source = await readFile(join(MIGRATIONS_DIR, name), 'utf8')
+      const checksum = await sha256(source)
+      const previous = appliedChecksums.get(name)
+      if (previous === undefined || previous !== checksum) {
+        return null
+      }
+    }
+
+    return { applied: [], alreadyApplied: rows.length }
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+}
+
 export async function runMigrations(databaseUrl: string): Promise<MigrationResult> {
+  const skipped = await tryReturnWhenFullyMigrated(databaseUrl)
+  if (skipped !== null) {
+    return skipped
+  }
+
   const sql = postgres(databaseUrl, { max: 1, onnotice: () => undefined })
 
   try {
@@ -62,9 +114,7 @@ export async function runMigrations(databaseUrl: string): Promise<MigrationResul
     `
     const appliedChecksums = new Map(existing.map((row) => [row.name, row.checksum]))
 
-    const files = (await readdir(MIGRATIONS_DIR))
-      .filter((name) => name.endsWith('.sql'))
-      .sort((a, b) => a.localeCompare(b))
+    const files = await listMigrationFiles()
 
     const applied: string[] = []
 

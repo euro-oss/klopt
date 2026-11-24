@@ -30,7 +30,7 @@ export async function createFixture(options: SeedOptions = {}): Promise<Fixture>
     migrated = true
   }
 
-  const database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 4 })
+  const database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 2 })
   const entityId = await seedEntity(database, options)
 
   return { database, entityId, close: () => closeDatabase(database) }
