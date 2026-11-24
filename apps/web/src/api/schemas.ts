@@ -380,7 +380,7 @@ export const createEntityBody = z.object({
     z
       .string()
       .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
-      .default(() => String(new Date().getUTCFullYear())),
+      .default(() => todayInAmsterdam().slice(0, 4)),
     'the current year',
   ),
   vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
@@ -732,7 +732,7 @@ export const listVatPeriodsQuery = z.object({
       .int()
       .min(1900)
       .max(2999)
-      .default(() => new Date().getUTCFullYear()),
+      .default(() => Number(todayInAmsterdam().slice(0, 4))),
     'the current year',
   ),
 })

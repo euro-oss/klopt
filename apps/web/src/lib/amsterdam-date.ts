@@ -14,6 +14,11 @@ export function todayInAmsterdam(now: Date = new Date()): string {
   return calendarDateInTimeZone(now, AMSTERDAM)
 }
 
+/** 1 January of the calendar year in Europe/Amsterdam as `YYYY-MM-DD`. */
+export function calendarYearStartInAmsterdam(now: Date = new Date()): string {
+  return `${todayInAmsterdam(now).slice(0, 4)}-01-01`
+}
+
 /** Calendar date in a named IANA zone as `YYYY-MM-DD`. */
 export function calendarDateInTimeZone(now: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
