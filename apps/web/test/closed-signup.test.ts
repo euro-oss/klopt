@@ -158,7 +158,7 @@ function clearClosedEnv(): void {
   delete process.env['KLOPT_INSTANCE_ADMINS']
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   setEmailTransportForTest(invitations)

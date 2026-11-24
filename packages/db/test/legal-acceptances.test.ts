@@ -15,7 +15,7 @@ const DATABASE_URL =
 
 let database: Database
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 2 })
 })
 

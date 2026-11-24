@@ -115,7 +115,7 @@ async function choose(token: string, administrationId = '123456') {
   )
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 })

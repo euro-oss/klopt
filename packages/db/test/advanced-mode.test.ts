@@ -28,7 +28,7 @@ async function insertUser(id: string, email: string): Promise<void> {
   })
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 })
 

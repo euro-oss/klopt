@@ -86,7 +86,7 @@ async function anOwner(): Promise<{
   return { entityId, cookie, userId, email }
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   setEmailTransportForTest(invitations)

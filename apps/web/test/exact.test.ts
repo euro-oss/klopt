@@ -107,7 +107,7 @@ async function connect(token: string, exact: FakeExact) {
   return { state, issued: exact.issued }
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 })

@@ -67,7 +67,7 @@ const hasPeppolSchematron = REQUIRED_PEPPOL_SCHEMATRON_FILES.every((name) =>
 describe('demo seeder', () => {
   let database: Database
 
-  beforeAll(async () => {
+  beforeAll(() => {
     database = createDatabase({ url: TEST_DATABASE_URL, maxConnections: 4 })
   }, 120_000)
 

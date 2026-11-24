@@ -84,7 +84,7 @@ const entryBody = () =>
     ],
   })
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 

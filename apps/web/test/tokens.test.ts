@@ -51,7 +51,7 @@ async function newEntity(permissions: readonly string[] = ['*']) {
 const body = (overrides: Record<string, unknown> = {}) =>
   issueTokenBody.parse({ name: 'export-script', permissions: ['ledger:read'], ...overrides })
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 120_000)

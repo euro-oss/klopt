@@ -133,7 +133,7 @@ const receive = (
     }),
   )
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
   documentDirectory = mkdtempSync(join(tmpdir(), 'klopt-documents-'))

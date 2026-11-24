@@ -182,7 +182,7 @@ function box(body: Awaited<ReturnType<typeof handleGetVatReturn>>['body'], id: s
   return body.rubrieken.find((row) => row.id === id)
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 60_000)

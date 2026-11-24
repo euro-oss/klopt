@@ -121,7 +121,7 @@ async function newRun(): Promise<DocumentRunRow> {
   )
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 120_000)

@@ -49,7 +49,7 @@ async function newEntity() {
   return { token }
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 })

@@ -56,7 +56,7 @@ async function newEntity(permissions: readonly string[] = ['*']) {
   return { entityId, token }
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 })

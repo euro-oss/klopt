@@ -152,7 +152,7 @@ async function postTradingYear(token: string) {
   }
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
 }, 60_000)
 

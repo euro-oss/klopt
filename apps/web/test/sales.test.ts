@@ -153,7 +153,7 @@ const draft = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   })
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 }, 60_000)

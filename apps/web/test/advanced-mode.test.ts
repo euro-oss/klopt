@@ -44,7 +44,7 @@ async function signUp(): Promise<{ userId: string }> {
   return { userId: body.user.id }
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   database = createDatabase({ url: DATABASE_URL, maxConnections: 4 })
   setDatabaseForTest(database)
 
