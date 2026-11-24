@@ -91,6 +91,7 @@ export function ExactWizardFlow({
   const busyRef = useRef(false)
   const advanceInFlightRef = useRef(false)
   const advanceQueuedRef = useRef(false)
+  const previewRunRef = useRef<Promise<void> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [disconnectOpen, setDisconnectOpen] = useState(false)
@@ -110,6 +111,7 @@ export function ExactWizardFlow({
   const divisionCode = pickedDivision ?? connection?.divisionCode ?? null
   const [year, setYear] = useState(defaultYear)
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
+  const [previewReading, setPreviewReading] = useState(() => step === 'voorbeeld' || step === 'btw')
 
   useEffect(() => {
     if (toast === null) return
@@ -117,11 +119,10 @@ export function ExactWizardFlow({
     return () => window.clearTimeout(timer)
   }, [toast])
 
-  async function persistStep(next: ImportWizardStep) {
+  async function persistStep(next: ImportWizardStep): Promise<boolean> {
     setBusy(true)
     try {
-      setStep(next)
-      await saveImportWizardState({
+      const result = await saveImportWizardState({
         data: {
           source: 'exact',
           step: next,
@@ -130,29 +131,64 @@ export function ExactWizardFlow({
           idempotencyKey: crypto.randomUUID(),
         },
       })
+      if (result?.ok !== true) {
+        setToast(t('importWizard.saveFailed'))
+        return false
+      }
+      setStep(next)
+      return true
+    } catch {
+      setToast(t('importWizard.saveFailed'))
+      return false
     } finally {
       setBusy(false)
     }
   }
 
   async function goTo(next: ImportWizardStep) {
-    await persistStep(next)
+    const ok = await persistStep(next)
+    if (!ok) return
     const heading = document.getElementById(titleId)
     heading?.focus()
   }
 
   async function runPreview() {
-    setBusy(true)
-    setError(null)
-    const result = await previewExactImport({ data: { year: Number(year) } })
-    setBusy(false)
-    if (!result.ok) {
-      setError(result.problem?.detail ?? t('common.unknownError'))
-      setPreview(null)
+    if (previewRunRef.current !== null) {
+      await previewRunRef.current
       return
     }
-    setPreview(result.data)
+    const run = (async () => {
+      setPreviewReading(true)
+      setBusy(true)
+      setError(null)
+      try {
+        const result = await previewExactImport({ data: { year: Number(year) } })
+        if (!result.ok) {
+          setError(result.problem?.detail ?? t('common.unknownError'))
+          setPreview(null)
+          return
+        }
+        setPreview(result.data)
+      } finally {
+        setBusy(false)
+        setPreviewReading(false)
+      }
+    })()
+    previewRunRef.current = run
+    try {
+      await run
+    } finally {
+      previewRunRef.current = null
+    }
   }
+
+  useEffect(() => {
+    if (step !== 'voorbeeld' && step !== 'btw') return
+    if (preview !== null) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resume auto re-read (#223)
+    void runPreview()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when step/preview/year change
+  }, [step, preview, year])
 
   const vatMapping: ExactVatMappingSummary | null = vatMappingFromPreview(preview)
   const counts = exactPreviewCounts(preview)
@@ -176,7 +212,15 @@ export function ExactWizardFlow({
     }
   })()
 
+  const previewAwaiting =
+    (step === 'voorbeeld' || step === 'btw') &&
+    preview === null &&
+    (previewReading || busy || advanceInFlight)
+
+  const footerSaving = busy || advanceInFlight || previewReading
+
   const nextReason = (() => {
+    if (previewAwaiting) return null
     if (canNext) {
       if (step === 'btw' && exactWizardStopsAfterBtw('exact')) return t('wizard.status.exactLater')
       return null
@@ -213,6 +257,7 @@ export function ExactWizardFlow({
       return
     }
     if (!canNext) {
+      if (previewAwaiting) return
       if (nextReason !== null) setToast(nextReason)
       return
     }
@@ -565,7 +610,7 @@ export function ExactWizardFlow({
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
             nextDisabled={!canNext}
-            nextSaving={busy || advanceInFlight}
+            nextSaving={footerSaving}
             nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {
@@ -618,7 +663,7 @@ export function ExactWizardFlow({
             onBack={() => void handleBack()}
             nextLabel={t('wizard.next')}
             nextDisabled={!canNext}
-            nextSaving={busy || advanceInFlight}
+            nextSaving={footerSaving}
             nextSavingLabel={t('wizard.nextSaving')}
             nextReason={nextReason}
             onNextBlocked={() => {
@@ -640,6 +685,8 @@ export function ExactWizardFlow({
           />
           {vatMapping !== null ? (
             <ExactVatPreview summary={vatMapping} notImportedYet />
+          ) : previewAwaiting ? (
+            <p className="text-muted-foreground mb-4 text-sm">{t('wizard.voorbeeld.reading')}</p>
           ) : (
             <p className="text-muted-foreground mb-4 text-sm">{t('wizard.status.needPreview')}</p>
           )}
@@ -648,8 +695,23 @@ export function ExactWizardFlow({
               <p>{t('wizard.exact.later.body')}</p>
             </AttentionBlock>
           </div>
-          {/* Exact Phase 2 ends here — Back only; the info card is the stop (#161 Design/PM). */}
-          <WizardFooter showBack onBack={() => void handleBack()} />
+          {footerSaving || previewAwaiting ? (
+            <WizardFooter
+              showBack
+              onBack={() => void handleBack()}
+              nextLabel={t('wizard.next')}
+              nextDisabled={!canNext}
+              nextSaving={footerSaving}
+              nextSavingLabel={t('wizard.nextSaving')}
+              nextReason={nextReason}
+              onNextBlocked={() => {
+                if (nextReason !== null) setToast(nextReason)
+              }}
+              onNext={() => void handleNext()}
+            />
+          ) : (
+            <WizardFooter showBack onBack={() => void handleBack()} />
+          )}
         </>
       )}
 

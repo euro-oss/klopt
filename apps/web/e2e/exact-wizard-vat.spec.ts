@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { runMigrations } from '@klopt/db'
 import { DATABASE_URL, hydrated, signIn, uniqueEmail } from './support'
+import { clickImportWizardNext } from './support/import-wizard-click-next'
 import {
   clickImportWizardNextImmediate,
   expectImportWizardFooterOpslaan,
@@ -46,30 +47,6 @@ async function anAdministration(page: Page, name = 'Exact Wizard BV'): Promise<v
   ).toBeVisible()
 }
 
-async function clickNext(page: Page): Promise<void> {
-  const next = page.locator('button[data-focus="next"]')
-  await expect
-    .poll(
-      async () => {
-        const disabled = await next.getAttribute('aria-disabled')
-        const busy = await next.getAttribute('aria-busy')
-        return disabled !== 'true' && disabled !== '' && busy !== 'true'
-      },
-      { timeout: 60_000 },
-    )
-    .toBe(true)
-  await next.click()
-  await expect
-    .poll(
-      async () => {
-        if ((await next.count()) === 0) return true
-        return (await next.getAttribute('aria-busy')) !== 'true'
-      },
-      { timeout: 60_000 },
-    )
-    .toBe(true)
-}
-
 async function openExactFromSidebar(page: Page): Promise<void> {
   await page
     .getByRole('navigation')
@@ -108,7 +85,7 @@ async function fillExactStandInCredentials(page: Page, standIn: ExactStandIn): P
 
 async function connectExactStandIn(page: Page, standIn: ExactStandIn): Promise<void> {
   await fillExactStandInCredentials(page, standIn)
-  await clickNext(page)
+  await clickImportWizardNext(page)
 
   // OAuth → administratie; skip Welkom terug right after consent (#100 PM).
   const adminHeading = page.getByRole('heading', {
@@ -128,7 +105,7 @@ async function reachBtw(page: Page, standIn: ExactStandIn): Promise<void> {
   await page.getByRole('button', { name: /Voorbeeld BV/ }).click()
   await expect(page.getByText(/Gekozen: Voorbeeld BV/)).toBeVisible()
   await page.getByLabel(/Boekjaar om te importeren/).fill('2026')
-  await clickNext(page)
+  await clickImportWizardNext(page)
 
   await expect(page.getByRole('heading', { name: /Wat we gaan overzetten/ })).toBeVisible({
     timeout: 60_000,
@@ -138,7 +115,7 @@ async function reachBtw(page: Page, standIn: ExactStandIn): Promise<void> {
     await page.getByRole('button', { name: /Opnieuw lezen/ }).click()
   }
   await expect(taxTerm).toBeVisible({ timeout: 60_000 })
-  await clickNext(page)
+  await clickImportWizardNext(page)
 
   await expect(page.getByRole('heading', { name: /Btw-codes uit Exact/ })).toBeVisible({
     timeout: 30_000,
@@ -166,7 +143,7 @@ test('Exact extra Volgende clicks while Opslaan footer add no step (#201)', asyn
   try {
     await anAdministration(page)
     await openExactFromSidebar(page)
-    await clickNext(page)
+    await clickImportWizardNext(page)
     await connectExactStandIn(page, standIn)
 
     await page.getByRole('button', { name: /Administraties ophalen|Opnieuw ophalen/ }).click()
@@ -239,7 +216,7 @@ test('Exact VAT read-only preview: seeded mapping, rail stop, resume, keyboard (
   try {
     await anAdministration(page)
     await openExactFromSidebar(page)
-    await clickNext(page)
+    await clickImportWizardNext(page)
 
     // Empty verbinden state before OAuth.
     await expect(page.getByRole('heading', { name: /Verbind met Exact Online/ })).toBeVisible()

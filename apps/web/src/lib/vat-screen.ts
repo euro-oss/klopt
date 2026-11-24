@@ -1,5 +1,6 @@
 import type { VatPeriodKind } from '@klopt/core'
 import type { MessageKey } from '~/i18n/nl'
+import { calendarYearInAmsterdam } from './amsterdam-date.js'
 
 /**
  * VAT screen helpers for the redesign (#132 / #107 Phase 8).
@@ -220,6 +221,19 @@ export function collapseEmptyRubrieken(
     emptyCount: empty.length,
     emptyIds: empty.map((row) => row.id),
   }
+}
+
+/**
+ * Calendar years to list alongside a `/vat/$period` route when the param does
+ * not start with a numeric year (#217).
+ */
+export function vatPeriodListYears(
+  periodParam: string,
+  now: Date = new Date(),
+): { readonly current: number; readonly previous: number } {
+  const year = Number(periodParam.slice(0, 4))
+  const current = Number.isFinite(year) ? year : calendarYearInAmsterdam(now)
+  return { current, previous: current - 1 }
 }
 
 /**

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PURCHASE_INVOICE_STATUSES, SEARCH_RESOURCE_TYPES, normalizeFxRateInput } from '@klopt/core'
-import { todayInAmsterdam } from '../lib/amsterdam-date.js'
+import { calendarYearInAmsterdam, todayInAmsterdam } from '../lib/amsterdam-date.js'
 import { clockDefault } from './clock-default.js'
 
 /**
@@ -380,7 +380,7 @@ export const createEntityBody = z.object({
     z
       .string()
       .regex(/^\d{4}$/, 'A book year is labelled by its four-digit start year.')
-      .default(() => String(new Date().getUTCFullYear())),
+      .default(() => String(calendarYearInAmsterdam())),
     'the current year',
   ),
   vatRounding: z.enum(['per_invoice', 'per_line']).default('per_invoice'),
@@ -732,7 +732,7 @@ export const listVatPeriodsQuery = z.object({
       .int()
       .min(1900)
       .max(2999)
-      .default(() => new Date().getUTCFullYear()),
+      .default(() => calendarYearInAmsterdam()),
     'the current year',
   ),
 })

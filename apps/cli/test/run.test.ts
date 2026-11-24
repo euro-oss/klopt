@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { run } from '../src/run.js'
 
 /**
@@ -257,6 +257,24 @@ describe('check', () => {
       true,
     )
     expect(api.calls.some((call) => call.url.includes('fiscalYear=2025'))).toBe(true)
+  })
+
+  it('defaults --year from the Amsterdam calendar at local midnight on 1 January', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-12-31T23:30:00.000Z'))
+    const io = capture()
+    const api = fakeApi(healthy)
+
+    await run({
+      argv: ['check'],
+      env: envWith({ KLOPT_TOKEN: 'klopt_test' }),
+      out: io.write,
+      err: io.fail,
+      fetch: api.fetch,
+    })
+
+    vi.useRealTimers()
+    expect(api.calls.some((call) => call.url.includes('fiscalYear=2027'))).toBe(true)
   })
 })
 

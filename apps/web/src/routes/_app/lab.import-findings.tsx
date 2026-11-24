@@ -179,7 +179,7 @@ function ImportFindingsLab() {
           <input
             type="checkbox"
             checked={advanced}
-            disabled={!hydrated}
+            disabled={!hydrated || advancedSaving}
             aria-busy={advancedSaving || undefined}
             data-testid="lab-advanced"
             onChange={(event) => {
