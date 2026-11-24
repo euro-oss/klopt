@@ -4,6 +4,8 @@ import { CONTACTS_OVERDUE_MIDNIGHT_NOW_ISO } from './e2e/support/contacts-overdu
 
 const pointingAtExternalServer = process.env['KLOPT_E2E_BASE_URL'] !== undefined
 
+const e2eViteCommand = process.env['KLOPT_E2E_VITE_COMMAND'] ?? 'vite dev --port 3399'
+
 /**
  * Contacts overdue styling with server + browser clocks at the Amsterdam/UTC
  * midnight boundary. Uses a fresh dev server with `KLOPT_E2E_NOW_ISO` and the
@@ -33,7 +35,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: 'vite dev --port 3399',
+          command: e2eViteCommand,
           stdout: 'pipe',
           stderr: 'pipe',
           port: 3399,
