@@ -1301,6 +1301,34 @@
    "title": "Phone dark · home, Search opens the search sheet (derived)",
    "derived": true,
    "derivedNote": "Derived by Design from Hidde's PhoneHome (#150 follow-up): his board with the top-bar Search button linked to PhoneCommand (start view). Not drawn by Hidde. See ../DERIVED.md."
+  },
+  "EditorDark.dc.html": {
+   "x": 0,
+   "y": 45100,
+   "w": 1440,
+   "h": 1040,
+   "title": "Dark · new invoice, one page, live preview (derived)",
+   "expand": "fill",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#151), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneEditor.dc.html": {
+   "x": 1520,
+   "y": 45100,
+   "w": 390,
+   "h": 844,
+   "title": "Phone · new invoice, view edit or preview (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#151), not drawn by Hidde. See ../DERIVED.md."
+  },
+  "PhoneEditorDark.dc.html": {
+   "x": 1990,
+   "y": 45100,
+   "w": 390,
+   "h": 844,
+   "title": "Phone dark · new invoice, view edit or preview (derived)",
+   "derived": true,
+   "derivedNote": "Derived by Design from Hidde's v2 system (#151), not drawn by Hidde. See ../DERIVED.md."
   }
  },
  "order": [
@@ -1443,7 +1471,10 @@
   "PhoneCommand.dc.html",
   "PhoneCommandDark.dc.html",
   "PhoneHomeSearch.dc.html",
-  "PhoneHomeSearchDark.dc.html"
+  "PhoneHomeSearchDark.dc.html",
+  "EditorDark.dc.html",
+  "PhoneEditor.dc.html",
+  "PhoneEditorDark.dc.html"
  ],
  "notes": {
   "t1": {
@@ -1592,6 +1623,13 @@
    "text": "Phone search entry: Home with the Search button wired (derived, #150)",
    "kind": "title1",
    "maxW": 860
+  },
+  "t151": {
+   "x": 0,
+   "y": 44800,
+   "text": "Invoice editor, dark and phone (derived, #151)",
+   "kind": "title1",
+   "maxW": 2380
   }
  },
  "designSystems": [
