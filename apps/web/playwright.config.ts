@@ -47,6 +47,9 @@ export { OUTBOX }
 
 const pointingAtExternalServer = process.env['KLOPT_E2E_BASE_URL'] !== undefined
 
+/** CI may point at a built server (`node .output/server/index.mjs`); default stays vite dev. */
+const e2eViteCommand = process.env['KLOPT_E2E_VITE_COMMAND'] ?? 'vite dev --port 3399'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -85,7 +88,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: 'vite dev --port 3399',
+          command: e2eViteCommand,
           stdout: 'pipe',
           stderr: 'pipe',
           port: 3399,

@@ -11,6 +11,8 @@ export const FISCAL_YEAR_BOOKING_E2E_TODAY = '2026-01-15'
 
 const pointingAtExternalServer = process.env['KLOPT_E2E_BASE_URL'] !== undefined
 
+const e2eViteCommand = process.env['KLOPT_E2E_VITE_COMMAND'] ?? 'vite dev --port 3399'
+
 export default defineConfig({
   ...base,
   testMatch: ['**/fiscal-year-booking-200.spec.ts', '**/pr-screenshots-200.spec.ts'],
@@ -19,7 +21,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: 'vite dev --port 3399',
+          command: e2eViteCommand,
           stdout: 'pipe',
           stderr: 'pipe',
           port: 3399,

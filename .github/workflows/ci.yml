@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   # Correctness beats availability (spec 12). CI is not allowed to be flaky-green.
@@ -56,6 +56,7 @@ jobs:
 
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -198,20 +199,45 @@ jobs:
             for (const note of rgs.normalisations) console.log('  normalised: ' + note);
           "
 
-  # Browser tests (spec 11.4). The class of bug this repo has already hit —
-  # hydration eating input, a shortcut printed but dead, "the screen did not
-  # change" — is invisible to the domain tests in `verify` and is exactly what
-  # these specs exist to catch. They used to run on nobody's machine.
-  #
-  # This is a real gate, not a decoration: it runs the full Chromium suite
-  # against a live Postgres and fails the job when a spec fails. Green means the
-  # specs passed. If a spec is genuinely flaky it should be fixed or quarantined
-  # in the spec (test.fixme / test.skip with a linked issue), never hidden here
-  # with continue-on-error — spec 12 forbids a flaky-green build. Kept separate
-  # from `verify` so a red run is attributable and the extra ~10 minutes do not
-  # slow the unit-test signal.
-  e2e:
+  # Browser tests (spec 11.4). Sharded for wall-clock time; the required check is
+  # still the aggregate job named `e2e` below. Path-filtered PRs that only touch
+  # design/docs skip the heavy work but keep that gate green.
+  e2e-changes:
     runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.set.outputs.run }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad
+        if: github.event_name == 'pull_request'
+        id: filter
+        with:
+          filters: |
+            e2e:
+              - '**'
+              - '!design/**'
+              - '!docs/**'
+              - '!prototypes/**'
+              - '!**/*.md'
+      - id: set
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=${{ steps.filter.outputs.e2e }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  e2e-shard:
+    name: e2e-shard (${{ matrix.shard }}/4)
+    needs: e2e-changes
+    if: needs.e2e-changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:17-alpine
@@ -228,11 +254,11 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.0.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -240,7 +266,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Cache Peppol BIS-3 Schematron
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.2.0
         with:
           path: reference-data/peppol/bis-3/*.sch
           key: peppol-bis3-${{ hashFiles('tools/fetch-peppol-bis3.sh') }}
@@ -248,9 +274,6 @@ jobs:
       - name: Fetch Peppol BIS-3 Schematron
         run: pnpm run peppol:fetch
 
-      # The web dev server the suite drives imports the workspace packages
-      # through their `exports`, which point at dist/. Nothing resolves until
-      # they are built, same reason the verify job builds before it lints.
       - name: Build
         run: pnpm run build
 
@@ -260,22 +283,220 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --filter @klopt/web exec playwright install --with-deps chromium
 
-      # playwright.config.ts starts `vite dev` on 3399 with the e2e environment
-      # (rate limit off, email to an outbox dir, S3 disabled) and reads
-      # DATABASE_URL from the environment, so the service above is the database.
-      - name: Playwright e2e
-        run: pnpm --filter @klopt/web run test:e2e
+      # Main suite only (midnight + fiscal-year run in their own jobs). Shard 1
+      # still runs prod-pdf-check. Built server on 3399; midnight/fiscal keep
+      # vite dev (fake-server-clock refuses NODE_ENV=production).
+      - name: Playwright main suite (shard ${{ matrix.shard }}/4)
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
+          PORT: '3399'
+          KLOPT_E2E_VITE_COMMAND: node .output/server/index.mjs
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.shard }}" = "1" ]; then
+            pnpm exec tsx scripts/prod-pdf-check.ts
+          fi
+          pnpm exec playwright test --shard=${{ matrix.shard }}/4 --reporter=blob --reporter=line
 
-      - name: Playwright e2e (#200 fiscal year booking)
-        run: pnpm --filter @klopt/web run test:e2e:fiscal-year-booking
-
-      - name: Upload Playwright report
+      - name: Upload blob report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: playwright-blob-${{ matrix.shard }}
+          path: apps/web/blob-report
+          retention-days: 14
+          if-no-files-found: error
+
+  e2e-midnight:
+    name: e2e-midnight
+    needs: e2e-changes
+    if: needs.e2e-changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: klopt
+          POSTGRES_PASSWORD: klopt
+          POSTGRES_DB: klopt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U klopt -d klopt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.0.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Migrate
+        run: pnpm --filter @klopt/db run migrate
+
+      - name: Install Playwright browser
+        run: pnpm --filter @klopt/web exec playwright install --with-deps chromium
+
+      - name: Playwright contacts-midnight
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report-midnight
+        run: pnpm exec playwright test --config playwright.contacts-midnight.config.ts --reporter=blob --reporter=line
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: playwright-blob-midnight
+          path: apps/web/blob-report-midnight
+          retention-days: 14
+          if-no-files-found: error
+
+  e2e-fiscal-year:
+    name: e2e-fiscal-year
+    needs: e2e-changes
+    if: needs.e2e-changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: klopt
+          POSTGRES_PASSWORD: klopt
+          POSTGRES_DB: klopt
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U klopt -d klopt"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.0.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Migrate
+        run: pnpm --filter @klopt/db run migrate
+
+      - name: Install Playwright browser
+        run: pnpm --filter @klopt/web exec playwright install --with-deps chromium
+
+      - name: Playwright fiscal-year booking (#200)
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report-fiscal
+        run: pnpm exec playwright test -c playwright.fiscal-year-booking.config.ts --reporter=blob --reporter=line
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: playwright-blob-fiscal
+          path: apps/web/blob-report-fiscal
+          retention-days: 14
+          if-no-files-found: error
+
+  e2e-merge-reports:
+    name: e2e-merge-reports
+    needs: [e2e-changes, e2e-shard, e2e-midnight, e2e-fiscal-year]
+    if: always() && needs.e2e-changes.outputs.run == 'true' && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.0.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download shard blobs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.1.8
+        with:
+          pattern: playwright-blob-*
+          path: blob-reports
+          merge-multiple: true
+
+      - name: Merge Playwright reports
+        working-directory: apps/web
+        run: |
+          set -euo pipefail
+          mkdir -p merged-blob-input
+          find "$GITHUB_WORKSPACE/blob-reports" -type f \( -name '*.zip' -o -name '*.jsonl' \) -exec cp -t merged-blob-input {} +
+          pnpm exec playwright merge-reports --reporter html merged-blob-input
+
+      - name: Upload merged Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
         with:
           name: playwright-report
-          path: |
-            apps/web/playwright-report
-            apps/web/test-results
+          path: apps/web/playwright-report
           retention-days: 14
-          if-no-files-found: ignore
+          if-no-files-found: warn
+
+  e2e:
+    needs: [e2e-changes, e2e-shard, e2e-midnight, e2e-fiscal-year, e2e-merge-reports]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Required e2e gate
+        env:
+          RUN_E2E: ${{ needs.e2e-changes.outputs.run }}
+          SHARD: ${{ needs.e2e-shard.result }}
+          MIDNIGHT: ${{ needs.e2e-midnight.result }}
+          FISCAL: ${{ needs.e2e-fiscal-year.result }}
+          MERGE: ${{ needs.e2e-merge-reports.result }}
+        run: |
+          set -euo pipefail
+          if [ "$RUN_E2E" != "true" ]; then
+            echo "e2e skipped: only design/, docs/, prototypes/, or *.md changed."
+            exit 0
+          fi
+          failed=0
+          for name in shard midnight fiscal merge; do
+            case "$name" in
+              shard) result=$SHARD ;;
+              midnight) result=$MIDNIGHT ;;
+              fiscal) result=$FISCAL ;;
+              merge) result=$MERGE ;;
+            esac
+            case "$result" in
+              success) ;;
+              *)
+                echo "::error title=e2e::$name job result was $result"
+                failed=1
+                ;;
+            esac
+          done
+          exit "$failed"
