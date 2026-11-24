@@ -295,7 +295,7 @@ jobs:
           if [ "${{ matrix.shard }}" = "1" ]; then
             pnpm exec tsx scripts/prod-pdf-check.ts
           fi
-          pnpm exec playwright test --shard=${{ matrix.shard }}/4 --reporter=blob --reporter=line
+          pnpm exec playwright test --shard=${{ matrix.shard }}/4 --reporter=blob,line
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -352,7 +352,7 @@ jobs:
         working-directory: apps/web
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
-        run: pnpm exec playwright test --config playwright.contacts-midnight.config.ts --reporter=blob --reporter=line
+        run: pnpm exec playwright test --config playwright.contacts-midnight.config.ts --reporter=blob,line
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -409,7 +409,7 @@ jobs:
         working-directory: apps/web
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
-        run: pnpm exec playwright test -c playwright.fiscal-year-booking.config.ts --reporter=blob --reporter=line
+        run: pnpm exec playwright test -c playwright.fiscal-year-booking.config.ts --reporter=blob,line
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
