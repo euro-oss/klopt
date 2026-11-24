@@ -352,6 +352,7 @@ jobs:
         working-directory: apps/web
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
+          PLAYWRIGHT_BLOB_OUTPUT_NAME: report-midnight.zip
         run: pnpm exec playwright test --config playwright.contacts-midnight.config.ts --reporter=blob,line
 
       - name: Upload blob report
@@ -409,6 +410,7 @@ jobs:
         working-directory: apps/web
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
+          PLAYWRIGHT_BLOB_OUTPUT_NAME: report-fiscal.zip
         run: pnpm exec playwright test -c playwright.fiscal-year-booking.config.ts --reporter=blob,line
 
       - name: Upload blob report
@@ -443,19 +445,27 @@ jobs:
         with:
           pattern: playwright-blob-*
           path: blob-reports
-          merge-multiple: true
+          merge-multiple: false
 
       - name: Merge Playwright reports
         working-directory: apps/web
         run: |
           set -euo pipefail
           mkdir -p merged-blob-input
-          # Avoid clobbering duplicate blob names (e.g. midnight/fiscal both emit report.zip).
           i=0
           while IFS= read -r -d '' f; do
+            if ! unzip -t "$f" >/dev/null; then
+              echo "::error::Corrupt Playwright blob zip: $f"
+              exit 1
+            fi
             i=$((i + 1))
-            cp "$f" "merged-blob-input/${i}-$(basename "$f")"
-          done < <(find "$GITHUB_WORKSPACE/blob-reports" -type f \( -name '*.zip' -o -name '*.jsonl' \) -print0 | sort -z)
+            cp "$f" "merged-blob-input/$(basename "$f")"
+          done < <(find "$GITHUB_WORKSPACE/blob-reports" -type f -name '*.zip' -print0 | sort -z)
+          if [ "$i" -lt 6 ]; then
+            echo "::error::Expected at least 6 blob zips, found $i"
+            find "$GITHUB_WORKSPACE/blob-reports" -type f
+            exit 1
+          fi
           pnpm exec playwright merge-reports --reporter html merged-blob-input
 
       - name: Upload merged Playwright report
