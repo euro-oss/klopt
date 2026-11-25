@@ -1,6 +1,25 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { Request } from '@playwright/test'
 
 const PREVIEW_EXACT_HANDLER = 'previewExactImport_createServerFn_handler'
+
+let cachedPreviewFnId: string | null | undefined
+
+function previewExactImportFnIdFromBuild(): string | null {
+  if (cachedPreviewFnId !== undefined) return cachedPreviewFnId
+  const ssrPath = join(import.meta.dirname, '../../.output/server/_ssr/ssr.mjs')
+  if (!existsSync(ssrPath)) {
+    cachedPreviewFnId = null
+    return null
+  }
+  const text = readFileSync(ssrPath, 'utf8')
+  const match = text.match(
+    /"([a-f0-9]{64})":\s*\{\s*functionName:\s*"previewExactImport_createServerFn_handler"/,
+  )
+  cachedPreviewFnId = match?.[1] ?? null
+  return cachedPreviewFnId
+}
 
 function exportFromServerFnUrl(url: string): string | null {
   const encoded = url.match(/\/_serverFn\/([^?]+)/)?.[1]
@@ -20,6 +39,9 @@ function exportFromServerFnUrl(url: string): string | null {
  *
  * Dev URLs are `/_serverFn/<base64 json>?payload=…` with
  * `export: previewExactImport_createServerFn_handler`, not the plain export name.
+ *
+ * Production uses content-addressed ids (`/_serverFn/<hash>`); resolve from the
+ * built `ssr.mjs` manifest when present.
  */
 export function isExactPreviewRequest(request: Request): boolean {
   if (request.method() !== 'GET') return false
@@ -27,6 +49,8 @@ export function isExactPreviewRequest(request: Request): boolean {
   if (url.includes('previewExactImport')) return true
   const exportName = exportFromServerFnUrl(url)
   if (exportName === PREVIEW_EXACT_HANDLER) return true
+  const fnId = previewExactImportFnIdFromBuild()
+  if (fnId !== null && url.includes(`/_serverFn/${fnId}`)) return true
   // Prod / hashed ids: stable fragment inside the dev base64 JSON export field.
   if (url.includes('/_serverFn/') && url.includes('InByZXZpZXdFeGFjdEltcG9ydF')) return true
   return false

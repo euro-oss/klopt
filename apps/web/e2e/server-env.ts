@@ -21,6 +21,13 @@ export const DOCUMENTS = join(import.meta.dirname, '.documents')
 /** Browser origin when CI runs the production bundle behind a TLS terminator. */
 export const E2E_BUILT_HTTPS_ORIGIN = 'https://localhost:3399'
 
+/** Playwright base URL for cookie injection (dev http vs CI https). */
+export function e2eBrowserOrigin(): string {
+  return process.env['KLOPT_E2E_BUILT_SERVER'] === '1'
+    ? E2E_BUILT_HTTPS_ORIGIN
+    : 'http://localhost:3399'
+}
+
 /** Loopback port for `node .output/server/index.mjs` (plain HTTP, TLS wraps it). */
 export const E2E_BUILT_HTTP_PORT = 3398
 

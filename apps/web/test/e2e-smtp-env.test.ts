@@ -3,6 +3,7 @@ import { resolveEmailTransport, smtpConfigFromEnvironment } from '@klopt/adapter
 import {
   E2E_BUILT_HTTPS_ORIGIN,
   E2E_SMTP_BLANK,
+  e2eBrowserOrigin,
   e2eBuiltWebServerEnv,
   e2eWebServerEnv,
   OUTBOX,
@@ -51,6 +52,19 @@ describe('e2e webServer email env', () => {
   it('keeps the outbox path absolute so a reused cwd cannot hide deliveries', () => {
     expect(OUTBOX.startsWith('/')).toBe(true)
     expect(e2eWebServerEnv()['KLOPT_EMAIL_OUTBOX_DIR']).toBe(OUTBOX)
+  })
+
+  it('e2eBrowserOrigin follows KLOPT_E2E_BUILT_SERVER', () => {
+    const prev = process.env['KLOPT_E2E_BUILT_SERVER']
+    try {
+      delete process.env['KLOPT_E2E_BUILT_SERVER']
+      expect(e2eBrowserOrigin()).toBe('http://localhost:3399')
+      process.env['KLOPT_E2E_BUILT_SERVER'] = '1'
+      expect(e2eBrowserOrigin()).toBe(E2E_BUILT_HTTPS_ORIGIN)
+    } finally {
+      if (prev === undefined) delete process.env['KLOPT_E2E_BUILT_SERVER']
+      else process.env['KLOPT_E2E_BUILT_SERVER'] = prev
+    }
   })
 
   it('built-server env keeps SMTP blank and uses https KLOPT_BASE_URL in production', () => {

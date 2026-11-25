@@ -139,7 +139,12 @@ async function main(): Promise<void> {
   }
 
   const { key, cert } = ensureTlsMaterial()
-  const serverEnv = e2eBuiltWebServerEnv(process.env)
+  const certPath = join(TLS_DIR, 'cert.pem')
+  const serverEnv = {
+    ...e2eBuiltWebServerEnv(process.env),
+    // MCP tools call back through KLOPT_BASE_URL (https); trust the CI cert.
+    NODE_EXTRA_CA_CERTS: certPath,
+  }
 
   const child = spawn(process.execPath, [SERVER_ENTRY], {
     cwd: WEB_ROOT,
