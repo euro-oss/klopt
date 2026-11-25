@@ -85,8 +85,9 @@ export function e2eWebServerEnv(
 }
 
 /**
- * Production Nitro server for CI built-server e2e. Refuses to boot without
- * `https://` KLOPT_BASE_URL when NODE_ENV=production (see `resolveBaseUrl`).
+ * Built Nitro bundle for CI e2e. Uses `NODE_ENV=test` (not `production`) so
+ * Playwright-only paths like `klopt-e2e-legal` stay available while the browser
+ * still talks to `https://localhost` for Secure session cookies.
  */
 export function e2eBuiltWebServerEnv(
   environment: Record<string, string | undefined> = process.env,
@@ -94,7 +95,7 @@ export function e2eBuiltWebServerEnv(
   const repoRoot = join(import.meta.dirname, '..', '..', '..')
   return {
     ...e2eWebServerEnv(environment),
-    NODE_ENV: 'production',
+    NODE_ENV: 'test',
     KLOPT_BASE_URL: E2E_BUILT_HTTPS_ORIGIN,
     PORT: String(E2E_BUILT_HTTP_PORT),
     HOST: '127.0.0.1',

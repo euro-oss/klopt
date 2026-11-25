@@ -67,9 +67,9 @@ describe('e2e webServer email env', () => {
     }
   })
 
-  it('built-server env keeps SMTP blank and uses https KLOPT_BASE_URL in production', () => {
+  it('built-server env keeps SMTP blank and uses https KLOPT_BASE_URL', () => {
     const env = e2eBuiltWebServerEnv()
-    expect(env['NODE_ENV']).toBe('production')
+    expect(env['NODE_ENV']).toBe('test')
     expect(env['KLOPT_BASE_URL']).toBe(E2E_BUILT_HTTPS_ORIGIN)
     expect(env['KLOPT_BASE_URL']?.startsWith('https://')).toBe(true)
     for (const key of Object.keys(E2E_SMTP_BLANK)) {
