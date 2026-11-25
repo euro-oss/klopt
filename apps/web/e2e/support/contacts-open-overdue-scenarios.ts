@@ -9,11 +9,14 @@ import {
 } from './contacts-overdue-fixture-dates.js'
 import {
   chooseOption,
+  e2eInteractionTimeout,
   enableAdvancedMode,
   hydrated,
   openEntitySwitcher,
   signIn,
   uniqueEmail,
+  waitSetupHydrated,
+  waitSignInHydrated,
 } from '../support.js'
 
 async function expectOpenInk(openLocator: Locator): Promise<void> {
@@ -24,8 +27,10 @@ async function expectOpenInk(openLocator: Locator): Promise<void> {
 
 export async function openAdmin(page: Page, opts?: { firstFiscalYear?: string }): Promise<void> {
   await page.goto('/sign-in')
+  await waitSignInHydrated(page)
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+  await waitSetupHydrated(page)
   await page.getByLabel('Naam', { exact: true }).fill('Open Kleur Test BV')
   if (opts?.firstFiscalYear !== undefined) {
     await page.locator('input[name="firstFiscalYear"]').fill(opts.firstFiscalYear)
@@ -33,9 +38,9 @@ export async function openAdmin(page: Page, opts?: { firstFiscalYear?: string })
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
     page.getByRole('heading', { name: /Goedemorgen|Goedemiddag|Goedenavond/ }),
-  ).toBeVisible()
-  await enableAdvancedMode(page)
+  ).toBeVisible({ timeout: e2eInteractionTimeout() })
   await hydrated(page)
+  await enableAdvancedMode(page)
 }
 
 async function selectShellBookYear(page: Page, year: string): Promise<void> {

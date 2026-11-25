@@ -11,10 +11,17 @@ import {
   signIn,
   uniqueEmail,
   waitForAdvancedModeSaveResponse,
+  waitSetupHydrated,
+  waitSignInHydrated,
 } from './support'
+import { waitImportWizardHydrated } from './support/import-wizard-hydration'
 
 test.beforeAll(async () => {
   await runMigrations(DATABASE_URL)
+})
+
+test.describe.configure({
+  timeout: Number(process.env['KLOPT_E2E_API_DELAY_MS'] ?? 0) > 0 ? 180_000 : 60_000,
 })
 
 test.beforeEach(async ({ page }) => {
@@ -25,8 +32,10 @@ const IMPORT_WIZARD_ADVANCED = /Boekhouddetails|Accounting details/i
 
 async function signedInOwner(page: Page): Promise<void> {
   await page.goto('/sign-in')
+  await waitSignInHydrated(page)
   await signIn(page, uniqueEmail())
   await page.getByRole('link', { name: 'Administratie opzetten' }).click()
+  await waitSetupHydrated(page)
   await page.getByLabel('Naam', { exact: true }).fill('Import Hydration BV')
   await page.getByRole('button', { name: 'Administratie aanmaken' }).click()
   await expect(
@@ -48,6 +57,7 @@ function labAdvancedCheckbox(page: Page): Locator {
 async function openImportLab(page: Page): Promise<void> {
   await page.goto('/lab/import-findings?source=moneybird&state=open')
   await expect(page.locator('[data-slot="import-findings"]')).toBeVisible({ timeout: 15_000 })
+  await hydrated(page)
 }
 
 async function expectAdvancedSaveFailedToast(page: Page): Promise<void> {
@@ -63,6 +73,7 @@ test.describe('import wizard Boekhouddetails checkbox', () => {
     await signedInOwner(page)
     await page.goto('/importeren')
     await expect(page.getByRole('heading', { name: /Waar komen je boeken vandaan/ })).toBeVisible()
+    await waitImportWizardHydrated(page)
     const toggle = importWizardAdvancedCheckbox(page)
     await expect(toggle).toBeEnabled()
     await expect(toggle).not.toBeChecked()
@@ -87,6 +98,7 @@ test.describe('import wizard Boekhouddetails checkbox', () => {
     })
 
     await page.goto('/importeren')
+    await waitImportWizardHydrated(page)
     const toggle = importWizardAdvancedCheckbox(page)
     await expect(toggle).toBeEnabled()
     await expect(toggle).not.toBeChecked()
@@ -122,6 +134,7 @@ test.describe('import wizard Boekhouddetails checkbox', () => {
     })
 
     await page.goto('/importeren')
+    await waitImportWizardHydrated(page)
     const toggle = importWizardAdvancedCheckbox(page)
     await expect(toggle).toBeEnabled()
     await expect(toggle).not.toBeChecked()
@@ -151,6 +164,7 @@ test.describe('import wizard Boekhouddetails checkbox', () => {
     })
 
     await page.goto('/importeren')
+    await waitImportWizardHydrated(page)
     const toggle = importWizardAdvancedCheckbox(page)
     await expect(toggle).toBeEnabled()
     await expect(toggle).not.toBeChecked()

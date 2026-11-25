@@ -1,4 +1,6 @@
 import { expect, type Page } from '@playwright/test'
+import { e2eInteractionTimeout } from '../support.js'
+import { waitImportWizardHydrated } from './import-wizard-hydration.js'
 
 const BTW_HEADING = /Btw-codes uit Exact/
 
@@ -21,8 +23,10 @@ export async function clickImportWizardNext(
   page: Page,
   options?: { readyTimeoutMs?: number; advanceTimeoutMs?: number },
 ): Promise<void> {
-  const readyTimeoutMs = options?.readyTimeoutMs ?? 60_000
-  const advanceTimeoutMs = options?.advanceTimeoutMs ?? 30_000
+  const readyTimeoutMs = options?.readyTimeoutMs ?? e2eInteractionTimeout(60_000)
+  const advanceTimeoutMs = options?.advanceTimeoutMs ?? e2eInteractionTimeout(30_000)
+
+  await waitImportWizardHydrated(page)
 
   const wizard = page.locator('[data-slot="import-wizard"]')
   const next = wizard.locator('button[data-focus="next"]')

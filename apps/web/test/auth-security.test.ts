@@ -259,8 +259,9 @@ describe('authentication is rate limited', () => {
     // endpoint stayed wide open.
     const auth = limitedAuth()
     const email = `flooded-${randomUUID()}@example.test`
-    // RFC 3849 documentation prefix 2001:db8::/32 with 96 random bits, so a
-    // back-to-back run never lands in an earlier run's rate-limit rows.
+    // RFC 3849 documentation prefix 2001:db8::/32; Better Auth buckets IPv6 by
+    // /64, so only about 32 random bits are effective — still enough that a
+    // back-to-back run almost never lands in an earlier run's rate-limit rows.
     const ip = `2001:db8:${(randomBytes(12).toString('hex').match(/.{4}/g) ?? []).join(':')}`
 
     const send = async (): Promise<number> => {

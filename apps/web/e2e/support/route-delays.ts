@@ -28,16 +28,39 @@ export async function installAllUrlDelay(page: Page): Promise<void> {
   })
 }
 
-/** Delay `/api/` routes (`KLOPT_E2E_API_DELAY_MS`). Honors `KLOPT_E2E_API_DELAY_NON_GET_ONLY`. */
+/** Delay non-GET (and optionally GET) on app HTTP routes (`KLOPT_E2E_API_DELAY_MS`). */
 export async function installApiDelay(page: Page): Promise<void> {
   const raw = process.env['KLOPT_E2E_API_DELAY_MS']
   if (raw === undefined || raw === '') return
   const ms = Number(raw)
+  if (!Number.isFinite(ms) || ms <= 0) return
   const nonGetOnly = nonGetOnlyDelay()
-  await page.route(/\/api\//, async (route) => {
-    if (!nonGetOnly || route.request().method() !== 'GET') {
-      await new Promise((resolve) => setTimeout(resolve, ms))
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (nonGetOnly && request.method() === 'GET') {
+      await route.continue()
+      return
     }
+    const url = request.url()
+    try {
+      const pathname = new URL(url).pathname
+      if (pathname.startsWith('/sign-in') || pathname.startsWith('/setup')) {
+        await route.continue()
+        return
+      }
+      if (/\.(js|css|map|woff2?|ttf|ico|png|svg|webp)$/i.test(pathname)) {
+        await route.continue()
+        return
+      }
+      if (!/\/api\/|\/_serverFn\//.test(url)) {
+        await route.continue()
+        return
+      }
+    } catch {
+      await route.continue()
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, ms))
     await route.continue()
   })
 }

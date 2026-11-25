@@ -16,5 +16,6 @@ e2e/reminder-confirm-173.spec.ts
 e2e/rgs.spec.ts
 e2e/sales-phase2.spec.ts
 e2e/sales.spec.ts
+e2e/setup-helpers-latency.spec.ts
 e2e/setup.spec.ts
 e2e/signin-setup-redesign.spec.ts
