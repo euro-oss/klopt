@@ -224,6 +224,11 @@ test('phone detail back link returns to the segment the user came from', async (
   await page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ }).click()
   await expect(page.getByRole('heading', { name: /.+/ }).first()).toBeVisible()
   await expect(page).toHaveURL(/segment=draft/)
+  // Built server: before hydration the back link still points at /invoices (#228).
+  await expect(page.getByRole('link', { name: /Verkoop/ }).first()).toHaveAttribute(
+    'href',
+    /segment=draft/,
+  )
   await Promise.all([
     page.waitForURL(/segment=draft/, { timeout: 15_000 }),
     page

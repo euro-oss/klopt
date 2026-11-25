@@ -67,7 +67,7 @@ function readText(path: string): string | null {
 function labRouteEnabledInText(text: string, routePath: string): boolean {
   const escaped = routePath.replace(/\//g, '\\/')
   const block = new RegExp(
-    `createFileRoute\\("${escaped}"\\)\\(\\{[\\s\\S]*?beforeLoad:\\s*\\(\\)\\s*=>\\s*\\{\\s*\\}`,
+    `createFileRoute\\("${escaped}"\\)\\(\\{(?:(?!createFileRoute)[\\s\\S])*?beforeLoad:\\s*\\(\\)\\s*=>\\s*\\{\\s*\\}`,
   )
   return block.test(text)
 }
@@ -76,7 +76,7 @@ function labRouteEnabledInText(text: string, routePath: string): boolean {
 function labRouteDisabledInText(text: string, routePath: string): boolean {
   const escaped = routePath.replace(/\//g, '\\/')
   const block = new RegExp(
-    `createFileRoute\\("${escaped}"\\)\\(\\{[\\s\\S]*?beforeLoad:[\\s\\S]*?throw notFound\\(\\)`,
+    `createFileRoute\\("${escaped}"\\)\\(\\{(?:(?!createFileRoute)[\\s\\S])*?beforeLoad:[\\s\\S]*?throw notFound\\(\\)`,
   )
   return block.test(text)
 }

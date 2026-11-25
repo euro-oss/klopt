@@ -16,7 +16,7 @@ GitHub Actions runs the four **main** shard jobs against the Nitro bundle (`CI=t
 
 ```bash
 cd apps/web
-KLOPT_E2E_BUILT_SERVER=1 pnpm exec vite build
+CI=true KLOPT_E2E_BUILT_SERVER=1 pnpm exec vite build
 export DATABASE_URL=postgres://klopt:klopt@localhost:5432/klopt
 KLOPT_E2E_BUILT_SERVER=1 pnpm exec playwright test -c playwright.ci.config.ts
 ```
