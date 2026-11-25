@@ -12,6 +12,8 @@ import { useT } from '~/i18n/provider'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
+import { defaultCreditNoteIssueDate } from '~/lib/booking-defaults'
+import { shortDeliveryDate } from '~/lib/delivery-display'
 import { localTodayIso } from '~/lib/local-clock'
 import {
   invoiceHistoryEvents,
@@ -206,7 +208,7 @@ function Invoice() {
         idempotencyKey: creditKey.current,
         contactNumber: invoice.contact.number,
         kind: 'credit_note',
-        issueDate: localTodayIso(),
+        issueDate: defaultCreditNoteIssueDate(),
         reference: invoice.reference,
         buyerReference: invoice.buyerReference,
         creditsInvoiceId: invoice.id,
@@ -735,13 +737,6 @@ function Invoice() {
       </div>
     </>
   )
-}
-
-function shortDeliveryDate(iso: string, t: (key: MessageKey) => string): string {
-  const day = String(Number(iso.slice(8, 10)))
-  const month = Number(iso.slice(5, 7))
-  const monthKey = `dash.month.${String(month)}` as MessageKey
-  return `${day} ${t(monthKey)}`
 }
 
 function formatQty(quantity: string): string {

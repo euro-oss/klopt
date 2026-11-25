@@ -58,11 +58,15 @@ interface CreditorAgeing {
   }
 }
 
+export function resolveListOpenItemsAsOf(asOf?: string): string {
+  return asOf ?? todayInAmsterdam()
+}
+
 export async function listOpenItems(
   context: ToolContext,
   input: z.infer<typeof listOpenItemsInput>,
 ): Promise<Answer<Record<string, unknown>>> {
-  const asOf = input.asOf ?? todayInAmsterdam()
+  const asOf = resolveListOpenItemsAsOf(input.asOf)
   const side = input.side ?? 'both'
   const sources: string[] = []
   const data: Record<string, unknown> = {}

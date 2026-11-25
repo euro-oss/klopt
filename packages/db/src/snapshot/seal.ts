@@ -15,6 +15,10 @@ import { todayInAmsterdam } from '@klopt/core/calendar/amsterdam-date'
 import type { Database } from '../client.js'
 import { withInbox, withReporting, withSnapshots, withXafExport } from '../unit-of-work.js'
 
+export function snapshotSealGeneratedOn(): string {
+  return todayInAmsterdam()
+}
+
 /**
  * Sealing a book year (spec 7.6).
  *
@@ -97,7 +101,7 @@ export async function sealFiscalYear(
         fiscalYearCode: options.fiscalYear,
         softwareDesc: 'Klopt',
         softwareVersion: process.env['KLOPT_VERSION'] ?? KLOPT_VERSION,
-        generatedOn: todayInAmsterdam(),
+        generatedOn: snapshotSealGeneratedOn(),
       },
       scheme,
     ),

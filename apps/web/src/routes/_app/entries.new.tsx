@@ -13,7 +13,7 @@ import { formatDate, formatMinorUnits, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
-import { todayInAmsterdam } from '~/lib/amsterdam-date'
+import { defaultManualEntryBookingDate } from '~/lib/booking-defaults'
 import { listAccounts, listJournals, postEntry } from '~/server/ledger'
 
 /**
@@ -63,7 +63,7 @@ function emptyLine(): DraftLine {
 }
 
 function today(): string {
-  return todayInAmsterdam()
+  return defaultManualEntryBookingDate()
 }
 
 const WHY: Record<NotPostable, MessageKey> = {

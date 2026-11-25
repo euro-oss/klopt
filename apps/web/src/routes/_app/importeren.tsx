@@ -57,6 +57,7 @@ import { useHydrated } from '~/lib/hydration'
 import { isTypingInto } from '~/lib/keyboard'
 import { may, MAY_IMPORT_AUDIT_FILE, MAY_LEDGER_IMPORT } from '~/lib/roles'
 import { stageAuditFileXml } from '~/lib/audit-file-pending'
+import { defaultImporterenWizardYear } from '~/lib/booking-defaults'
 import { importVatRulesFromListTaxCodes, type ImportVatRule } from '~/lib/import-findings'
 import {
   IMPORT_WIZARD_STEP_KEYS,
@@ -1543,12 +1544,10 @@ function ImportWizardPage() {
             canStoreSecrets={
               exactConnection.ok ? Boolean(exactConnection.data.canStoreSecrets) : false
             }
-            defaultYear={
-              selectedYears[0] ??
-              (reportYear.ok
-                ? String(reportYear.data.scope.code)
-                : String(new Date().getFullYear()))
-            }
+            defaultYear={defaultImporterenWizardYear(
+              selectedYears[0],
+              reportYear.ok ? String(reportYear.data.scope.code) : undefined,
+            )}
             titleId={titleId}
           />
         )}

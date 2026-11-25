@@ -1,4 +1,4 @@
-import { todayInAmsterdam } from '../../lib/amsterdam-date.js'
+import { xafExportGeneratedOn } from '../../lib/document-generated-on.js'
 import {
   KLOPT_VERSION,
   assessUpgradeImpact,
@@ -346,7 +346,7 @@ export async function handleExportAuditFile(
         ...(query.toPeriod === null ? {} : { toPeriod: query.toPeriod }),
         softwareDesc: 'Klopt',
         softwareVersion: process.env['KLOPT_VERSION'] ?? KLOPT_VERSION,
-        generatedOn: todayInAmsterdam(),
+        generatedOn: xafExportGeneratedOn(),
       },
       scheme,
     ),

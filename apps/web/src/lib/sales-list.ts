@@ -1,3 +1,5 @@
+import { deliveryCalendarDateFromInstant } from './delivery-display'
+
 /**
  * Sales list segmentation and preview helpers (#107 Phase 2).
  *
@@ -297,7 +299,7 @@ export function invoiceHistoryEvents(input: {
     if (delivery.purpose === 'invoice') {
       events.push({
         kind: delivery.delivered ? 'sent' : 'send_failed',
-        when: delivery.sentAt.slice(0, 10),
+        when: deliveryCalendarDateFromInstant(delivery.sentAt),
         tone: null,
         stageLabel: null,
         daysOverdue: null,
@@ -306,7 +308,7 @@ export function invoiceHistoryEvents(input: {
     }
     events.push({
       kind: 'reminder',
-      when: delivery.sentAt.slice(0, 10),
+      when: deliveryCalendarDateFromInstant(delivery.sentAt),
       tone: delivery.tone,
       stageLabel: delivery.stageLabel,
       daysOverdue: null,
