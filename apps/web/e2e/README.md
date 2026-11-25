@@ -6,7 +6,7 @@
 
 ## Built server (CI main shards)
 
-GitHub Actions runs the four **main** shard jobs against the Nitro bundle (`vite build --mode development`, then `node .output/server/index.mjs`) so CI does not pay Vite dev overhead on every spec. The client bundle is built in **development mode** so `import.meta.env.DEV` stays true and `/lab/*` fixture routes work without `apps/web/src` changes (a default production client build 404s them). Better Auth requires a `Secure` session cookie when `NODE_ENV=production`, so the suite uses **self-signed HTTPS on localhost** and Playwright `ignoreHTTPSErrors: true` (CI config only).
+GitHub Actions runs the four **main** shard jobs against the Nitro bundle (`KLOPT_E2E_BUILT_SERVER=1 vite build`, then `node .output/server/index.mjs`) so CI does not pay Vite dev overhead on every spec. Shard builds set that env var so `vite.config.ts` forces `import.meta.env.DEV` for `/lab/*` fixture routes without changing route code (a default production bundle 404s them). Better Auth requires a `Secure` session cookie when `NODE_ENV=production`, so the suite uses **self-signed HTTPS on localhost** and Playwright `ignoreHTTPSErrors: true` (CI config only).
 
 | Piece                                   | Role                                                                                               |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -16,7 +16,7 @@ GitHub Actions runs the four **main** shard jobs against the Nitro bundle (`vite
 
 ```bash
 cd apps/web
-pnpm exec vite build --mode development
+KLOPT_E2E_BUILT_SERVER=1 pnpm exec vite build
 export DATABASE_URL=postgres://klopt:klopt@localhost:5432/klopt
 KLOPT_E2E_BUILT_SERVER=1 pnpm exec playwright test -c playwright.ci.config.ts
 ```

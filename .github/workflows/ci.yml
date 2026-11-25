@@ -287,12 +287,16 @@ jobs:
       - name: Fetch Peppol BIS-3 Schematron
         run: pnpm run peppol:fetch
 
-      # Lab fixture routes gate on `import.meta.env.DEV` in the client bundle (no
-      # production escape hatch). A production-mode vite build 404s `/lab/*` even
-      # when NODE_ENV=production at runtime; development mode keeps fixtures
-      # without touching `apps/web/src`.
-      - name: Build (e2e bundle with DEV lab routes)
-        run: pnpm --filter @klopt/web exec vite build --mode development
+      # Workspace packages first, then a web bundle with KLOPT_E2E_BUILT_SERVER=1
+      # so vite.config.ts keeps import.meta.env.DEV for /lab fixtures (see
+      # apps/web/e2e/README.md).
+      - name: Build workspace deps for e2e
+        run: pnpm --filter '@klopt/web^...' run build
+
+      - name: Build web bundle for e2e shards
+        env:
+          KLOPT_E2E_BUILT_SERVER: '1'
+        run: pnpm --filter @klopt/web exec vite build
 
       - name: Migrate
         run: pnpm --filter @klopt/db run migrate
