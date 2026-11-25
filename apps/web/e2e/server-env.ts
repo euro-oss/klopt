@@ -18,6 +18,12 @@ export const OUTBOX = join(import.meta.dirname, '.outbox')
 /** Uploads stay on disk for the browser suite, whatever the shell has for S3. */
 export const DOCUMENTS = join(import.meta.dirname, '.documents')
 
+/** Browser origin when CI runs the production bundle behind a TLS terminator. */
+export const E2E_BUILT_HTTPS_ORIGIN = 'https://localhost:3399'
+
+/** Loopback port for `node .output/server/index.mjs` (plain HTTP, TLS wraps it). */
+export const E2E_BUILT_HTTP_PORT = 3398
+
 /**
  * SMTP variables `smtpConfigFromEnvironment` / `resolveEmailTransport` read.
  * Every one is forced empty so a partial shell export cannot assemble a relay.
@@ -68,5 +74,23 @@ export function e2eWebServerEnv(
     ...(environment['KLOPT_E2E_NOW_ISO'] !== undefined && environment['KLOPT_E2E_NOW_ISO'] !== ''
       ? { KLOPT_E2E_NOW_ISO: environment['KLOPT_E2E_NOW_ISO'] }
       : {}),
+  }
+}
+
+/**
+ * Production Nitro server for CI built-server e2e. Refuses to boot without
+ * `https://` KLOPT_BASE_URL when NODE_ENV=production (see `resolveBaseUrl`).
+ */
+export function e2eBuiltWebServerEnv(
+  environment: Record<string, string | undefined> = process.env,
+): Record<string, string> {
+  const repoRoot = join(import.meta.dirname, '..', '..', '..')
+  return {
+    ...e2eWebServerEnv(environment),
+    NODE_ENV: 'production',
+    KLOPT_BASE_URL: E2E_BUILT_HTTPS_ORIGIN,
+    PORT: String(E2E_BUILT_HTTP_PORT),
+    HOST: '127.0.0.1',
+    KLOPT_REFERENCE_DATA_DIR: join(repoRoot, 'reference-data'),
   }
 }

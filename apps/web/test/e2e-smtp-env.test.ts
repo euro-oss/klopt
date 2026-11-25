@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { resolveEmailTransport, smtpConfigFromEnvironment } from '@klopt/adapters'
-import { E2E_SMTP_BLANK, e2eWebServerEnv, OUTBOX } from '../e2e/server-env'
+import {
+  E2E_BUILT_HTTPS_ORIGIN,
+  E2E_SMTP_BLANK,
+  e2eBuiltWebServerEnv,
+  e2eWebServerEnv,
+  OUTBOX,
+} from '../e2e/server-env'
 
 /**
  * Gate for issue #120: a local e2e run must never resolve the SMTP transport,
@@ -45,5 +51,16 @@ describe('e2e webServer email env', () => {
   it('keeps the outbox path absolute so a reused cwd cannot hide deliveries', () => {
     expect(OUTBOX.startsWith('/')).toBe(true)
     expect(e2eWebServerEnv()['KLOPT_EMAIL_OUTBOX_DIR']).toBe(OUTBOX)
+  })
+
+  it('built-server env keeps SMTP blank and uses https KLOPT_BASE_URL in production', () => {
+    const env = e2eBuiltWebServerEnv()
+    expect(env['NODE_ENV']).toBe('production')
+    expect(env['KLOPT_BASE_URL']).toBe(E2E_BUILT_HTTPS_ORIGIN)
+    expect(env['KLOPT_BASE_URL']?.startsWith('https://')).toBe(true)
+    for (const key of Object.keys(E2E_SMTP_BLANK)) {
+      expect(env[key], key).toBe('')
+    }
+    expect(smtpConfigFromEnvironment(env)).toBeNull()
   })
 })
