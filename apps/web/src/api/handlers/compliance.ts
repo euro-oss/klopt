@@ -1,3 +1,4 @@
+import { todayInAmsterdam } from '../../lib/amsterdam-date.js'
 import {
   KLOPT_VERSION,
   assessUpgradeImpact,
@@ -345,7 +346,7 @@ export async function handleExportAuditFile(
         ...(query.toPeriod === null ? {} : { toPeriod: query.toPeriod }),
         softwareDesc: 'Klopt',
         softwareVersion: process.env['KLOPT_VERSION'] ?? KLOPT_VERSION,
-        generatedOn: new Date().toISOString().slice(0, 10),
+        generatedOn: todayInAmsterdam(),
       },
       scheme,
     ),

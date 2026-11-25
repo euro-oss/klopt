@@ -41,6 +41,10 @@
     "./setup/fiscal-year": {
       "types": "./dist/setup/fiscal-year.d.ts",
       "default": "./dist/setup/fiscal-year.js"
+    },
+    "./calendar/amsterdam-date": {
+      "types": "./dist/calendar/amsterdam-date.d.ts",
+      "default": "./dist/calendar/amsterdam-date.js"
     }
   },
   "files": [

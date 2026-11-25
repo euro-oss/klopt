@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { violationMessage } from '~/i18n/labels'
 import { useT } from '~/i18n/provider'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { currentFiscalYear, type FiscalYearOption } from '~/lib/fiscal-year'
 import { formatDate } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
@@ -74,7 +75,7 @@ function AuditFile() {
   const hydrated = useHydrated()
 
   const options: readonly FiscalYearOption[] = years.ok ? years.data.fiscalYears : []
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayInAmsterdam()
 
   const [exportYear, setExportYear] = useState(
     () => currentFiscalYear(options, today)?.code ?? options[0]?.code ?? '',

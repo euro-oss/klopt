@@ -8,6 +8,8 @@
  * directly.
  */
 
+import { calendarDateInTimeZone } from '../calendar/amsterdam-date.js'
+
 /** A row could not be turned into something we can use. */
 export class ExactReadError extends Error {
   constructor(
@@ -149,7 +151,7 @@ export function readDate(row: Record<string, unknown>, field: string): string | 
   if (ms?.[1] !== undefined) {
     const at = new Date(Number(ms[1]))
     if (Number.isNaN(at.getTime())) return null
-    return at.toISOString().slice(0, 10)
+    return calendarDateInTimeZone(at, 'Europe/Amsterdam')
   }
 
   return null

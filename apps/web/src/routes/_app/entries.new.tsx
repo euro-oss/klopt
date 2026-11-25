@@ -13,6 +13,7 @@ import { formatDate, formatMinorUnits, parseMinorUnits } from '~/lib/format'
 import { useHydrated } from '~/lib/hydration'
 import { isApple } from '~/lib/keyboard'
 import { cn } from '~/lib/utils'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { listAccounts, listJournals, postEntry } from '~/server/ledger'
 
 /**
@@ -62,7 +63,7 @@ function emptyLine(): DraftLine {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayInAmsterdam()
 }
 
 const WHY: Record<NotPostable, MessageKey> = {

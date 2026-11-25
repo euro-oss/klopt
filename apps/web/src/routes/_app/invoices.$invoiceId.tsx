@@ -206,7 +206,7 @@ function Invoice() {
         idempotencyKey: creditKey.current,
         contactNumber: invoice.contact.number,
         kind: 'credit_note',
-        issueDate: new Date().toISOString().slice(0, 10),
+        issueDate: localTodayIso(),
         reference: invoice.reference,
         buyerReference: invoice.buyerReference,
         creditsInvoiceId: invoice.id,

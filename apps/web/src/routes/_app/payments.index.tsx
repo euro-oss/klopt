@@ -12,6 +12,7 @@ import { formatDate } from '~/lib/format'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { useHydrated } from '~/lib/hydration'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { createPaymentBatch, listPaymentBatches } from '~/server/payments'
 import { listBankAccounts } from '~/server/bank'
 
@@ -52,7 +53,7 @@ export const STATE_KEY: Record<Row['state'], MessageKey> = {
   rejected: 'payments.state.rejected',
 }
 
-const today = (): string => new Date().toISOString().slice(0, 10)
+const today = (): string => todayInAmsterdam()
 
 function PaymentBatches() {
   const { batches, accounts } = Route.useLoaderData()

@@ -1,3 +1,4 @@
+import { todayInAmsterdam } from '@klopt/core/calendar/amsterdam-date'
 import { z } from 'zod'
 import type { ToolContext } from '../context.js'
 import { answer, money, summarise, type Answer } from '../provenance.js'
@@ -61,7 +62,7 @@ export async function listOpenItems(
   context: ToolContext,
   input: z.infer<typeof listOpenItemsInput>,
 ): Promise<Answer<Record<string, unknown>>> {
-  const asOf = input.asOf ?? new Date().toISOString().slice(0, 10)
+  const asOf = input.asOf ?? todayInAmsterdam()
   const side = input.side ?? 'both'
   const sources: string[] = []
   const data: Record<string, unknown> = {}
