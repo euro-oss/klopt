@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Klopt phone · New invoice</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/klopt/tokens.css">
+<link rel="stylesheet" href="ds/klopt/components/bundle.css">
+</head>
+<body>
+<!--
+  Derived board, not drawn by Hidde (#151). Phone 390 of Editor.dc.html: the same draft for
+  Zandbank Advies (two lines, € 971,03), in the pattern of PhoneEntryNew.
+  `view` = edit (default): one column with the customer and dates, then each line as its own card
+  with visible labels (Description, Qty, Price, VAT), the amount in the card head and a 44px remove
+  button, then "+ Add a line" (44px, dashed), the totals and Hidde's warn callout. Preview and
+  Review and send sit in a sticky bar above the tab bar, 48px. The back link replaces Close.
+  `view` = preview: the live preview becomes a full-screen sheet over the tab bar, like the
+  PhoneCommand search sheet. Close (44px) goes back to the form; Review and send stays at the
+  bottom, padded for the home indicator (env(safe-area-inset-bottom), at least the tab bar's 22px).
+  The sheet slides up in 180ms; with prefers-reduced-motion it just appears. The paper (.k-paper)
+  stays white in both themes. The sheet is a <dialog>, drawn open here; the app opens it modal
+  and returns focus to Preview on Close. Tapping Preview or Close switches the view.
+  No key hints on phone (Tab, ↵, ⌘⌫, ⌘D, Esc, ⌘↵ and "type to search ↓" are hidden).
+  Takes `theme` and `view`; PhoneEditorDark.dc.html sets dark and passes `view` on.
+  A11y deviations (#107 decision 4): control borders on --ink-muted (3:1 or more), links in ink and
+  underlined, 44px targets, no ink-faint (the paper placeholders use #63636b), self-hosted fonts.
+  Amounts and dates are Inter tabular (.k-num) and never wrap; no JetBrains Mono on this board.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../design-system/fonts/fonts.css">
+<style>
+body{margin:0;background:var(--ground)}
+.k-root.k-phone{overflow:clip}
+a{color:var(--ink)}
+.k-root[data-theme]{--line-control:var(--ink-muted)}
+.k-root .k-input{border-color:var(--line-control)}
+.k-phone .k-input{height:44px;font-size:15px}
+.k-phone .k-kbd,.k-phone .k-chord{display:none}
+.k-root .k-card{border-radius:var(--radius-lg)}
+.nw{white-space:nowrap}
+.lnk{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.lnk44{display:inline-flex;align-items:center;min-height:44px;min-width:44px}
+.cust{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 12px 10px;border:1px solid var(--line-control);border-radius:var(--radius-md);background:var(--surface);box-sizing:border-box}
+.cust input{width:100%;height:44px;border:0;outline:0;background:transparent;font:600 15px var(--font-sans);color:var(--ink);padding:0}
+.av{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--primary);color:var(--on-primary);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.g3{display:grid;grid-template-columns:72px minmax(0,1fr) 96px;gap:12px}
+.lc{padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.lc-head{display:flex;align-items:center;gap:12px;margin:-4px -8px -4px 0}
+.lc-title{margin:0;flex:1;font-size:15px;line-height:20px;font-weight:600}
+.lc-amt{font-size:15px;font-weight:600}
+.rm{width:44px;height:44px;padding:0;justify-content:center;font-size:20px;color:var(--ink-muted)}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.dock{position:sticky;bottom:0;z-index:2}
+.dock-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.k-root .dock-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+.sheet{position:static;width:auto;max-width:none;height:auto;max-height:none;min-height:844px;margin:0;padding:0;border:0;color:inherit;display:flex;flex-direction:column;background:var(--ground);animation:up 180ms ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.sheet{animation:none}}
+.s-top{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;padding:12px 8px 12px 16px;background:var(--ground);border-bottom:1px solid var(--line-soft)}
+.s-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.s-title h1{margin:0;font-size:17px;line-height:22px;font-weight:600}
+.close{flex:none;min-height:44px;min-width:44px;padding:0 8px;border:0;background:transparent;color:var(--ink);font:500 15px var(--font-sans);cursor:pointer}
+.s-body{flex:1;padding:16px}
+.s-bar{position:sticky;bottom:0;padding:12px 16px max(22px, env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line)}
+.k-root .s-bar .k-btn{height:48px;justify-content:center;font-size:15px;width:100%}
+.k-root .k-paper{aspect-ratio:auto;padding:20px;font-size:12px;line-height:1.4;display:flex;flex-direction:column;gap:20px}
+.pgrid{display:grid;grid-template-columns:minmax(0,1fr) 24px 44px 30px 52px;gap:6px}
+.pm{color:#63636b}
+</style>
+</helmet>
+<div class="k-root k-phone" data-theme="{{theme}}">
+  <sc-if value="{{v.edit}}" hint-placeholder-val="{{true}}">
+  <div class="k-phone-top">
+    <a href="PhoneSales.dc.html" class="k-btn k-btn--ghost" style="height: 44px; padding: 0 8px;">‹ Sales</a>
+    <span style="flex: 1;"></span>
+    <span class="k-pill k-pill--draft">Draft</span>
+  </div>
+  <form class="k-phone-body">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600;">New invoice</h1>
+      <span class="k-muted" style="font-size: 13px;">Saved a moment ago</span>
+    </div>
+
+    <section class="k-card" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+      <div class="k-field">
+        <label class="k-label" for="cust">Customer</label>
+        <div class="cust">
+          <span class="av" aria-hidden="true">ZA</span>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+            <input id="cust" value="Zandbank Advies (demo)">
+            <span style="font-size: 13px; line-height: 18px; color: var(--ink-2);">Amsterdam · NL000001005B99 · pays in 30 days</span>
+          </span>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="k-field"><label class="k-label" for="d1">Invoice date</label><input id="d1" class="k-input k-num" inputmode="numeric" value="30-10-2026"></div>
+        <div class="k-field"><label class="k-label" for="d2">Due</label><input id="d2" class="k-input k-num" inputmode="numeric" value="29-11-2026"></div>
+      </div>
+      <div class="k-field">
+        <label class="k-label" for="ref">Their reference <small>optional</small></label>
+        <input id="ref" class="k-input" placeholder="PO number">
+      </div>
+    </section>
+
+    <div style="display: flex; flex-direction: column;">
+      <h2 id="lines-h" style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 600;">What you are invoicing</h2>
+      <span class="k-muted" style="font-size: 13px; display: flex; align-items: center; gap: 6px;">Booked to 8000 Omzet <a href="#" class="lnk lnk44">change</a></span>
+    </div>
+    <section class="k-card lc" aria-labelledby="l1">
+      <div class="lc-head">
+        <h3 id="l1" class="lc-title">Line 1</h3>
+        <span class="k-num nw lc-amt">€ 760,00</span>
+        <button type="button" class="k-btn k-btn--ghost rm" aria-label="Remove line 1">×</button>
+      </div>
+      <div class="k-field"><label class="k-label" for="ds1">Description</label><input id="ds1" class="k-input" value="Consultancy, October"></div>
+      <div class="g3">
+        <div class="k-field"><label class="k-label" for="q1">Qty</label><input id="q1" class="k-input k-num" inputmode="decimal" value="8"></div>
+        <div class="k-field"><label class="k-label" for="p1">Price</label><input id="p1" class="k-input k-num" inputmode="decimal" value="95,00"></div>
+        <div class="k-field"><label class="k-label" for="v1">VAT</label><select id="v1" class="k-input"><option>21%</option><option>9%</option><option>0% EU service</option><option>Reverse charge</option><option>Exempt</option></select></div>
+      </div>
+    </section>
+    <section class="k-card lc" aria-labelledby="l2">
+      <div class="lc-head">
+        <h3 id="l2" class="lc-title">Line 2</h3>
+        <span class="k-num nw lc-amt">€ 42,50</span>
+        <button type="button" class="k-btn k-btn--ghost rm" aria-label="Remove line 2">×</button>
+      </div>
+      <div class="k-field"><label class="k-label" for="ds2">Description</label><input id="ds2" class="k-input" value="Travel costs"></div>
+      <div class="g3">
+        <div class="k-field"><label class="k-label" for="q2">Qty</label><input id="q2" class="k-input k-num" inputmode="decimal" value="1"></div>
+        <div class="k-field"><label class="k-label" for="p2">Price</label><input id="p2" class="k-input k-num" inputmode="decimal" value="42,50"></div>
+        <div class="k-field"><label class="k-label" for="v2">VAT</label><select id="v2" class="k-input"><option>21%</option><option>9%</option><option>0% EU service</option><option>Reverse charge</option><option>Exempt</option></select></div>
+      </div>
+    </section>
+    <button type="button" class="k-btn k-btn--dashed" style="height: 44px; justify-content: center;">+ Add a line</button>
+
+    <section class="k-card" aria-label="Totals" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+      <div class="kv"><span style="color: var(--ink-2);">Excluding VAT</span><span class="k-num nw">€ 802,50</span></div>
+      <div class="kv"><span style="color: var(--ink-2);">21% VAT</span><span class="k-num nw">€ 168,53</span></div>
+      <div class="kv" style="padding-top: 8px; border-top: 1px solid var(--line-soft); font-size: 16px;"><strong style="font-weight: 600;">Total</strong><strong class="k-num nw" style="font-weight: 700;">€ 971,03</strong></div>
+    </section>
+
+    <section class="k-callout k-callout--warn" style="flex-direction: column; gap: 4px;">
+      <div style="display: flex; gap: 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <div class="k-callout-body">
+          <span class="k-callout-title">One thing before this can go out as an e-invoice</span>
+          <span class="k-callout-text">Your company address and Chamber of Commerce number are empty. Customers can still get the PDF, but Peppol needs them.</span>
+        </div>
+      </div>
+      <a href="PhoneSettingsCompany.dc.html" class="lnk lnk44" style="font-weight: 600; margin-left: 32px; align-self: flex-start;">Fill in now</a>
+    </section>
+  </form>
+  <div class="dock">
+    <div class="dock-bar">
+      <button type="button" class="k-btn" onClick="{{toPreview}}">Preview</button>
+      <button type="button" class="k-btn k-btn--primary">Review and send</button>
+    </div>
+    <nav class="k-tabbar" aria-label="Main">
+      <a class="k-tabbar-item" href="PhoneHomeSearch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="k-tabbar-item is-active" href="PhoneSales.dc.html" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Sales<span class="k-badge k-badge--danger">5</span></a>
+      <a class="k-tabbar-item" href="PhoneReceipt.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Receipt</a>
+      <a class="k-tabbar-item" href="PhoneMatch.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg>Bank<span class="k-badge k-badge--brand">15</span></a>
+      <a class="k-tabbar-item" href="PhoneMore.dc.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</a>
+    </nav>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{v.preview}}" hint-placeholder-val="{{false}}">
+  <dialog class="sheet" open aria-labelledby="pv-h">
+    <div class="s-top">
+      <div class="s-title">
+        <h1 id="pv-h">Preview</h1>
+        <span class="k-muted" style="font-size: 13px;">As your customer sees it · PDF · UBL</span>
+      </div>
+      <button type="button" class="close" onClick="{{toEdit}}">Close</button>
+    </div>
+    <div class="s-body">
+      <article class="k-paper" aria-label="Invoice preview">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <span style="font-size: 15px; font-weight: 700;">Demo BV</span>
+            <span class="pm">[your address]</span>
+            <span class="pm">[KvK number]</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; text-align: right;">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em;">Invoice</span>
+            <span class="pm">Number given when sent</span>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+            <span class="pm" style="font-size: 10px; text-transform: uppercase; letter-spacing: .06em;">Bill to</span>
+            <span style="font-weight: 600;">Zandbank Advies (demo)</span>
+            <span>Amsterdam</span>
+            <span>NL000001005B99</span>
+          </div>
+          <dl class="k-num" style="margin: 0; display: grid; grid-template-columns: auto auto; column-gap: 12px; row-gap: 3px; align-content: start;">
+            <dt class="pm">Date</dt><dd class="nw" style="margin: 0;">30-10-2026</dd>
+            <dt class="pm">Due</dt><dd class="nw" style="margin: 0;">29-11-2026</dd>
+          </dl>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <div class="pgrid pm" style="padding: 6px 0; border-bottom: 1.5px solid #18181b; font-size: 10px; text-transform: uppercase; letter-spacing: .06em;"><span>Description</span><span>Qty</span><span>Price</span><span>VAT</span><span style="text-align: right;">Amount</span></div>
+          <div class="pgrid k-num" style="padding: 8px 0; border-bottom: 1px solid #efeee9;"><span>Consultancy, October</span><span>8</span><span>95,00</span><span>21%</span><span style="text-align: right;">760,00</span></div>
+          <div class="pgrid k-num" style="padding: 8px 0; border-bottom: 1px solid #efeee9;"><span>Travel costs</span><span>1</span><span>42,50</span><span>21%</span><span style="text-align: right;">42,50</span></div>
+          <dl class="k-num" style="margin: 12px 0 0 auto; display: grid; grid-template-columns: auto 72px; column-gap: 16px; row-gap: 4px;">
+            <dt class="pm">Subtotal</dt><dd class="nw" style="margin: 0; text-align: right;">€ 802,50</dd>
+            <dt class="pm">VAT 21%</dt><dd class="nw" style="margin: 0; text-align: right;">€ 168,53</dd>
+            <dt style="font-weight: 700; font-size: 14px;">Total</dt><dd class="nw" style="margin: 0; text-align: right; font-weight: 700; font-size: 14px;">€ 971,03</dd>
+          </dl>
+        </div>
+        <p style="margin: 0; padding-top: 14px; border-top: 1px solid #efeee9; color: #52525b; line-height: 1.6;">Please pay <span class="nw">€ 971,03</span> by <span class="nw">29-11-2026</span> to <span class="nw">NL69 TEST 0000 0000 01</span> in the name of Demo BV, quoting the invoice number.</p>
+      </article>
+    </div>
+    <div class="s-bar">
+      <button type="button" class="k-btn k-btn--primary">Review and send</button>
+    </div>
+  </dialog>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"view":{"editor":"enum","options":["edit","preview"],"default":"edit"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: props.view ?? 'edit' };
+  }
+  renderVals() {
+    const v = this.state.view;
+    return { theme: this.props.theme ?? 'light', v: { edit: v === 'edit', preview: v === 'preview' }, toPreview: () => this.setState({ view: 'preview' }), toEdit: () => this.setState({ view: 'edit' }) };
+  }
+}
+</script>
+</body>
+</html>
