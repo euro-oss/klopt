@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
  */
 export const Route = createFileRoute('/lab/primitives')({
   beforeLoad: () => {
-    if (!import.meta.env.DEV) throw notFound()
+    if (!import.meta.env.DEV && !__KLOPT_LAB_ROUTES__) throw notFound()
   },
   component: PrimitivesLab,
 })

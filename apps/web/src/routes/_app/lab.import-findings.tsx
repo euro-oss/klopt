@@ -40,7 +40,7 @@ import { useT } from '~/i18n/provider'
  */
 export const Route = createFileRoute('/_app/lab/import-findings')({
   beforeLoad: () => {
-    if (!import.meta.env.DEV) throw notFound()
+    if (!import.meta.env.DEV && !__KLOPT_LAB_ROUTES__) throw notFound()
   },
   validateSearch: (search: Record<string, unknown>) => ({
     source: search['source'] === 'exact' ? ('exact' as const) : ('moneybird' as const),

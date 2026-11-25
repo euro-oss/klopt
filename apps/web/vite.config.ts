@@ -4,23 +4,16 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
-/**
- * CI built-server e2e (`KLOPT_E2E_BUILT_SERVER=1` during `vite build` in shard
- * jobs) must keep `/lab/*` fixture routes. Those gates use `import.meta.env.DEV`,
- * which a normal production client/SSR bundle bakes as false. Overriding here is
- * CI-only test wiring, not a product escape hatch.
- */
-const ciE2eBuiltBundle = process.env['KLOPT_E2E_BUILT_SERVER'] === '1'
+if (process.env['KLOPT_E2E_BUILT_SERVER'] === '1' && process.env['CI'] !== 'true') {
+  throw new Error(
+    'Refusing vite build: KLOPT_E2E_BUILT_SERVER=1 is only allowed in CI (set CI=true). This flag enables /lab e2e fixture routes in the bundle.',
+  )
+}
 
 export default defineConfig({
-  ...(ciE2eBuiltBundle
-    ? {
-        define: {
-          'import.meta.env.DEV': 'true',
-          'import.meta.env.PROD': 'false',
-        },
-      }
-    : {}),
+  define: {
+    __KLOPT_LAB_ROUTES__: JSON.stringify(process.env['KLOPT_E2E_BUILT_SERVER'] === '1'),
+  },
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
   // pdfkit loads its AFM fonts at runtime (createRequire + package imports);
