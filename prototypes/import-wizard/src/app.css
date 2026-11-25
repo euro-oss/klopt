@@ -1,0 +1,475 @@
+/*
+  Tailwind v4 entry for the import wizard mocks (#100). Build with `npm run build:css`.
+  Tokens come straight from the approved redesign (prototypes/redesign/src/tokens.css);
+  base and components are the redesign's (#57). Wizard-only pieces are marked "WIZARD".
+*/
+@import 'tailwindcss';
+@import '../../redesign/src/tokens.css';
+
+@source '../index.html';
+@source '../js';
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: 'Ubuntu Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('./assets/fonts/ubuntu-sans-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Ubuntu Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('./assets/fonts/ubuntu-sans-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-debit: var(--debit);
+  --color-credit: var(--credit);
+  --color-amount-negative: var(--amount-negative);
+  --color-unreconciled: var(--unreconciled);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+
+  --font-sans: 'Ubuntu Sans Variable', 'Ubuntu Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Ubuntu Sans Variable', 'Ubuntu Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Ubuntu Sans Mono', Menlo, monospace;
+
+  --animate-in-fade: in-fade 150ms ease-out;
+  --animate-in-left: in-left 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-in-right: in-right 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-in-pop: in-pop 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-in-up: in-up 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  @keyframes in-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes in-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.98) translateY(4px);
+    }
+  }
+  @keyframes in-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-weight: 600;
+  }
+  /* One focus style everywhere: 2px ring, offset, never removed. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+}
+
+@layer components {
+  .keycap {
+    display: inline-flex;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-bottom-width: 2px;
+    background: var(--color-background);
+    padding: 0 0.3rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--color-muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Keyboard strip: the one place the accent outlines a region. */
+  .key-strip {
+    border: 1px solid var(--color-accent);
+    background: color-mix(in oklab, var(--color-accent) 8%, var(--color-background));
+  }
+  .field {
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid var(--color-input);
+    background: var(--color-background);
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+  .field:focus-visible {
+    outline-offset: 0;
+  }
+  @media (min-width: 768px) {
+    .field {
+      min-height: 2.25rem;
+      font-size: 0.875rem;
+    }
+  }
+  .btn {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    transition:
+      background-color 120ms,
+      color 120ms,
+      border-color 120ms;
+  }
+  @media (min-width: 768px) {
+    .btn {
+      min-height: 2.25rem;
+    }
+  }
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+  .btn-primary:hover:not(:disabled, [aria-disabled='true']) {
+    background: color-mix(in oklab, var(--color-primary) 82%, var(--color-background));
+  }
+  .btn-outline {
+    border-color: var(--color-input);
+    background: var(--color-background);
+  }
+  .btn-outline:hover:not(:disabled),
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-muted);
+  }
+  .btn-icon {
+    width: 2.75rem;
+    padding: 0;
+  }
+  @media (min-width: 768px) {
+    .btn-icon {
+      width: 2.25rem;
+    }
+  }
+  /* Status badge: text in the hue, fill at 10%, no yellow. */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: 1.375rem;
+    padding: 0 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .badge-error {
+    color: var(--color-destructive);
+    background: color-mix(in oklab, var(--color-destructive) 8%, transparent);
+  }
+  .badge-success {
+    color: var(--color-success);
+    background: color-mix(in oklab, var(--color-success) 8%, transparent);
+  }
+  .badge-attention {
+    color: var(--color-warning);
+    background: color-mix(in oklab, var(--color-warning) 8%, transparent);
+  }
+  .badge-info {
+    color: var(--color-info);
+    background: color-mix(in oklab, var(--color-info) 8%, transparent);
+  }
+  .badge-neutral {
+    color: var(--color-muted-foreground);
+    border-color: var(--color-border);
+  }
+  .sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--color-background);
+    box-shadow: none;
+    border-right: 1px solid var(--color-border);
+  }
+  @media (min-width: 768px) {
+    .sticky-col {
+      border-right: 0;
+    }
+  }
+}
+
+/* Motion: short, functional, and gone under reduced motion. */
+.collapse-out {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1) 280ms,
+    opacity 200ms ease 280ms;
+}
+.collapse-out > * {
+  overflow: hidden;
+  min-height: 0;
+}
+.collapse-out.is-gone {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.flash-success {
+  animation: flash-success 600ms ease-out;
+}
+@keyframes flash-success {
+  0% {
+    background-color: color-mix(in oklab, var(--color-success) 22%, transparent);
+  }
+  100% {
+    background-color: color-mix(in oklab, var(--color-success) 8%, transparent);
+  }
+}
+.check-draw path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: check-draw 320ms ease-out 80ms forwards;
+}
+@keyframes check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.count-bump {
+  animation: count-bump 300ms ease-out;
+}
+@keyframes count-bump {
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+/* WIZARD: full-page screenshots only. The action bar sits at the end instead of floating mid-image. */
+.shot [data-footer] {
+  position: static !important;
+}
+.shot [data-page] {
+  padding-bottom: 2rem !important;
+}
+
+/* WIZARD: step transition. Direction follows Volgende / Terug. */
+.step-in-fwd {
+  animation: step-in-fwd 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.step-in-back {
+  animation: step-in-back 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes step-in-fwd {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes step-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+/* WIZARD: progress bars. Ink fill; the width change is the only motion. */
+.bar {
+  height: 0.375rem;
+  background: var(--color-muted);
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-foreground);
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bar-indeterminate > span {
+  width: 30%;
+  animation: bar-slide 1.2s ease-in-out infinite;
+}
+@keyframes bar-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+.spin {
+  animation: spin 900ms linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* WIZARD: switch (shadcn Switch, square). */
+.switch {
+  display: inline-flex;
+  height: 1.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  border: 1px solid var(--color-input);
+  padding: 0.125rem;
+}
+.switch > span {
+  width: 0.875rem;
+  height: 0.875rem;
+  background: var(--color-muted-foreground);
+  transition: transform 150ms;
+}
+.switch[aria-checked='true'] {
+  border-color: var(--color-foreground);
+  background: var(--color-foreground);
+}
+.switch[aria-checked='true'] > span {
+  background: var(--color-background);
+  transform: translateX(1rem);
+}
+
+/*
+  WIZARD: design annotation. Lives outside the product UI: dashed, monospace,
+  never app chrome. Hidden with ?notes=0.
+*/
+.design-note {
+  border: 1px dashed var(--color-muted-foreground);
+  padding: 0.625rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+.design-note b {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+.proto-bar {
+  border-bottom: 1px dashed var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+/* Below md the state links get their own row and scroll on their own. */
+.proto-states {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+/* WIZARD: the selected source card already has a 2px ink border, so its focus ring sits clear of it. */
+.src-card:focus-visible {
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-indeterminate > span {
+    animation: none;
+    width: 100%;
+    opacity: 0.35;
+  }
+  .spin {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+  .check-draw path {
+    stroke-dashoffset: 0;
+  }
+}
