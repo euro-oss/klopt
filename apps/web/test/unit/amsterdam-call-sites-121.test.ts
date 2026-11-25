@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defaultManualEntryBookingDate } from '../../src/lib/booking-defaults.js'
+import {
+  defaultImporterenWizardYear,
+  defaultManualEntryBookingDate,
+} from '../../src/lib/booking-defaults.js'
 import { xafExportGeneratedOn } from '../../src/lib/document-generated-on.js'
 
 /** 2027-01-01 00:30 Amsterdam while UTC is still 2026-12-31 (#121). */
@@ -31,5 +34,15 @@ describe('PM call-site tests at New Year midnight (#121)', () => {
 
   it('XAF export generatedOn is the Amsterdam calendar date', () => {
     expect(xafExportGeneratedOn()).toBe('2027-01-01')
+  })
+
+  it('importeren wizard default year without overrides', () => {
+    expect(defaultImporterenWizardYear(undefined, undefined)).toBe('2027')
+  })
+
+  it('importeren wizard year keeps explicit selected or report year', () => {
+    expect(defaultImporterenWizardYear('2025', undefined)).toBe('2025')
+    expect(defaultImporterenWizardYear(undefined, '2024')).toBe('2024')
+    expect(defaultImporterenWizardYear('2025', '2024')).toBe('2025')
   })
 })
