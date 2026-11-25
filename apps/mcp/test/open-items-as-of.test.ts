@@ -26,18 +26,18 @@ describe('list_open_items asOf default (#121)', () => {
 
   function contextFor(captured: { asOf?: string }) {
     const api = {
-      get: vi.fn(async (path: string, query?: Record<string, string>) => {
-        if (path === '/entity') return ENTITY
+      get: vi.fn((path: string, query?: Record<string, string>) => {
+        if (path === '/entity') return Promise.resolve(ENTITY)
         Object.assign(captured, query)
         if (path === '/reports/overdue-invoices') {
-          return { invoices: [] }
+          return Promise.resolve({ invoices: [] })
         }
-        return {
+        return Promise.resolve({
           buckets: [],
           total: '0',
           payableAccountNumber: '1600',
           reconciliation: { subledger: '0', controlAccount: '0', difference: '0' },
-        }
+        })
       }),
     }
     return new ToolContext(api as never)
