@@ -1927,6 +1927,7 @@ export const nl = {
 
   'nav.importWizard': 'Importeren',
   'importWizard.saveFailed': 'Opslaan is niet gelukt. Probeer het opnieuw.',
+  'importWizard.previewLoadFailed': 'Voorbeeld laden mislukt.',
   'nav.exactAdvanced': 'Exact Online (oud)',
   'moneybird.disconnect': 'Verbinding verbreken',
   'moneybird.apiToken': 'Persoonlijk API-token',

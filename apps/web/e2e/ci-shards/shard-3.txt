@@ -5,6 +5,7 @@ e2e/exact-wizard-vat.spec.ts
 e2e/fiscal-years.spec.ts
 e2e/import-findings.spec.ts
 e2e/import-redesign.spec.ts
+e2e/import-wizard-exact-preview-error.spec.ts
 e2e/import-wizard-exact-resume.spec.ts
 e2e/import-wizard-step-of.spec.ts
 e2e/matching.spec.ts
