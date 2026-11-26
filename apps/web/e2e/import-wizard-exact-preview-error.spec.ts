@@ -107,6 +107,7 @@ test.describe('Exact preview failure (#236)', () => {
       const error = page.getByTestId('exact-preview-load-failed')
       await expect(error).toBeVisible({ timeout: 60_000 })
       await expect(error.getByRole('alert')).toContainText('Voorbeeld laden mislukt.')
+      await expect(page.getByRole('button', { name: 'Opnieuw lezen' })).toHaveCount(0)
 
       const next = page.locator('button[data-focus="next"]')
       await expect(next).toHaveAttribute('aria-disabled', 'true')
@@ -117,6 +118,9 @@ test.describe('Exact preview failure (#236)', () => {
       await expect(error).toHaveCount(0, { timeout: 120_000 })
       await expect(page.getByRole('term').filter({ hasText: 'Btw-codes' })).toBeVisible({
         timeout: 120_000,
+      })
+      await expect(page.getByRole('button', { name: 'Opnieuw lezen' })).toBeVisible({
+        timeout: 30_000,
       })
       await expect(next).not.toHaveAttribute('aria-disabled', 'true', { timeout: 30_000 })
 

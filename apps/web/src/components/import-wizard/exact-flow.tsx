@@ -226,7 +226,7 @@ export function ExactWizardFlow({
         <Button
           type="button"
           variant="ghost"
-          className="mt-1 min-h-11 md:min-h-11"
+          className="mt-1 -ml-4 h-11 min-h-11 justify-start px-0 md:min-h-11"
           disabled={busy}
           onClick={() => void runPreview()}
         >
@@ -650,17 +650,19 @@ export function ExactWizardFlow({
             source="exact"
           />
           {previewLoadError}
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11 md:min-h-9"
-              disabled={busy}
-              onClick={() => void runPreview()}
-            >
-              {busy ? t('wizard.voorbeeld.reading') : t('wizard.voorbeeld.reread')}
-            </Button>
-          </div>
+          {!previewLoadFailed && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 md:min-h-9"
+                disabled={busy}
+                onClick={() => void runPreview()}
+              >
+                {busy ? t('wizard.voorbeeld.reading') : t('wizard.voorbeeld.reread')}
+              </Button>
+            </div>
+          )}
           {preview !== null && (
             <dl className="border-border grid gap-2 border p-4 text-sm sm:grid-cols-2">
               {(
