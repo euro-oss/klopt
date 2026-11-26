@@ -293,8 +293,12 @@ const RETURNS_ETAG = new Set(['sales.getContact', 'ledger.getEntity'])
 function errorCodesFor(binding: RouteBinding, operation: OperationDefinition): ApiErrorCode[] {
   const codes = [...ALWAYS]
 
+  // Wrong verb on this URL is refused before the handler runs (#237).
+  codes.push('method_not_allowed')
+
   // A path parameter is something that can fail to exist. A collection
-  // endpoint has nothing to miss, so listing 404 on it would be noise.
+  // endpoint has nothing to miss, so listing 404 on it would be noise —
+  // except that unknown paths under the same prefix also answer 404.
   if (pathParameters(binding.path).length > 0) codes.push('not_found')
 
   if (operation.kind === 'write') {

@@ -474,6 +474,7 @@
               "idempotency_key_required",
               "conflict",
               "precondition_failed",
+              "method_not_allowed",
               "internal_error"
             ]
           },
@@ -757,6 +758,16 @@
           }
         }
       },
+      "MethodNotAllowed": {
+        "description": "405 method_not_allowed",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
       "InternalError": {
         "description": "500 internal_error",
         "content": {
@@ -874,6 +885,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -999,6 +1013,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -1102,6 +1119,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -1277,6 +1297,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -1347,6 +1370,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -1503,6 +1529,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -1556,6 +1585,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -2311,6 +2343,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -2639,6 +2674,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -2786,6 +2824,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -2908,6 +2949,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -3180,6 +3224,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -3291,6 +3338,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -3395,6 +3445,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -3641,6 +3694,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -3897,6 +3953,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -3958,6 +4017,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -4174,6 +4236,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -4281,6 +4346,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -4572,6 +4640,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -4763,6 +4834,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -5020,6 +5094,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -5130,6 +5207,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -5217,6 +5297,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -5352,6 +5435,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -5414,6 +5500,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -5561,6 +5650,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -5702,6 +5794,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -5813,6 +5908,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -5982,6 +6080,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -7069,6 +7170,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -7747,6 +7851,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -8010,6 +8117,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -8242,6 +8352,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -8390,6 +8503,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -8476,6 +8592,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -8750,6 +8869,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -8964,6 +9086,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -9035,6 +9160,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -9164,6 +9292,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -9319,6 +9450,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -10307,6 +10441,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -10807,6 +10944,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -11600,6 +11740,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -11698,6 +11841,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -12165,6 +12311,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -12325,6 +12474,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -12411,6 +12563,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -12560,6 +12715,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -12734,6 +12892,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -12842,6 +13003,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -13388,6 +13552,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -13854,6 +14021,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -14384,6 +14554,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -15192,6 +15365,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -15484,6 +15660,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -15573,6 +15752,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -15687,6 +15869,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -15831,6 +16016,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -15923,6 +16111,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -15997,6 +16188,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -16143,6 +16337,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -16269,6 +16466,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -16315,6 +16515,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -16530,6 +16733,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -16592,6 +16798,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -16719,6 +16928,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -16889,6 +17101,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -17450,6 +17665,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -18450,6 +18668,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -19356,6 +19577,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -19420,6 +19644,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -19643,6 +19870,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -19781,6 +20011,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -19859,6 +20092,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -20215,6 +20451,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -20300,6 +20539,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -20451,6 +20693,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -20521,6 +20766,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -20817,6 +21065,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -20955,6 +21206,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -21071,6 +21325,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -21287,6 +21544,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -21777,6 +22037,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -22288,6 +22551,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -22397,6 +22663,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -22543,6 +22812,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -22840,6 +23112,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -23001,6 +23276,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -23156,6 +23434,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -23271,6 +23552,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -23459,6 +23743,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -23618,6 +23905,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -23925,6 +24215,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -24014,6 +24307,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -24195,6 +24491,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -24319,6 +24618,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -24493,6 +24795,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -24609,6 +24914,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -24783,6 +25091,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -24902,6 +25213,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -25222,6 +25536,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -25565,6 +25882,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -25724,6 +26044,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -25979,6 +26302,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -26278,6 +26604,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -26362,6 +26691,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -26553,6 +26885,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -26750,6 +27085,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -26835,6 +27173,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -26995,6 +27336,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -27113,6 +27457,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -27320,6 +27667,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -27602,6 +27952,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -27676,6 +28029,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -27725,6 +28081,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -27982,6 +28341,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -28202,6 +28564,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -28300,6 +28665,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -28425,6 +28793,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -28567,6 +28938,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -28695,6 +29069,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -28795,6 +29172,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -28912,6 +29292,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -29058,6 +29441,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -29348,6 +29734,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -29526,6 +29915,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -29736,6 +30128,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -30138,6 +30533,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -30369,6 +30767,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -30516,6 +30917,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -31186,6 +31590,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -31235,6 +31642,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
@@ -31413,6 +31823,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationFailed"
           },
@@ -31491,6 +31904,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -31585,6 +32001,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -31678,6 +32097,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"

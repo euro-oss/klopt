@@ -217,6 +217,15 @@ describe('the errors it admits to', () => {
     }
   })
 
+  it('lists 405 where a wrong verb is refused before the handler', () => {
+    for (const binding of routeManifest) {
+      const responses = at(`/api/v1${binding.path}`, binding.method.toLowerCase()).responses
+      expect(responses['405']?.$ref, binding.operationId).toBe(
+        '#/components/responses/MethodNotAllowed',
+      )
+    }
+  })
+
   it('offers 404 where there is something to miss, and not otherwise', () => {
     for (const binding of routeManifest) {
       const responses = at(`/api/v1${binding.path}`, binding.method.toLowerCase()).responses
@@ -247,6 +256,7 @@ describe('the errors it admits to', () => {
         'Gone',
         'IdempotencyKeyRequired',
         'InternalError',
+        'MethodNotAllowed',
         'NotFound',
         'PreconditionFailed',
         'Unauthenticated',
