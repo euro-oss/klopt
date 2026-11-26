@@ -54,6 +54,13 @@ export type ApiErrorCode =
    * is to read it again rather than to retry what you sent.
    */
   | 'precondition_failed'
+  /**
+   * The path is recognised but the verb is not (spec issue #237).
+   *
+   * Distinct from `not_found` because the URL is on the map; only the method
+   * is wrong. Answered with an `Allow` header listing the verbs that are.
+   */
+  | 'method_not_allowed'
   | 'internal_error'
 
 /**
@@ -70,6 +77,7 @@ export const STATUS: Record<ApiErrorCode, number> = {
   idempotency_key_required: 400,
   conflict: 409,
   precondition_failed: 412,
+  method_not_allowed: 405,
   internal_error: 500,
 }
 

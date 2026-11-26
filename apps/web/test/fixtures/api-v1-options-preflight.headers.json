@@ -1,0 +1,7 @@
+{
+  "description": "OPTIONS /api/v1/health with a browser preflight-shaped request, captured from main without the api-v1 gate.",
+  "status": 200,
+  "headers": {
+    "content-type": "text/html; charset=utf-8"
+  }
+}

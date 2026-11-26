@@ -876,7 +876,7 @@ export const routeManifest: readonly RouteBinding[] = [
   {
     operationId: 'retention.pseudonymiseContact',
     method: 'POST',
-    path: '/contacts/:contactId/pseudonymise',
+    path: '/contacts/{contactId}/pseudonymise',
     module: 'api/v1/contacts.$contactId.pseudonymise.ts',
     request: { body: 'pseudonymiseContactBody' },
   },
@@ -903,13 +903,13 @@ export const routeManifest: readonly RouteBinding[] = [
   {
     operationId: 'webhooks.delete',
     method: 'DELETE',
-    path: '/webhooks/:endpointId',
+    path: '/webhooks/{endpointId}',
     module: 'api/v1/webhooks.$endpointId.ts',
   },
   {
     operationId: 'webhooks.replay',
     method: 'POST',
-    path: '/webhooks/:endpointId/replay',
+    path: '/webhooks/{endpointId}/replay',
     module: 'api/v1/webhooks.$endpointId.replay.ts',
     request: { body: 'replayWebhookBody' },
   },

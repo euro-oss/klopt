@@ -18,7 +18,7 @@
  *
  * ## It has to be first, which took a plugin
  *
- * This is installed by `src/server-plugins/headless.ts`, not by
+ * This is installed by `src/server-plugins/http-gates.ts`, not by
  * `nitro({ handlers })`. Configured middleware is not first: Nitro unshifts
  * its own public-asset handler ahead of all of it, so the few hundred paths in
  * the client manifest were answered before this ran — a 500 in the headless

@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import headless, { isHeadless, servesPath } from '../src/server-middleware/headless.js'
-import headlessFirst from '../src/server-plugins/headless.js'
+import httpGatesFirst from '../src/server-plugins/http-gates.js'
+import apiV1Gate from '../src/server-middleware/api-v1.js'
 
 /**
  * Spec 10.1's headless mode, at the level the middleware decides it.
@@ -111,10 +112,11 @@ describe('the gate is in front of everything', () => {
     const nitroStatic = () => undefined
     const app = { h3: { '~middleware': [nitroStatic] as unknown[] } }
 
-    headlessFirst(app)
+    httpGatesFirst(app)
 
     expect(app.h3['~middleware'][0]).toBe(headless)
-    expect(app.h3['~middleware'][1]).toBe(nitroStatic)
+    expect(app.h3['~middleware'][1]).toBe(apiV1Gate)
+    expect(app.h3['~middleware'][2]).toBe(nitroStatic)
   })
 
   it('is what the built server actually does', () => {
@@ -134,6 +136,7 @@ describe('the gate is in front of everything', () => {
 
     const source = readFileSync(bundle, 'utf8')
     expect(source).toContain(`app.h3["~middleware"].unshift(headless)`)
+    expect(source).toContain(`app.h3["~middleware"].unshift(apiV1Gate)`)
     // And the gate is no longer in the configured list, where it was behind
     // the static handler.
     expect(source).toMatch(/var globalMiddleware = \[toEventHandler\(static_default\)\]/)
