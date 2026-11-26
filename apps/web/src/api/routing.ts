@@ -19,9 +19,7 @@ export const API_V1_PREFIX = '/api/v1'
  * Paths that exist but are not domain operations (`test/contract.test.ts`).
  * Wrong method on these does not require a session first.
  */
-export const PUBLIC_PATHS: Readonly<
-  Record<string, readonly HttpMethod[]>
-> = {
+export const PUBLIC_PATHS: Readonly<Record<string, readonly HttpMethod[]>> = {
   '/health': ['GET'],
   '/openapi.json': ['GET'],
 }

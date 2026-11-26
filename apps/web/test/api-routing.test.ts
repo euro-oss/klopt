@@ -78,7 +78,9 @@ describe('auth before 405', () => {
 
 describe('the Nitro gate', () => {
   it('404s unknown verbs as JSON problem documents', async () => {
-    const response = await apiV1Gate(event('http://localhost:3000/api/v1/unknown-endpoint', { method: 'GET' }))
+    const response = await apiV1Gate(
+      event('http://localhost:3000/api/v1/unknown-endpoint', { method: 'GET' }),
+    )
     expect(response?.status).toBe(404)
     expect(response?.headers.get('content-type')).toBe('application/problem+json')
     const body = (await response?.json()) as { code: string }
