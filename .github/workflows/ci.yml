@@ -117,6 +117,10 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Assert production web bundle keeps lab routes disabled
+        working-directory: apps/web
+        run: pnpm exec tsx e2e/scripts/assert-lab-build-output.ts
+
       - name: Lint
         run: pnpm run lint
 
@@ -287,8 +291,19 @@ jobs:
       - name: Fetch Peppol BIS-3 Schematron
         run: pnpm run peppol:fetch
 
-      - name: Build
-        run: pnpm run build
+      # Workspace packages first, then a CI-only lab-enabled web bundle (see
+      # apps/web/e2e/README.md and assert-lab-build-output.ts).
+      - name: Build workspace deps for e2e
+        run: pnpm --filter '@klopt/web^...' run build
+
+      - name: Build web bundle for e2e shards
+        env:
+          KLOPT_E2E_BUILT_SERVER: '1'
+        run: pnpm --filter @klopt/web exec vite build
+
+      - name: Assert e2e lab bundle enables lab routes
+        working-directory: apps/web
+        run: pnpm exec tsx e2e/scripts/assert-lab-build-output.ts --expect-lab
 
       - name: Migrate
         run: pnpm --filter @klopt/db run migrate
@@ -296,14 +311,15 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --filter @klopt/web exec playwright install --with-deps chromium
 
-      # Main suite only (midnight + fiscal-year run in their own jobs). Shard 1
-      # still runs prod-pdf-check. Spec lists live in e2e/ci-shards/ (duration-
-      # balanced; see README there) instead of Playwright's count-based --shard.
-      # All matrix jobs use vite dev; built-server e2e is tracked in #228.
+      # Main suite only (midnight + fiscal-year stay on vite dev). Shard 1 still
+      # runs prod-pdf-check. Spec lists live in e2e/ci-shards/ (duration-balanced;
+      # see README there). Shards use playwright.ci.config.ts (built server +
+      # self-signed https on localhost).
       - name: Playwright main suite (shard ${{ matrix.shard }}/4)
         working-directory: apps/web
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
+          KLOPT_E2E_BUILT_SERVER: '1'
         run: |
           set -euo pipefail
           if [ "${{ matrix.shard }}" = "1" ]; then
@@ -321,7 +337,7 @@ jobs:
             echo "::error::Missing or empty e2e/ci-shards/shard-${{ matrix.shard }}.txt"
             exit 1
           fi
-          pnpm exec playwright test --reporter=blob,line "${specs[@]}"
+          pnpm exec playwright test -c playwright.ci.config.ts --reporter=blob,line "${specs[@]}"
 
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -380,6 +396,10 @@ jobs:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report
           PLAYWRIGHT_BLOB_OUTPUT_NAME: report-midnight.zip
         run: pnpm exec playwright test --config playwright.contacts-midnight.config.ts --reporter=blob,line
+
+      - name: Exact plain-http copy on vite dev (#228)
+        working-directory: apps/web
+        run: pnpm exec playwright test e2e/exact.spec.ts -g "plain-http origin" --reporter=line
 
       - name: Upload blob report
         if: ${{ !cancelled() }}

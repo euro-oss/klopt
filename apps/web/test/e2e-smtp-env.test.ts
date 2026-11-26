@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { resolveEmailTransport, smtpConfigFromEnvironment } from '@klopt/adapters'
-import { E2E_SMTP_BLANK, e2eWebServerEnv, OUTBOX } from '../e2e/server-env'
+import {
+  E2E_BUILT_HTTPS_ORIGIN,
+  E2E_SMTP_BLANK,
+  e2eBrowserOrigin,
+  e2eBuiltWebServerEnv,
+  e2eWebServerEnv,
+  OUTBOX,
+} from '../e2e/server-env'
 
 /**
  * Gate for issue #120: a local e2e run must never resolve the SMTP transport,
@@ -45,5 +52,29 @@ describe('e2e webServer email env', () => {
   it('keeps the outbox path absolute so a reused cwd cannot hide deliveries', () => {
     expect(OUTBOX.startsWith('/')).toBe(true)
     expect(e2eWebServerEnv()['KLOPT_EMAIL_OUTBOX_DIR']).toBe(OUTBOX)
+  })
+
+  it('e2eBrowserOrigin follows KLOPT_E2E_BUILT_SERVER', () => {
+    const prev = process.env['KLOPT_E2E_BUILT_SERVER']
+    try {
+      delete process.env['KLOPT_E2E_BUILT_SERVER']
+      expect(e2eBrowserOrigin()).toBe('http://localhost:3399')
+      process.env['KLOPT_E2E_BUILT_SERVER'] = '1'
+      expect(e2eBrowserOrigin()).toBe(E2E_BUILT_HTTPS_ORIGIN)
+    } finally {
+      if (prev === undefined) delete process.env['KLOPT_E2E_BUILT_SERVER']
+      else process.env['KLOPT_E2E_BUILT_SERVER'] = prev
+    }
+  })
+
+  it('built-server env keeps SMTP blank and uses https KLOPT_BASE_URL', () => {
+    const env = e2eBuiltWebServerEnv()
+    expect(env['NODE_ENV']).toBe('test')
+    expect(env['KLOPT_BASE_URL']).toBe(E2E_BUILT_HTTPS_ORIGIN)
+    expect(env['KLOPT_BASE_URL']?.startsWith('https://')).toBe(true)
+    for (const key of Object.keys(E2E_SMTP_BLANK)) {
+      expect(env[key], key).toBe('')
+    }
+    expect(smtpConfigFromEnvironment(env)).toBeNull()
   })
 })

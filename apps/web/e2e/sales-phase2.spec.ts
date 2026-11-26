@@ -224,15 +224,23 @@ test('phone detail back link returns to the segment the user came from', async (
   await page.getByRole('link', { name: /Windvaan Workshops \(demo\)/ }).click()
   await expect(page.getByRole('heading', { name: /.+/ }).first()).toBeVisible()
   await expect(page).toHaveURL(/segment=draft/)
-  await page
-    .getByRole('link', { name: /Verkoop/ })
-    .first()
-    .click()
-  await expect(page).toHaveURL(/segment=draft/)
-  await expect(page.getByRole('tab', { name: /Concepten/ })).toHaveAttribute(
-    'aria-selected',
-    'true',
+  // Built server: before hydration the back link still points at /invoices (#228).
+  await expect(page.getByRole('link', { name: /Verkoop/ }).first()).toHaveAttribute(
+    'href',
+    /segment=draft/,
   )
+  await Promise.all([
+    page.waitForURL(/segment=draft/, { timeout: 15_000 }),
+    page
+      .getByRole('link', { name: /Verkoop/ })
+      .first()
+      .click(),
+  ])
+  await expect
+    .poll(async () => page.getByRole('tab', { name: /Concepten/ }).getAttribute('aria-selected'), {
+      timeout: 15_000,
+    })
+    .toBe('true')
 })
 
 test('issued credit note CN2025-0041 shows Creditnota versturen on preview and detail', async ({

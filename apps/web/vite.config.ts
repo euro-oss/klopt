@@ -4,7 +4,16 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
+if (process.env['KLOPT_E2E_BUILT_SERVER'] === '1' && process.env['CI'] !== 'true') {
+  throw new Error(
+    'Refusing vite build: KLOPT_E2E_BUILT_SERVER=1 is only allowed in CI (set CI=true). This flag enables /lab e2e fixture routes in the bundle.',
+  )
+}
+
 export default defineConfig({
+  define: {
+    __KLOPT_LAB_ROUTES__: JSON.stringify(process.env['KLOPT_E2E_BUILT_SERVER'] === '1'),
+  },
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
   // pdfkit loads its AFM fonts at runtime (createRequire + package imports);

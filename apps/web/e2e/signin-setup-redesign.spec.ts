@@ -4,6 +4,7 @@ import { expect, test, type ConsoleMessage, type Page } from '@playwright/test'
 import { closeDatabase, createDatabase, LegalAcceptancesRepository, runMigrations } from '@klopt/db'
 import { findUserIdByEmail } from '@klopt/db/testing'
 import { chooseOption, codeFor, DATABASE_URL, signIn, signOut, uniqueEmail } from './support'
+import { e2eBrowserOrigin } from './server-env'
 
 /**
  * SignIn + Setup redesign (#138 / #140 board) — light and dark at 1440 and 390.
@@ -29,7 +30,7 @@ async function withHostedLegal(page: Page): Promise<void> {
     {
       name: 'klopt-e2e-legal',
       value: 'on',
-      url: 'http://localhost:3399',
+      url: e2eBrowserOrigin(),
     },
   ])
 }

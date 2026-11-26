@@ -18,6 +18,19 @@ export const OUTBOX = join(import.meta.dirname, '.outbox')
 /** Uploads stay on disk for the browser suite, whatever the shell has for S3. */
 export const DOCUMENTS = join(import.meta.dirname, '.documents')
 
+/** Browser origin when CI runs the production bundle behind a TLS terminator. */
+export const E2E_BUILT_HTTPS_ORIGIN = 'https://localhost:3399'
+
+/** Playwright base URL for cookie injection (dev http vs CI https). */
+export function e2eBrowserOrigin(): string {
+  return process.env['KLOPT_E2E_BUILT_SERVER'] === '1'
+    ? E2E_BUILT_HTTPS_ORIGIN
+    : 'http://localhost:3399'
+}
+
+/** Loopback port for `node .output/server/index.mjs` (plain HTTP, TLS wraps it). */
+export const E2E_BUILT_HTTP_PORT = 3398
+
 /**
  * SMTP variables `smtpConfigFromEnvironment` / `resolveEmailTransport` read.
  * Every one is forced empty so a partial shell export cannot assemble a relay.
@@ -68,5 +81,24 @@ export function e2eWebServerEnv(
     ...(environment['KLOPT_E2E_NOW_ISO'] !== undefined && environment['KLOPT_E2E_NOW_ISO'] !== ''
       ? { KLOPT_E2E_NOW_ISO: environment['KLOPT_E2E_NOW_ISO'] }
       : {}),
+  }
+}
+
+/**
+ * Built Nitro bundle for CI e2e. Uses `NODE_ENV=test` (not `production`) so
+ * Playwright-only paths like `klopt-e2e-legal` stay available while the browser
+ * still talks to `https://localhost` for Secure session cookies.
+ */
+export function e2eBuiltWebServerEnv(
+  environment: Record<string, string | undefined> = process.env,
+): Record<string, string> {
+  const repoRoot = join(import.meta.dirname, '..', '..', '..')
+  return {
+    ...e2eWebServerEnv(environment),
+    NODE_ENV: 'test',
+    KLOPT_BASE_URL: E2E_BUILT_HTTPS_ORIGIN,
+    PORT: String(E2E_BUILT_HTTP_PORT),
+    HOST: '127.0.0.1',
+    KLOPT_REFERENCE_DATA_DIR: join(repoRoot, 'reference-data'),
   }
 }

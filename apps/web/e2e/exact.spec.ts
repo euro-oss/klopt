@@ -85,6 +85,10 @@ test('signing in at Exact is refused until there is an app to sign in with', asy
 })
 
 test('a plain-http origin says so, rather than failing at Exact', async ({ page }) => {
+  test.skip(
+    process.env['KLOPT_E2E_BUILT_SERVER'] === '1',
+    'built-server CI uses https://localhost; plain-http copy is covered on vite dev',
+  )
   // The e2e server is http://localhost:3399, which is exactly the situation a
   // developer is in before they front the app with https. Exact refuses to
   // register a plain-http redirect, and their App Center does not explain why —

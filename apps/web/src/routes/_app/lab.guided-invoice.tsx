@@ -11,7 +11,7 @@ import { GuidedInvoiceFlow } from '~/components/invoices/guided-invoice-flow'
  */
 export const Route = createFileRoute('/_app/lab/guided-invoice')({
   beforeLoad: () => {
-    if (!import.meta.env.DEV) throw notFound()
+    if (!import.meta.env.DEV && !__KLOPT_LAB_ROUTES__) throw notFound()
   },
   validateSearch: (search: Record<string, unknown>) => ({
     state:
