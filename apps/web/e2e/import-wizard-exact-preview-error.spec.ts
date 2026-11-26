@@ -109,6 +109,15 @@ test.describe('Exact preview failure (#236)', () => {
       await expect(error.getByRole('alert')).toContainText('Voorbeeld laden mislukt.')
       await expect(page.getByRole('button', { name: 'Opnieuw lezen' })).toHaveCount(0)
 
+      const alert = error.getByRole('alert')
+      const retry = error.getByRole('button', { name: 'Opnieuw proberen' })
+      await expect(retry).toBeVisible()
+      const alertBox = await alert.boundingBox()
+      const retryBox = await retry.boundingBox()
+      expect(alertBox, 'alert bounding box').not.toBeNull()
+      expect(retryBox, 'retry bounding box').not.toBeNull()
+      expect(Math.abs(alertBox!.x - retryBox!.x)).toBeLessThanOrEqual(1)
+
       const next = page.locator('button[data-focus="next"]')
       await expect(next).toHaveAttribute('aria-disabled', 'true')
 

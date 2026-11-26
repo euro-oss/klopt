@@ -226,7 +226,7 @@ export function ExactWizardFlow({
         <Button
           type="button"
           variant="ghost"
-          className="mt-1 -ml-4 h-11 min-h-11 justify-start px-0 md:min-h-11"
+          className="mt-1 h-11 min-h-11 justify-start px-0 md:min-h-11"
           disabled={busy}
           onClick={() => void runPreview()}
         >
