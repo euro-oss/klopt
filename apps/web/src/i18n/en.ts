@@ -2132,6 +2132,7 @@ export const en: Record<MessageKey, string> = {
 
   'nav.importWizard': 'Import',
   'importWizard.saveFailed': "Saving didn't work. Try again.",
+  'importWizard.previewLoadFailed': "Couldn't load preview.",
   'nav.exactAdvanced': 'Exact Online (legacy)',
   'moneybird.disconnect': 'Disconnect',
   'moneybird.apiToken': 'Personal API token',

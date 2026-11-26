@@ -5,6 +5,7 @@ e2e/exact-wizard-vat.spec.ts
 e2e/fiscal-years.spec.ts
 e2e/import-findings.spec.ts
 e2e/import-redesign.spec.ts
+e2e/import-wizard-exact-preview-error.spec.ts
 e2e/import-wizard-exact-resume.spec.ts
 e2e/import-wizard-step-of.spec.ts
 e2e/matching.spec.ts
@@ -14,6 +15,7 @@ e2e/payments.spec.ts
 e2e/pr-screenshots-175-billnew-paymentbatch.spec.ts
 e2e/pr-screenshots-177.spec.ts
 e2e/pr-screenshots-201.spec.ts
+e2e/pr-screenshots-236.spec.ts
 e2e/pr-screenshots-costs.spec.ts
 e2e/pr-screenshots-guided-invoice.spec.ts
 e2e/pr-screenshots-phase8-vat.spec.ts

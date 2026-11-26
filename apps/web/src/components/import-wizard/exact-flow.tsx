@@ -35,6 +35,7 @@ import {
   type ImportWizardStep,
 } from '~/lib/import-wizard'
 import { exactPreviewCounts, vatMappingFromPreview } from '~/lib/exact-wizard-vat'
+import { exactPreviewStateAfterRun, runExactPreviewLoad } from '~/lib/exact-preview-run'
 import { cn } from '~/lib/utils'
 import { useT } from '~/i18n/provider'
 import {
@@ -111,6 +112,7 @@ export function ExactWizardFlow({
   const divisionCode = pickedDivision ?? connection?.divisionCode ?? null
   const [year, setYear] = useState(defaultYear)
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
+  const [previewLoadFailed, setPreviewLoadFailed] = useState(false)
   const [previewReading, setPreviewReading] = useState(() => step === 'voorbeeld' || step === 'btw')
 
   useEffect(() => {
@@ -160,19 +162,15 @@ export function ExactWizardFlow({
     const run = (async () => {
       setPreviewReading(true)
       setBusy(true)
-      setError(null)
-      try {
-        const result = await previewExactImport({ data: { year: Number(year) } })
-        if (!result.ok) {
-          setError(result.problem?.detail ?? t('common.unknownError'))
-          setPreview(null)
-          return
-        }
-        setPreview(result.data)
-      } finally {
-        setBusy(false)
-        setPreviewReading(false)
-      }
+      setPreviewLoadFailed(false)
+      const outcome = await runExactPreviewLoad(() =>
+        previewExactImport({ data: { year: Number(year) } }),
+      )
+      const next = exactPreviewStateAfterRun(outcome)
+      setPreview(next.preview)
+      setPreviewLoadFailed(next.loadFailed)
+      setBusy(false)
+      setPreviewReading(false)
     })()
     previewRunRef.current = run
     try {
@@ -185,10 +183,11 @@ export function ExactWizardFlow({
   useEffect(() => {
     if (step !== 'voorbeeld' && step !== 'btw') return
     if (preview !== null) return
+    if (previewLoadFailed) return
     // eslint-disable-next-line react-hooks/set-state-in-effect -- resume auto re-read (#223)
     void runPreview()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when step/preview/year change
-  }, [step, preview, year])
+  }, [step, preview, year, previewLoadFailed])
 
   const vatMapping: ExactVatMappingSummary | null = vatMappingFromPreview(preview)
   const counts = exactPreviewCounts(preview)
@@ -215,7 +214,26 @@ export function ExactWizardFlow({
   const previewAwaiting =
     (step === 'voorbeeld' || step === 'btw') &&
     preview === null &&
+    !previewLoadFailed &&
     (previewReading || busy || advanceInFlight)
+
+  const previewLoadError =
+    previewLoadFailed && (step === 'voorbeeld' || step === 'btw') ? (
+      <div className="mb-4" data-testid="exact-preview-load-failed">
+        <p role="alert" className="text-destructive text-sm">
+          {t('importWizard.previewLoadFailed')}
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          className="mt-1 min-h-11 md:min-h-11"
+          disabled={busy}
+          onClick={() => void runPreview()}
+        >
+          {t('common.retry')}
+        </Button>
+      </div>
+    ) : null
 
   const footerSaving = busy || advanceInFlight || previewReading
 
@@ -600,6 +618,7 @@ export function ExactWizardFlow({
               onChange={(event) => {
                 setYear(event.target.value)
                 setPreview(null)
+                setPreviewLoadFailed(false)
               }}
               inputMode="numeric"
               className="field-control mt-1.5 w-28 tabular-nums"
@@ -630,6 +649,7 @@ export function ExactWizardFlow({
             intro={t('wizard.voorbeeld.exact.intro')}
             source="exact"
           />
+          {previewLoadError}
           <div className="mb-4 flex flex-wrap gap-2">
             <Button
               type="button"
@@ -683,6 +703,7 @@ export function ExactWizardFlow({
             intro={t('wizard.exact.btw.intro')}
             source="exact"
           />
+          {previewLoadError}
           {vatMapping !== null ? (
             <ExactVatPreview summary={vatMapping} notImportedYet />
           ) : previewAwaiting ? (
