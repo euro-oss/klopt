@@ -12,6 +12,7 @@ import {
   dispositionFor,
   gateMatchingUncertain,
   httpAllowHeader,
+  isTemplateParamSegment,
   templateMatches,
   templateSpecificity,
   unauthenticatedIfProtected,
@@ -27,6 +28,15 @@ import * as auth from '../src/api/auth.js'
 const ROUTES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'routes')
 
 const NOT_DOMAIN_ROUTES = ['api/v1/health.ts', 'api/v1/openapi[.]json.ts']
+
+const MANIFEST_PARAM_SAMPLE = '00000000-0000-7000-8000-000000000099'
+
+/** Turn a manifest path template into a concrete URL suffix under `/api/v1`. */
+function concreteManifestPath(template: string): string {
+  return template
+    .replace(/\{[^}]+\}/g, MANIFEST_PARAM_SAMPLE)
+    .replace(/:[^/]+/g, MANIFEST_PARAM_SAMPLE)
+}
 
 const event = (url: string, init: RequestInit = {}) => ({
   req: new Request(url, init),
@@ -50,11 +60,19 @@ describe('path matching', () => {
     expect(gateMatchingUncertain('/api/v1/openapi.JSON')).toBe(true)
     expect(gateMatchingUncertain('/api/v1/journal-entries')).toBe(false)
     expect(gateMatchingUncertain('/api/v1/')).toBe(false)
+    expect(gateMatchingUncertain('/api/v1/health//')).toBe(true)
+    expect(gateMatchingUncertain('/api/v1//health')).toBe(true)
+    expect(gateMatchingUncertain('/api/v1/openapi.json//')).toBe(true)
   })
 
   it('matches templates with parameters', () => {
     expect(templateMatches('/journal-entries/{entryId}', '/journal-entries/abc')).toBe(true)
     expect(templateMatches('/journal-entries/{entryId}', '/journal-entries')).toBe(false)
+    expect(templateMatches('/webhooks/:endpointId', '/webhooks/abc')).toBe(true)
+    expect(isTemplateParamSegment(':endpointId')).toBe(true)
+    expect(templateSpecificity('/webhooks/:endpointId')).toBe(
+      templateSpecificity('/webhooks/{endpointId}'),
+    )
   })
 
   it('prefers a static segment over a parameter segment', () => {
@@ -66,7 +84,33 @@ describe('path matching', () => {
   })
 })
 
+const OPENAPI_SPEC_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'docs',
+  'openapi.json',
+)
+
 describe('manifest coverage for the gate', () => {
+  it('uses OpenAPI brace path parameters only (no :segment params)', () => {
+    for (const binding of routeManifest) {
+      for (const segment of binding.path.split('/').filter((part) => part !== '')) {
+        expect(segment.includes(':'), `${binding.path} segment ${segment}`).toBe(false)
+      }
+    }
+
+    const spec = JSON.parse(readFileSync(OPENAPI_SPEC_PATH, 'utf8')) as {
+      paths: Record<string, unknown>
+    }
+    for (const path of Object.keys(spec.paths)) {
+      for (const segment of path.split('/').filter((part) => part !== '')) {
+        expect(segment.includes(':'), `openapi path ${path} segment ${segment}`).toBe(false)
+      }
+    }
+  })
+
   it('has every route file in the manifest or on the public-path list', () => {
     const declared = new Set(routeManifest.map((binding) => binding.module))
     const orphans = readdirSync(join(ROUTES_DIR, 'api', 'v1'))
@@ -78,6 +122,50 @@ describe('manifest coverage for the gate', () => {
     for (const module of NOT_DOMAIN_ROUTES) {
       expect(existsSync(join(ROUTES_DIR, module)), module).toBe(true)
     }
+  })
+})
+
+describe('manifest templates the gate must recognise', () => {
+  it('delegates for every declared method on each manifest path', () => {
+    for (const binding of routeManifest) {
+      const suffix = concreteManifestPath(binding.path)
+      const disposition = dispositionFor(binding.method, `/api/v1${suffix}`)
+      expect(
+        disposition,
+        `${binding.method} /api/v1${binding.path} → ${JSON.stringify(disposition)}`,
+      ).toEqual({ kind: 'delegate' })
+    }
+  })
+
+  it('delegates webhook and contact pseudonymise templates from the manifest', () => {
+    const sample = MANIFEST_PARAM_SAMPLE
+    expect(dispositionFor('POST', `/api/v1/contacts/${sample}/pseudonymise`)).toEqual({
+      kind: 'delegate',
+    })
+    expect(dispositionFor('DELETE', `/api/v1/webhooks/${sample}`)).toEqual({ kind: 'delegate' })
+    expect(dispositionFor('POST', `/api/v1/webhooks/${sample}/replay`)).toEqual({
+      kind: 'delegate',
+    })
+  })
+})
+
+describe('double-slash URLs', () => {
+  it('delegates through the gate without answering', () => {
+    for (const pathname of [
+      '/api/v1/health//',
+      '/api/v1/openapi.json//',
+      '/api/v1//health',
+      '/api/v1/journal-entries//',
+    ]) {
+      expect(dispositionFor('GET', pathname)).toEqual({ kind: 'delegate' })
+      expect(dispositionFor('PATCH', pathname)).toEqual({ kind: 'delegate' })
+    }
+  })
+
+  it('does not 404 or 405 at the Nitro gate', async () => {
+    expect(
+      await apiV1Gate(event('http://localhost:3000/api/v1/webhooks//', { method: 'PATCH' })),
+    ).toBeUndefined()
   })
 })
 

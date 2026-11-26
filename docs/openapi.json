@@ -3623,124 +3623,6 @@
         }
       }
     },
-    "/api/v1/contacts/:contactId/pseudonymise": {
-      "post": {
-        "operationId": "retention.pseudonymiseContact",
-        "summary": "Erase a contact's personal data on an erasure request. The ledger, the invoices and the documents are untouched.",
-        "tags": [
-          "retention"
-        ],
-        "x-klopt-permission": "retention:manage",
-        "x-klopt-kind": "write",
-        "x-klopt-agent-exposure": "none",
-        "responses": {
-          "200": {
-            "description": "Replayed, or a dry run.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "contactId": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "reason": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "contactId",
-                    "name",
-                    "reason"
-                  ]
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "contactId": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "reason": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "contactId",
-                    "name",
-                    "reason"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/IdempotencyKeyRequired"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthenticated"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "405": {
-            "$ref": "#/components/responses/MethodNotAllowed"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationFailed"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        },
-        "parameters": [
-          {
-            "name": "idempotency-key",
-            "in": "header",
-            "required": true,
-            "description": "A client-chosen key. Retrying with the same key and the same body replays the original result rather than acting twice; the same key with a different body is a 409.",
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "reason": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "reason"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/contacts/{contactId}": {
       "get": {
         "operationId": "sales.getContact",
@@ -4199,6 +4081,135 @@
                     ]
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contacts/{contactId}/pseudonymise": {
+      "post": {
+        "operationId": "retention.pseudonymiseContact",
+        "summary": "Erase a contact's personal data on an erasure request. The ledger, the invoices and the documents are untouched.",
+        "tags": [
+          "retention"
+        ],
+        "x-klopt-permission": "retention:manage",
+        "x-klopt-kind": "write",
+        "x-klopt-agent-exposure": "none",
+        "responses": {
+          "200": {
+            "description": "Replayed, or a dry run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "contactId",
+                    "name",
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contactId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "contactId",
+                    "name",
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "description": "A client-chosen key. Retrying with the same key and the same body replays the original result rather than acting twice; the same key with a different body is a 409.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
               }
             }
           }
@@ -31959,7 +31970,7 @@
         }
       }
     },
-    "/api/v1/webhooks/:endpointId": {
+    "/api/v1/webhooks/{endpointId}": {
       "delete": {
         "operationId": "webhooks.delete",
         "summary": "Stop sending to a URL, and forget its secret.",
@@ -32001,6 +32012,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "405": {
             "$ref": "#/components/responses/MethodNotAllowed"
           },
@@ -32016,6 +32030,14 @@
         },
         "parameters": [
           {
+            "name": "endpointId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "idempotency-key",
             "in": "header",
             "required": true,
@@ -32028,7 +32050,7 @@
         ]
       }
     },
-    "/api/v1/webhooks/:endpointId/replay": {
+    "/api/v1/webhooks/{endpointId}/replay": {
       "post": {
         "operationId": "webhooks.replay",
         "summary": "Send everything again from a point in the stream, or switch a disabled endpoint back on.",
@@ -32098,6 +32120,9 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "405": {
             "$ref": "#/components/responses/MethodNotAllowed"
           },
@@ -32112,6 +32137,14 @@
           }
         },
         "parameters": [
+          {
+            "name": "endpointId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "idempotency-key",
             "in": "header",

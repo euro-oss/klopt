@@ -71,7 +71,14 @@ export function gateMatchingUncertain(pathname: string): boolean {
     if (pathExistsInManifest(folded) && !pathExistsInManifest(suffix)) return true
   }
 
+  if (pathname.includes('//')) return true
+
   return false
+}
+
+/** Path-segment placeholder in manifest templates (`{id}` or `:id`). */
+export function isTemplateParamSegment(segment: string): boolean {
+  return (segment.startsWith('{') && segment.endsWith('}')) || segment.startsWith(':')
 }
 
 /** Match an OpenAPI-style template against a concrete path (both begin with `/`). */
@@ -83,7 +90,7 @@ export function templateMatches(template: string, actual: string): boolean {
   for (let index = 0; index < templateParts.length; index += 1) {
     const segment = templateParts[index] ?? ''
     const value = actualParts[index] ?? ''
-    if (segment.startsWith('{') && segment.endsWith('}')) continue
+    if (isTemplateParamSegment(segment)) continue
     if (segment !== value) return false
   }
 
@@ -92,7 +99,7 @@ export function templateMatches(template: string, actual: string): boolean {
 
 /** Literal segments in a template — more literals means a more specific route. */
 export function templateSpecificity(template: string): number {
-  return template.split('/').filter((part) => part !== '' && !part.startsWith('{')).length
+  return template.split('/').filter((part) => part !== '' && !isTemplateParamSegment(part)).length
 }
 
 const MANIFEST_TEMPLATES = [...new Set(routeManifest.map((binding) => binding.path))]
