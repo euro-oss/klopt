@@ -15,6 +15,8 @@ import { routeManifest, type HttpMethod, type RouteBinding } from './manifest.js
 
 export const API_V1_PREFIX = '/api/v1'
 
+const ALLOW_ORDER = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT'] as const
+
 /**
  * Paths that exist but are not domain operations (`test/contract.test.ts`).
  * Wrong method on these does not require a session first.
@@ -27,16 +29,49 @@ export const PUBLIC_PATHS: Readonly<Record<string, readonly HttpMethod[]>> = {
 export type ApiV1Disposition =
   | { readonly kind: 'delegate' }
   | { readonly kind: 'not_found' }
-  | { readonly kind: 'method_not_allowed'; readonly allow: readonly HttpMethod[] }
+  | { readonly kind: 'method_not_allowed'; readonly allow: string }
   | { readonly kind: 'unauthenticated' }
 
-/** Strip `/api/v1` and normalise; null when the request is not under the prefix. */
+/** Strip `/api/v1` from a pathname; null when the request is not under the prefix. */
 export function apiV1Path(pathname: string): string | null {
   if (pathname === API_V1_PREFIX) return '/'
   if (!pathname.startsWith(`${API_V1_PREFIX}/`)) return null
   const rest = pathname.slice(API_V1_PREFIX.length)
   if (rest === '') return '/'
   return rest
+}
+
+function pathExistsInManifest(suffix: string): boolean {
+  return isPublicApiV1Path(suffix) || bestTemplateForPath(suffix) !== null
+}
+
+/**
+ * When the gate cannot mirror TanStack's URL matching, it must not answer.
+ */
+export function gateMatchingUncertain(pathname: string): boolean {
+  if (!pathname.startsWith(API_V1_PREFIX)) return false
+
+  if (pathname.includes('%')) return true
+
+  if (
+    pathname.startsWith(`${API_V1_PREFIX}/`) &&
+    pathname.endsWith('/') &&
+    pathname !== `${API_V1_PREFIX}/`
+  ) {
+    const withoutSlash = pathname.slice(0, -1)
+    const suffix = apiV1Path(withoutSlash)
+    if (suffix !== null && suffix !== '/' && pathExistsInManifest(suffix)) return true
+  }
+
+  const suffix = apiV1Path(pathname)
+  if (suffix === null || suffix === '/') return false
+
+  if (suffix !== suffix.toLowerCase()) {
+    const folded = suffix.toLowerCase()
+    if (pathExistsInManifest(folded) && !pathExistsInManifest(suffix)) return true
+  }
+
+  return false
 }
 
 /** Match an OpenAPI-style template against a concrete path (both begin with `/`). */
@@ -55,11 +90,38 @@ export function templateMatches(template: string, actual: string): boolean {
   return true
 }
 
+/** Literal segments in a template — more literals means a more specific route. */
+export function templateSpecificity(template: string): number {
+  return template.split('/').filter((part) => part !== '' && !part.startsWith('{')).length
+}
+
+const MANIFEST_TEMPLATES = [...new Set(routeManifest.map((binding) => binding.path))]
+
+export function matchingTemplates(path: string): readonly string[] {
+  return MANIFEST_TEMPLATES.filter((template) => templateMatches(template, path))
+}
+
+/** The single template the real router would pick among several that match. */
+export function bestTemplateForPath(path: string): string | null {
+  const matches = matchingTemplates(path)
+  if (matches.length === 0) return null
+
+  let best = matches[0]!
+  let bestScore = templateSpecificity(best)
+  for (const candidate of matches.slice(1)) {
+    const score = templateSpecificity(candidate)
+    if (score > bestScore || (score === bestScore && candidate.length > best.length)) {
+      best = candidate
+      bestScore = score
+    }
+  }
+  return best
+}
+
 function bindingsForPath(path: string): readonly RouteBinding[] {
-  const templates = new Set(routeManifest.map((binding) => binding.path))
-  const matches = [...templates].filter((template) => templateMatches(template, path))
-  if (matches.length === 0) return []
-  return routeManifest.filter((binding) => matches.includes(binding.path))
+  const template = bestTemplateForPath(path)
+  if (template === null) return []
+  return routeManifest.filter((binding) => binding.path === template)
 }
 
 function publicMethods(path: string): readonly HttpMethod[] | null {
@@ -68,6 +130,26 @@ function publicMethods(path: string): readonly HttpMethod[] | null {
 
 export function isPublicApiV1Path(path: string): boolean {
   return path in PUBLIC_PATHS
+}
+
+/** Wire `Allow` the way HTTP clients expect: HEAD listed whenever GET is. */
+export function httpAllowHeader(methods: readonly HttpMethod[]): string {
+  const names: string[] = methods.map((method) => method)
+  if (methods.includes('GET') && !names.includes('HEAD')) names.push('HEAD')
+  return [...names]
+    .sort(
+      (left, right) =>
+        ALLOW_ORDER.indexOf(left as (typeof ALLOW_ORDER)[number]) -
+        ALLOW_ORDER.indexOf(right as (typeof ALLOW_ORDER)[number]),
+    )
+    .join(', ')
+}
+
+function methodAllowed(verb: string, declared: readonly HttpMethod[]): 'delegate' | 'reject' {
+  if (verb === 'OPTIONS') return 'delegate'
+  if (verb === 'HEAD' && declared.includes('GET')) return 'delegate'
+  if (declared.includes(verb as HttpMethod)) return 'delegate'
+  return 'reject'
 }
 
 /**
@@ -79,39 +161,42 @@ export function isPublicApiV1Path(path: string): boolean {
 export function dispositionFor(method: string, pathname: string): ApiV1Disposition {
   const path = apiV1Path(pathname)
   if (path === null) return { kind: 'delegate' }
+  if (gateMatchingUncertain(pathname)) return { kind: 'delegate' }
 
   const verb = method.toUpperCase()
+  if (verb === 'OPTIONS') return { kind: 'delegate' }
+
   const publicAllowed = publicMethods(path)
 
   if (publicAllowed !== null) {
-    if (publicAllowed.includes(verb as HttpMethod)) return { kind: 'delegate' }
-    return { kind: 'method_not_allowed', allow: publicAllowed }
+    if (methodAllowed(verb, publicAllowed) === 'delegate') return { kind: 'delegate' }
+    return { kind: 'method_not_allowed', allow: httpAllowHeader(publicAllowed) }
   }
 
   const bindings = bindingsForPath(path)
   if (bindings.length === 0) return { kind: 'not_found' }
 
-  const allowed = [...new Set(bindings.map((binding) => binding.method))].sort()
-  const hasMethod = bindings.some((binding) => binding.method === verb)
-  if (hasMethod) return { kind: 'delegate' }
+  const declared = [...new Set(bindings.map((binding) => binding.method))]
+  if (methodAllowed(verb, declared) === 'delegate') return { kind: 'delegate' }
 
-  return { kind: 'method_not_allowed', allow: allowed }
+  return {
+    kind: 'method_not_allowed',
+    allow: httpAllowHeader(declared),
+  }
 }
 
-export function methodNotAllowedResponse(
-  allow: readonly HttpMethod[],
-  requestId: string | null,
-): Response {
+export function methodNotAllowedResponse(allow: string, requestId: string | null): Response {
+  const header = allow
   const error = new ApiError(
     'method_not_allowed',
-    `This URL does not accept that method. Try one of: ${allow.join(', ')}.`,
+    `This URL does not accept that method. Try one of: ${header}.`,
   )
   const problem = toProblem(error, requestId)
   return new Response(JSON.stringify(problem), {
     status: 405,
     headers: {
       'content-type': 'application/problem+json',
-      allow: allow.join(', '),
+      allow: header,
       ...(requestId === null ? {} : { 'x-request-id': requestId }),
     },
   })
@@ -131,7 +216,10 @@ export async function unauthenticatedIfProtected(
 ): Promise<Response | null> {
   if (disposition.kind !== 'method_not_allowed') return null
 
-  const path = apiV1Path(new URL(request.url).pathname)
+  const pathname = new URL(request.url).pathname
+  if (gateMatchingUncertain(pathname)) return null
+
+  const path = apiV1Path(pathname)
   if (path === null || isPublicApiV1Path(path)) return null
 
   const requestId = request.headers.get('x-request-id') ?? uuidv7()
