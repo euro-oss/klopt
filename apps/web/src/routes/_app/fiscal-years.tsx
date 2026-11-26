@@ -10,6 +10,7 @@ import { violationMessage } from '~/i18n/labels'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
 import { defaultJournal, equityAccounts, openingJournals } from '~/lib/account-options'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import {
   dayAfter,
   earlierUnclosedBookYearCodes,
@@ -129,7 +130,7 @@ const PERIOD_STATUS_KEY: Record<string, MessageKey> = {
 
 /** Today, as the books write it. Read once per render rather than per row. */
 function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayInAmsterdam()
 }
 
 /**

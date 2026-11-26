@@ -8,6 +8,8 @@
  * directly.
  */
 
+import { calendarDateInTimeZone } from '../calendar/amsterdam-date.js'
+
 /** A row could not be turned into something we can use. */
 export class ExactReadError extends Error {
   constructor(
@@ -130,10 +132,11 @@ export function readBoolean(row: Record<string, unknown>, field: string): boolea
  * are handled, because which one you get depends on the resource rather than on
  * anything a caller controls.
  *
- * The `/Date(…)/` form is milliseconds UTC; the ISO form has no zone and is a
- * calendar date in the division's own reckoning. Neither is shifted: an invoice
- * dated the 31st is dated the 31st, and applying a timezone to it is how a
- * booking moves into the previous quarter.
+ * The `/Date(…)/` form is an instant in milliseconds; it is mapped to the
+ * Europe/Amsterdam calendar day, which matches how Exact documents dates in
+ * CET/CEST (see the division TimeZone). Plain ISO `YYYY-MM-DD` (and
+ * `YYYY-MM-DDTHH:mm:ss` without offset) is taken as a calendar date as written
+ * and is not shifted.
  */
 const MS_DATE = /^\/Date\((-?\d+)([+-]\d{4})?\)\/$/
 const ISO_DATE = /^(\d{4}-\d{2}-\d{2})(?:[T ]|$)/
@@ -149,7 +152,7 @@ export function readDate(row: Record<string, unknown>, field: string): string | 
   if (ms?.[1] !== undefined) {
     const at = new Date(Number(ms[1]))
     if (Number.isNaN(at.getTime())) return null
-    return at.toISOString().slice(0, 10)
+    return calendarDateInTimeZone(at, 'Europe/Amsterdam')
   }
 
   return null

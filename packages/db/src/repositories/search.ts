@@ -1,6 +1,11 @@
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 import type { SearchResourceType } from '@klopt/core'
+import { calendarDateInTimeZone } from '@klopt/core/calendar/amsterdam-date'
+
+export function searchHitDateFromInstant(firstSeenAt: Date): string {
+  return calendarDateInTimeZone(firstSeenAt, 'Europe/Amsterdam')
+}
 import type { Transaction } from '../client.js'
 import {
   contacts,
@@ -369,7 +374,7 @@ export class SearchRepository {
       id: row.id,
       title: row.filename ?? row.subject ?? 'Document',
       subtitle: row.receivedFrom ?? row.subject,
-      date: row.firstSeenAt.toISOString().slice(0, 10),
+      date: searchHitDateFromInstant(row.firstSeenAt),
       amountMinorUnits: null,
       currency: null,
       path: `/documents/${row.id}`,

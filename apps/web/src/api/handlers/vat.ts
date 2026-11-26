@@ -1,3 +1,4 @@
+import { vatExportGeneratedOn } from '../../lib/document-generated-on.js'
 import {
   KLOPT_VERSION,
   generateVatInstance,
@@ -380,7 +381,7 @@ export async function handleFileVatReturn(context: RequestContext, body: FileVat
       legalName: entity.legalName,
       vatNumber: entity.vatNumber ?? '',
       isSuppletie: plan.isSuppletie,
-      generatedOn: new Date().toISOString().slice(0, 10),
+      generatedOn: vatExportGeneratedOn(),
     })
 
     const transport = filingTransport(body.transport)

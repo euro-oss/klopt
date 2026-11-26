@@ -19,6 +19,7 @@ import { SelectField, SelectOption } from '~/components/ui/select-field'
 import { AccountPicker } from '~/components/finance/account-picker'
 import type { MessageKey } from '~/i18n/nl'
 import { useT } from '~/i18n/provider'
+import { todayInAmsterdam } from '~/lib/amsterdam-date'
 import { useHydrated } from '~/lib/hydration'
 import { getReportYear } from '~/server/fiscal-year'
 import {
@@ -169,7 +170,7 @@ function Exact() {
   // Defaults that match the chart this system ships, so the ordinary case is
   // one field to fill in rather than five. The counter-account is not one of
   // them, on purpose.
-  const [openingDate, setOpeningDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [openingDate, setOpeningDate] = useState(() => todayInAmsterdam())
   const [journalCode, setJournalCode] = useState('')
   const [receivableAccount, setReceivableAccount] = useState('1300')
   const [payableAccount, setPayableAccount] = useState('1600')

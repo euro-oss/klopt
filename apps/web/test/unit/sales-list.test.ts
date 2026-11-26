@@ -205,6 +205,34 @@ describe('invoiceHistoryEvents', () => {
     expect(events.map((e) => e.kind)).toEqual(['issued', 'sent', 'due_unpaid', 'next_reminder'])
     expect(events.map((e) => e.kind).includes('paid' as never)).toBe(false)
   })
+
+  it('uses the Amsterdam calendar day for delivery sentAt (#121)', () => {
+    const events = invoiceHistoryEvents({
+      issueDate: '2026-10-01',
+      dueDate: '2026-10-31',
+      status: 'issued',
+      overdue: false,
+      daysOverdue: null,
+      deliveries: [
+        {
+          id: '1',
+          purpose: 'invoice',
+          delivered: true,
+          channel: 'email',
+          transport: 'file',
+          recipient: 'inkoop@example.nl',
+          documentHash: 'abc',
+          sentAt: '2026-10-30T23:30:00.000Z',
+          stageLabel: null,
+          tone: null,
+          failure: null,
+        },
+      ],
+      nextReminder: null,
+    })
+    const sent = events.find((e) => e.kind === 'sent')
+    expect(sent?.when).toBe('2026-10-31')
+  })
 })
 
 describe('sumInvoiceTotals', () => {
